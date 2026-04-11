@@ -58,7 +58,32 @@ Then add `browserTool` in `apps/api/src/index.ts` when creating `new Agent([...]
 - Ollama not reachable: check `OLLAMA_BASE_URL` (default `http://localhost:11434`)
 - Empty/invalid request: ensure body includes non-empty `"task"`
 - MySQL tool fails: verify `MYSQL_*` env vars and DB availability
+- Social tool says account not connected: run `/auth/:provider/connect` then callback
 
-## 8) Learn-by-doing next
+## 8) Connect social accounts (OAuth)
+
+Use official OAuth before asking AI to use social profile tools.
+
+```bash
+# list providers
+curl http://localhost:3001/auth/providers
+
+# start OAuth for LinkedIn
+curl "http://localhost:3001/auth/linkedin/connect?redirect_uri=http://localhost:3001/auth/linkedin/callback"
+
+# complete OAuth callback
+curl "http://localhost:3001/auth/linkedin/callback?code=YOUR_CODE&state=YOUR_STATE"
+
+# verify connection status
+curl http://localhost:3001/auth/connections
+```
+
+After connecting, run tasks that may use:
+
+- `linkedin_profile_lookup`
+- `x_profile_lookup`
+- `github_profile_lookup`
+
+## 9) Learn-by-doing next
 
 Go to [/scenarios](/scenarios) and run the exercises one by one.

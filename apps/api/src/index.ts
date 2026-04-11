@@ -4,6 +4,18 @@ import {
   readFileTool,
   shellTool,
   mysqlQueryTool,
+  linkedinProfileLookupTool,
+  xProfileLookupTool,
+  githubProfileLookupTool,
+  isSocialProvider,
+  SOCIAL_PROVIDER_POLICIES,
+  createAuthorizationUrl,
+  consumeOAuthState,
+  exchangeCodeForToken,
+  getConnectionsSummary,
+  setToken,
+  unlinkProvider,
+  getDefaultRedirectUri,
 } from "../../../packages/tools/src/index";
 import { on } from "../../../packages/events/src/bus";
 
@@ -16,11 +28,108 @@ on("*", (event) => {
 // Add / remove tools here as you expand the system.
 // The browser tool is excluded by default because it requires Playwright
 // browsers to be installed (`npx playwright install chromium`).
-const agent = new Agent([readFileTool, shellTool, mysqlQueryTool]);
+const agent = new Agent([
+  readFileTool,
+  shellTool,
+  mysqlQueryTool,
+  linkedinProfileLookupTool,
+  xProfileLookupTool,
+  githubProfileLookupTool,
+]);
 
 // ── HTTP server ────────────────────────────────────────────────────────────
 const app = express();
 app.use(express.json());
+
+app.get("/auth/providers", (_req, res) => {
+  res.json({
+    providers: Object.values(SOCIAL_PROVIDER_POLICIES).map((provider) => ({
+      provider: provider.provider,
+      displayName: provider.displayName,
+      allowedActions: provider.allowedActions,
+      defaultScopes: provider.defaultScopes,
+      docsUrl: provider.docsUrl,
+    })),
+  });
+});
+
+app.get("/auth/connections", (_req, res) => {
+  res.json({ connections: getConnectionsSummary() });
+});
+
+app.get("/auth/:provider/connect", (req, res) => {
+  const { provider } = req.params;
+  if (!isSocialProvider(provider)) {
+    res.status(400).json({ error: `Unsupported provider: ${provider}` });
+    return;
+  }
+
+  const redirectUri =
+    typeof req.query.redirect_uri === "string" && req.query.redirect_uri.trim()
+      ? req.query.redirect_uri.trim()
+      : getDefaultRedirectUri(provider);
+
+  try {
+    const { authorizationUrl, state } = createAuthorizationUrl(
+      provider,
+      redirectUri
+    );
+    res.json({
+      provider,
+      authorizationUrl,
+      state,
+      message: `Open authorizationUrl, approve access, then call /auth/${provider}/callback with code and state.`,
+    });
+  } catch (err) {
+    res.status(400).json({ error: String(err) });
+  }
+});
+
+app.get("/auth/:provider/callback", async (req, res) => {
+  const { provider } = req.params;
+  if (!isSocialProvider(provider)) {
+    res.status(400).json({ error: `Unsupported provider: ${provider}` });
+    return;
+  }
+
+  const code =
+    typeof req.query.code === "string" ? req.query.code.trim() : "";
+  const state =
+    typeof req.query.state === "string" ? req.query.state.trim() : "";
+
+  if (!code || !state) {
+    res.status(400).json({ error: "Missing required query params: code, state." });
+    return;
+  }
+
+  try {
+    const stateRecord = consumeOAuthState(state, provider);
+    const token = await exchangeCodeForToken(provider, code, stateRecord.redirectUri);
+    setToken(provider, token);
+
+    res.json({
+      status: "connected",
+      provider,
+      connections: getConnectionsSummary(),
+    });
+  } catch (err) {
+    res.status(400).json({ error: String(err) });
+  }
+});
+
+app.delete("/auth/:provider/connection", (req, res) => {
+  const { provider } = req.params;
+  if (!isSocialProvider(provider)) {
+    res.status(400).json({ error: `Unsupported provider: ${provider}` });
+    return;
+  }
+  unlinkProvider(provider);
+  res.json({
+    status: "disconnected",
+    provider,
+    connections: getConnectionsSummary(),
+  });
+});
 
 /**
  * POST /run

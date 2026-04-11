@@ -74,6 +74,9 @@ Current enabled tools:
 - `read_file`
 - `shell`
 - `mysql_query`
+- `linkedin_profile_lookup`
+- `x_profile_lookup`
+- `github_profile_lookup`
 
 `browser_fetch` exists but is not enabled by default (requires Playwright browser install).
 
@@ -116,6 +119,18 @@ Used by Node app (shell environment, `.env` loader, container env, etc.):
 - `MYSQL_DATABASE` (default empty)
 - `QDRANT_URL` (default `http://localhost:6333`)
 - `QDRANT_COLLECTION` (example: `agent_memory`)
+- `SOCIAL_LINKEDIN_CLIENT_ID`
+- `SOCIAL_LINKEDIN_CLIENT_SECRET`
+- `SOCIAL_LINKEDIN_REDIRECT_URI`
+- `SOCIAL_X_CLIENT_ID`
+- `SOCIAL_X_CLIENT_SECRET`
+- `SOCIAL_X_REDIRECT_URI`
+- `SOCIAL_X_CODE_CHALLENGE`
+- `SOCIAL_X_CODE_VERIFIER`
+- `SOCIAL_GITHUB_CLIENT_ID`
+- `SOCIAL_GITHUB_CLIENT_SECRET`
+- `SOCIAL_GITHUB_REDIRECT_URI`
+- `SOCIAL_RATE_LIMIT_MS` (default `1000`)
 
 ### Infra compose variables
 

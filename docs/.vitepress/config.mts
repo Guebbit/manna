@@ -34,6 +34,7 @@ export default defineConfig({
           { text: "tools/shell", link: "/packages/tools/shell" },
           { text: "tools/mysql_query", link: "/packages/tools/mysql-query" },
           { text: "tools/browser_fetch", link: "/packages/tools/browser-fetch" },
+          { text: "tools/social_accounts", link: "/packages/tools/social-accounts" },
         ],
       },
       {

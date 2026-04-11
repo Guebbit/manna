@@ -16,6 +16,9 @@ All tools implement:
 - `shell` — run allowlisted shell commands with timeout
 - `mysql_query` — run read-only `SELECT` queries against MySQL
 - `browser_fetch` — fetch title and visible text using Playwright
+- `linkedin_profile_lookup` — lookup LinkedIn profile data via official OAuth/API
+- `x_profile_lookup` — lookup X profile data via official OAuth/API
+- `github_profile_lookup` — lookup GitHub profile data via official OAuth/API
 
 ## Exports
 
@@ -23,6 +26,9 @@ All tools implement:
 - `shellTool`
 - `mysqlQueryTool`
 - `browserTool`
+- `linkedinProfileLookupTool`
+- `xProfileLookupTool`
+- `githubProfileLookupTool`
 - `Tool` type
 
 ## Key files
