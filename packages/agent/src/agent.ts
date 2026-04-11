@@ -1,7 +1,7 @@
 import { generateWithMetadata } from "../../llm/src/ollama";
 import { addMemory, getMemory } from "../../memory/src/memory";
 import { emit } from "../../events/src/bus";
-import type { Tool } from "../../tools/src/types";
+import type { Tool } from "../../tools/src";
 import { getLogger } from "../../logger/src/logger";
 
 interface AgentStep {
@@ -10,8 +10,8 @@ interface AgentStep {
   input: Record<string, unknown>;
 }
 
-/** Maximum number of reasoning steps before giving up. */
-const MAX_STEPS = 5;
+// Maximum number of reasoning steps before giving up.
+const MAX_STEPS = process.env.AGENTS_MAX_STEPS || 5;
 const log = getLogger("agent");
 
 /**
