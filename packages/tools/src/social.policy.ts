@@ -37,12 +37,18 @@ export function assertAllowedHost(
 }
 
 function sanitizeText(value: string): string {
+  const emailPattern =
+    /\b[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+\b/g;
+  const phoneCandidatePattern = /(?:\+?\d[\d\s().-]{8,}\d)/g;
+
   return value
-    .replace(
-      /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,
-      "[REDACTED_EMAIL]"
-    )
-    .replace(/(?:\+?\d[\d\s().-]{7,}\d)/g, "[REDACTED_PHONE]");
+    .replace(emailPattern, "[REDACTED_EMAIL]")
+    .replace(phoneCandidatePattern, (candidate) => {
+      const digitCount = candidate.replace(/\D/g, "").length;
+      return digitCount >= 10 && digitCount <= 15
+        ? "[REDACTED_PHONE]"
+        : candidate;
+    });
 }
 
 export function sanitizePii<T>(value: T): T {
@@ -65,4 +71,3 @@ export function sanitizePii<T>(value: T): T {
 
   return value;
 }
-

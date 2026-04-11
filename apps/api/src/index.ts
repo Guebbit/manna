@@ -1,4 +1,5 @@
 import express from "express";
+import rateLimit from "express-rate-limit";
 import { Agent } from "../../../packages/agent/src/agent";
 import {
   readFileTool,
@@ -41,6 +42,14 @@ const agent = new Agent([
 const app = express();
 app.use(express.json());
 
+const oauthRateLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many OAuth requests. Please retry later." },
+});
+
 app.get("/auth/providers", (_req, res) => {
   res.json({
     providers: Object.values(SOCIAL_PROVIDER_POLICIES).map((provider) => ({
@@ -57,7 +66,7 @@ app.get("/auth/connections", (_req, res) => {
   res.json({ connections: getConnectionsSummary() });
 });
 
-app.get("/auth/:provider/connect", (req, res) => {
+app.get("/auth/:provider/connect", oauthRateLimiter, (req, res) => {
   const { provider } = req.params;
   if (!isSocialProvider(provider)) {
     res.status(400).json({ error: `Unsupported provider: ${provider}` });
@@ -85,7 +94,7 @@ app.get("/auth/:provider/connect", (req, res) => {
   }
 });
 
-app.get("/auth/:provider/callback", async (req, res) => {
+app.get("/auth/:provider/callback", oauthRateLimiter, async (req, res) => {
   const { provider } = req.params;
   if (!isSocialProvider(provider)) {
     res.status(400).json({ error: `Unsupported provider: ${provider}` });
