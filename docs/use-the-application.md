@@ -70,3 +70,5 @@ Chromium is installed automatically on `npm install` via the project `postinstal
 ## 8) Learn-by-doing next
 
 Go to [/scenarios](/scenarios) and run the exercises one by one.
+
+If you are deciding which Ollama model to run (fast vs heavy, coding vs reasoning, local limits), see [/model-selection](/model-selection).

@@ -8,6 +8,7 @@ export default defineConfig({
     nav: [
       { text: "Home", link: "/" },
       { text: "Use the App", link: "/use-the-application" },
+      { text: "Model Selection", link: "/model-selection" },
       { text: "Packages", link: "/packages/" },
       { text: "Theory", link: "/theory/agent-loop" },
       { text: "Scenarios", link: "/scenarios" },
@@ -18,6 +19,7 @@ export default defineConfig({
         items: [
           { text: "Home", link: "/" },
           { text: "Use the Application", link: "/use-the-application" },
+          { text: "Model Selection", link: "/model-selection" },
           { text: "Scenarios & Tests", link: "/scenarios" },
         ],
       },
