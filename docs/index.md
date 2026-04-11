@@ -2,12 +2,12 @@
 
 This docs site is built for **learning by doing**.
 
-If you are a senior webdev and want fast clarity, use this order:
+If you want an ADHD-friendly path, read in layers:
 
-1. **Use the app**: [/use-the-application](/use-the-application)
-2. **Understand packages**: [/packages/](/packages/)
-3. **Understand theory**: [/theory/agent-loop](/theory/agent-loop)
-4. **Run scenarios**: [/scenarios](/scenarios)
+1. **Surface (broad)**: [/theory/how-it-works-layered](/theory/how-it-works-layered)
+2. **Packages map**: [/packages/](/packages/)
+3. **Theory details**: [/theory/agent-loop](/theory/agent-loop)
+4. **Practical drills**: [/scenarios](/scenarios)
 
 ## What this project is
 
@@ -21,6 +21,7 @@ The agent loops: **think → choose tool → execute → think again** until don
 
 ## Quick links
 
+- Layered overview + ideas/examples: [/theory/how-it-works-layered](/theory/how-it-works-layered)
 - Run instructions: [/use-the-application](/use-the-application)
 - Package map: [/packages/](/packages/)
 - Tool-by-tool docs: [/packages/tools/](/packages/tools/)
