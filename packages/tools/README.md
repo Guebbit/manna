@@ -27,5 +27,5 @@ All tools implement:
 
 ## Key files
 
-- `src/types.ts`
-- `src/index.ts`
+- `types.ts`
+- `index.ts`

@@ -67,7 +67,7 @@ curl -X POST http://localhost:3001/run \
 
 ## How tools are used
 
-Tools are configured in `apps/api/src/index.ts` when creating the `Agent`.
+Tools are configured in `apps/api/index.ts` when creating the `Agent`.
 
 Current enabled tools:
 
@@ -81,7 +81,7 @@ Chromium is installed automatically during `npm install` via `postinstall`.
 
 ## How the agentic loop works
 
-Implemented in `packages/agent/src/agent.ts`.
+Implemented in `packages/agent/agent.ts`.
 
 For each task:
 

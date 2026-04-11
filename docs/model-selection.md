@@ -1,19 +1,19 @@
 # Model Selection: Who the Agent Is and How to Choose Models
 
-This page integrates the practical guidance from `infra/docs/models.md` and `infra/docs/notes.md`, but aligned to this project runtime.
+This page aligns model strategy to the runtime in this repository. For the full model catalog and local runtime notes, see [/infra/ollama-models](/infra/ollama-models) and [/infra/ollama-notes](/infra/ollama-notes).
 
 ## Who is the "agent"?
 
 In this repository, the **agent** is not a model by itself.
 
-The agent is the runtime loop in `packages/agent/src/agent.ts`:
+The agent is the runtime loop in `packages/agent/agent.ts`:
 
 - builds prompt (task + memory + context + tool list)
 - asks the LLM for JSON (`thought`, `action`, `input`)
 - executes tools
 - repeats up to max steps
 
-The model is one dependency used by that loop (`packages/llm/src/ollama.ts`).
+The model is one dependency used by that loop (`packages/llm/ollama.ts`).
 
 ## Which model is used by default?
 
@@ -61,7 +61,7 @@ Rule of thumb:
 
 ## Local runtime constraints (important)
 
-From `infra/docs/notes.md`, these limits matter in practice:
+From [/infra/ollama-notes](/infra/ollama-notes), these limits matter in practice:
 
 - quantization (reducing numeric precision of model weights) reduces VRAM usage (quality/speed tradeoff)
 - large prompts and outputs increase token/memory pressure

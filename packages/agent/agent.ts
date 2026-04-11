@@ -1,8 +1,8 @@
-import { generateWithMetadata } from "../../llm/src/ollama";
-import { addMemory, getMemory } from "../../memory/src/memory";
-import { emit } from "../../events/src/bus";
-import type { Tool } from "../../tools/src";
-import { getLogger } from "../../logger/src/logger";
+import { generateWithMetadata } from "../../llm/ollama";
+import { addMemory, getMemory } from "../../memory/memory";
+import { emit } from "../../events/bus";
+import type { Tool } from "../../tools";
+import { getLogger } from "../../logger/logger";
 
 interface AgentStep {
   thought: string;

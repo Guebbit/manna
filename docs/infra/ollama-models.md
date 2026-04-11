@@ -1,12 +1,10 @@
 # Ollama Models — Quick Selection Guide
 
-This file helps you choose a model quickly for local Ollama usage.
+This page lists the local models expected for this project (from your mounted Ollama volume, e.g. `- /home/${LINUX_USERNAME}/.ollama:/root/.ollama:z,rw`).
 
 > Parameter count is not a direct quality score. Pick by task, VRAM, and response speed.
 
----
-
-## 1) Quick recommendations
+## Quick recommendations
 
 If you want one model to start with:
 
@@ -17,9 +15,7 @@ If you want one model to start with:
 - **Vision (image + text):** `llava-llama3`
 - **Less filtered behavior (experimental):** `dolphin-llama3`, `llama2-uncensored`, `dolphin-phi`
 
----
-
-## 2) Model catalog
+## Model catalog
 
 ### `llama3.1`
 - **Variants:** 8B, 70B
@@ -81,9 +77,7 @@ If you want one model to start with:
 - **Best for:** image captioning, visual Q&A, multimodal tasks
 - **Notes:** requires image+text workflow
 
----
-
-## 3) Family overview
+## Family overview
 
 - **Llama family:** `llama3.1`, `dolphin-llama3`, `llama2-uncensored`
 - **Phi family:** `phi3`, `phi4-mini`, `dolphin-phi`
@@ -91,17 +85,13 @@ If you want one model to start with:
 - **Reasoning-focused:** `deepseek-r1`
 - **Multimodal:** `llava-llama3`
 
----
-
-## 4) Practical selection rules
+## Practical selection rules
 
 1. Start small (4B–8B) and confirm speed on your machine.
 2. Move to larger variants only if quality is insufficient.
 3. For coding, prefer coder-tuned models over general models.
 4. For strict reasoning/math, test `deepseek-r1` first.
 5. For privacy-sensitive docs, use local RAG with the model that fits your VRAM.
-
----
 
 Reference libraries:
 - https://ollama.com/library

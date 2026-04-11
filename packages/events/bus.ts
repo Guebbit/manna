@@ -13,7 +13,7 @@
  * when you need durability or cross-process fan-out.
  */
 
-import { getLogger } from "../../logger/src/logger";
+import { getLogger } from "../../logger/logger";
 
 export interface AgentEvent {
   type: string;

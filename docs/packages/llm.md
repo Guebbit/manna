@@ -28,4 +28,4 @@ Options:
 
 ## Where in code
 
-- `packages/llm/src/ollama.ts`
+- `packages/llm/ollama.ts`

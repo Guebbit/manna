@@ -25,7 +25,7 @@ Fetch title and visible page text using Playwright (Chromium, headless).
 
 ## Runtime setup
 
-- `browserTool` is enabled by default in `apps/api/src/index.ts`
+- `browserTool` is enabled by default in `apps/api/index.ts`
 - Chromium is installed automatically during `npm install` (`postinstall`)
 
 ## Good test prompts

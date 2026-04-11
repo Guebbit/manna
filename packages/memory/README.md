@@ -17,4 +17,4 @@ Hybrid short-term memory store for agent context.
 
 ## Key file
 
-- `src/memory.ts`
+- `memory.ts`

@@ -7,9 +7,9 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "dev": "tsx apps/api/src/index.ts",
+    "dev": "tsx apps/api/index.ts",
     "build": "tsc",
-    "start": "node dist/apps/api/src/index.js",
+    "start": "node dist/apps/api/index.js",
     "typecheck": "tsc --noEmit",
     "postinstall": "playwright install chromium",
     "docs:dev": "vitepress dev docs",

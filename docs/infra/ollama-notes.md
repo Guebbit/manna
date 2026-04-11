@@ -1,10 +1,8 @@
 # Ollama Notes — Brief but Complete
 
-This file is a compact reference for running Ollama locally, understanding key LLM concepts, and avoiding common setup mistakes.
+This page is a compact reference for running Ollama locally, understanding key LLM concepts, and avoiding common setup mistakes.
 
----
-
-## 1) Core concepts in plain words
+## Core concepts in plain words
 
 ### Weights
 - Weights are the learned numbers inside the model.
@@ -21,9 +19,7 @@ This file is a compact reference for running Ollama locally, understanding key L
 - Context window = max input + output tokens per request.
 - Large prompts + large responses increase memory usage.
 
----
-
-## 2) VRAM expectations (quick reference)
+## VRAM expectations (quick reference)
 
 Approximate ranges depend on model family and quantization:
 
@@ -40,9 +36,7 @@ Practical rule on 24 GB VRAM:
 - Risky: 30B quantized
 - Usually unrealistic locally: 70B
 
----
-
-## 3) Setup prerequisites
+## Setup prerequisites
 
 - Linux + NVIDIA driver
 - Container runtime (Podman or Docker)
@@ -54,9 +48,7 @@ Validate GPU visibility:
 nvidia-smi
 ```
 
----
-
-## 4) Start Ollama container (Podman example)
+## Start Ollama container (Podman example)
 
 ```bash
 podman run -d \
@@ -75,11 +67,9 @@ What matters:
 - `OLLAMA_MAX_LOADED_MODELS=1`: avoids VRAM overload
 - `OLLAMA_NUM_PARALLEL=1`: safer for constrained systems
 
-The repository also includes `/docker-compose.yml` with GPU-oriented settings.
+The repository also includes `infra/podman/docker-compose.yml` with GPU-oriented settings.
 
----
-
-## 5) Day-to-day Ollama usage
+## Day-to-day Ollama usage
 
 ```bash
 ollama pull <model>
@@ -93,9 +83,7 @@ Inside a chat session:
 
 For first validation, use a small model first, then scale up.
 
----
-
-## 6) Customization options (what is realistic locally)
+## Customization options (what is realistic locally)
 
 ### LoRA / Fine-tuning
 - Modifies behavior with adapter layers
@@ -110,9 +98,7 @@ For first validation, use a small model first, then scale up.
 ### Full training from scratch
 - Usually not realistic on single consumer GPUs
 
----
-
-## 7) Troubleshooting
+## Troubleshooting
 
 ### GPU not used
 - Check `nvidia-smi`
@@ -129,9 +115,7 @@ For first validation, use a small model first, then scale up.
 - Reduce model size
 - Reduce concurrent workloads on host
 
----
-
-## 8) Useful links
+## Useful links
 
 - Ollama model library: https://ollama.com/library
 - Hugging Face model pages: https://huggingface.co/
