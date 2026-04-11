@@ -2,6 +2,26 @@
 
 Use these as practical drills. Run one scenario at a time and inspect logs.
 
+## How tooling works (general behavior)
+
+Before the scenarios, keep these runtime rules in mind:
+
+1. The agent can only use tools that are registered at API startup.
+2. At each step, the model sees a list of available tools in the prompt.
+3. If the model asks for a tool that does not exist, the runtime does not crash:
+   - it appends an error to context with the list of valid tools
+   - it asks the model again on the next loop step
+4. If a tool exists but fails (for example boundary/safety rejection), the error is added to context and the loop continues.
+5. If the task cannot be completed with available tools, the run ends with either:
+   - a limitation-aware answer (`action: "none"`), or
+   - max-step fallback (`Max steps reached without a conclusive answer.`)
+
+Useful events while debugging:
+- `agent:step`
+- `tool:result`
+- `tool:error`
+- `agent:max_steps`
+
 ## Scenario 1 — File reading
 
 Prompt:
@@ -61,6 +81,17 @@ Prompt:
 `Explain the full flow from POST /run to final answer, including events emitted.`
 
 Goal: verify your mental model of the system.
+
+## Scenario 8 — Missing tool behavior
+
+Prompt:
+
+`Search all repository commits and summarize the top 3 contributors.`
+
+Expected behavior:
+- if no git-history tool is available, the model may request a non-existent tool first
+- runtime returns an in-context correction with available tools
+- model should retry with available tools or explain the limitation
 
 ## Pro tip for ADHD-friendly learning
 
