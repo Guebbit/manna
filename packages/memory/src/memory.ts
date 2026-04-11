@@ -29,6 +29,17 @@ function addToRecentMemory(entry: string): void {
   }
 }
 
+function logMemoryAddedLocalOnly(startedAt: number): void {
+  log.info("memory_added_local_only", {
+    recentCount: recentMemory.length,
+    durationMs: Date.now() - startedAt,
+  });
+}
+
+function logMemoryClearedRecentOnly(startedAt: number): void {
+  log.info("memory_cleared_recent_only", { durationMs: Date.now() - startedAt });
+}
+
 async function getEmbedding(text: string): Promise<number[]> {
   const res = await fetch(`${OLLAMA_BASE_URL}/api/embeddings`, {
     method: "POST",
@@ -87,10 +98,7 @@ export async function addMemory(entry: string): Promise<void> {
   addToRecentMemory(entry);
 
   if (!qdrantEnabled) {
-    log.info("memory_added_local_only", {
-      recentCount: recentMemory.length,
-      durationMs: Date.now() - startedAt,
-    });
+    logMemoryAddedLocalOnly(startedAt);
     return;
   }
 
@@ -115,6 +123,7 @@ export async function addMemory(entry: string): Promise<void> {
       error: String(err),
       message: "Falling back to in-memory only",
     });
+    logMemoryAddedLocalOnly(startedAt);
     return;
   }
 
@@ -195,7 +204,7 @@ export async function clearMemory(): Promise<void> {
   recentMemory.length = 0;
 
   if (!qdrantEnabled) {
-    log.info("memory_cleared_recent_only", { durationMs: Date.now() - startedAt });
+    logMemoryClearedRecentOnly(startedAt);
     return;
   }
 
@@ -207,6 +216,7 @@ export async function clearMemory(): Promise<void> {
       error: String(err),
       durationMs: Date.now() - startedAt,
     });
+    logMemoryClearedRecentOnly(startedAt);
     return;
   }
 

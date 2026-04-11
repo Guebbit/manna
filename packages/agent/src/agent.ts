@@ -146,7 +146,10 @@ export class Agent {
         try {
           resultSize = JSON.stringify(result).length;
         } catch {
-          resultSize = -1;
+          log.warn("agent_tool_result_not_serializable", {
+            step,
+            tool: parsed.action,
+          });
         }
         log.info("agent_tool_executed", {
           step,
