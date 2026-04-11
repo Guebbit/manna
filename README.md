@@ -147,7 +147,7 @@ Comment: this runs a local Qdrant node and persists vectors on disk.
 ### 2) Install the Qdrant client in this project
 
 ```bash
-cd /home/runner/work/AI-coding-assistant/AI-coding-assistant
+cd /path/to/ai-assistant
 npm install @qdrant/js-client-rest
 ```
 
