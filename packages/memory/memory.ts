@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { QdrantClient } from "@qdrant/js-client-rest";
-import { getLogger } from "../../logger/logger";
+import { getLogger } from "../logger/logger";
 
 /**
  * Hybrid short-term memory:

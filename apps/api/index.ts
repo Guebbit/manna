@@ -1,13 +1,13 @@
 import express from "express";
-import { Agent } from "../../../packages/agent/agent";
+import { Agent } from "../../packages/agent/agent";
 import {
   readFileTool,
   shellTool,
   mysqlQueryTool,
   browserTool,
-} from "../../../packages/tools/index";
-import { on } from "../../../packages/events/bus";
-import { getLogger } from "../../../packages/logger/logger";
+} from "../../packages/tools/index";
+import { on } from "../../packages/events/bus";
+import { getLogger } from "../../packages/logger/logger";
 
 const log = getLogger("api");
 

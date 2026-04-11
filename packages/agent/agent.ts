@@ -1,8 +1,8 @@
-import { generateWithMetadata } from "../../llm/ollama";
-import { addMemory, getMemory } from "../../memory/memory";
-import { emit } from "../../events/bus";
-import type { Tool } from "../../tools";
-import { getLogger } from "../../logger/logger";
+import { generateWithMetadata } from "../llm/ollama";
+import { addMemory, getMemory } from "../memory/memory";
+import { emit } from "../events/bus";
+import type { Tool } from "../tools";
+import { getLogger } from "../logger/logger";
 
 interface AgentStep {
   thought: string;
@@ -11,7 +11,7 @@ interface AgentStep {
 }
 
 // Maximum number of reasoning steps before giving up.
-const MAX_STEPS = process.env.AGENTS_MAX_STEPS || 5;
+const MAX_STEPS = parseInt(process.env.AGENTS_MAX_STEPS ?? "5", 10);
 const log = getLogger("agent");
 
 /**

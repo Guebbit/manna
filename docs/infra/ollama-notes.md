@@ -67,7 +67,7 @@ What matters:
 - `OLLAMA_MAX_LOADED_MODELS=1`: avoids VRAM overload
 - `OLLAMA_NUM_PARALLEL=1`: safer for constrained systems
 
-The repository also includes `infra/podman/docker-compose.yml` with GPU-oriented settings.
+This repository's compose file is `infra/podman/docker-compose.yml` (there is no root-level `docker-compose.yml` here).
 
 ## Day-to-day Ollama usage
 
