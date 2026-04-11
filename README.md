@@ -154,3 +154,13 @@ See:
 - `packages/llm/README.md`
 - `packages/memory/README.md`
 - `packages/tools/README.md`
+
+## VitePress documentation site
+
+This repository also includes a VitePress docs site in `/docs`.
+
+```bash
+npm run docs:dev
+npm run docs:build
+npm run docs:preview
+```
