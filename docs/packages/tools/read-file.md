@@ -4,6 +4,12 @@
 
 Read UTF-8 file content from disk.
 
+## What it does in plain English
+
+> "Open this file and give me its contents so I can work with them."
+
+The agent uses this whenever it needs to know what is inside a file before it can answer you or take the next step.
+
 ## Input
 
 ```json
@@ -12,13 +18,81 @@ Read UTF-8 file content from disk.
 
 ## Output
 
-UTF-8 file content string.
+UTF-8 file content string (the raw text of the file).
 
 ## Safety
 
-Rejects access outside project root directory.
+Rejects any path that tries to escape the project root (for example `../../etc/passwd`). The tool resolves the full path and compares it against the allowed root — if it does not start with the project root, the call is rejected immediately.
+
+## How the agent uses it (step-by-step)
+
+```text
+You ask:  "What npm scripts are available?"
+             ↓
+Agent thinks: "I need to look at package.json first"
+             ↓
+Agent calls:  read_file  →  { "path": "package.json" }
+             ↓
+Tool reads the file from disk and returns the full text
+             ↓
+Agent reads the JSON, finds the "scripts" block, and answers you
+```
+
+## Real-life use cases
+
+### Use case 1 — Understanding the project
+
+You just cloned a new repo and want to know what it does without reading every file yourself.
+
+**Prompt:**
+```
+Read README.md and give me a 3-sentence summary of what this project does.
+```
+
+**What happens inside:**
+1. Agent calls `read_file` with `{ "path": "README.md" }`
+2. Gets back the full README text
+3. Summarises it into 3 sentences for you
+
+---
+
+### Use case 2 — Debugging a configuration file
+
+Something in your app is broken and you think it is a config issue.
+
+**Prompt:**
+```
+Read apps/api/index.ts and tell me which tools are currently registered.
+```
+
+**What happens inside:**
+1. Agent calls `read_file` with `{ "path": "apps/api/index.ts" }`
+2. Gets the source code
+3. Scans for the tool registration block and lists the names for you
+
+---
+
+### Use case 3 — Multi-step reasoning (agent reads multiple files)
+
+**Prompt:**
+```
+Find where the Agent class is defined and explain what its constructor does.
+```
+
+**What happens inside (up to 5 steps):**
+```
+Step 1: read_file  →  packages/agent/agent.ts     ← finds the class
+Step 2: read_file  →  packages/agent/src/model-router.ts  ← follows an import
+Step 3: action: "none"  →  gives final answer
+```
+
+---
 
 ## Good test prompts
 
-- "Read `package.json` and tell me available npm scripts."
-- "Open `packages/agent/agent.ts` and summarize the loop."
+| What you type | What the agent does |
+|---|---|
+| `Read package.json and tell me all npm scripts.` | Opens `package.json`, reads `scripts` block |
+| `Open packages/agent/agent.ts and summarize the loop.` | Reads the file and describes the agentic loop |
+| `What TypeScript version is this project using?` | Reads `package.json`, finds `typescript` in devDependencies |
+| `Does this project have ESLint? Show me the rules.` | Reads `eslint.config.ts` |

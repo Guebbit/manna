@@ -1,89 +1,143 @@
 # How It Works (Layered)
 
-This page is designed for **progressive depth**:
+This page is designed for **progressive depth** — stop at any layer when you have enough.
 
-- **Layer 1**: broad mental model
-- **Layer 2**: clickable step map
-- **Layer 3**: deeper system details
+- **Layer 1**: broad mental model (30 seconds)
+- **Layer 2**: clickable step map (5 minutes)
+- **Layer 3**: deeper system details (15 minutes)
 - **Ideas & examples**: practical prompts to explore
 
-## Layer 1 — 30-second view
+---
+
+## Layer 1 -- 30-second view
 
 ```text
-User sends task
-    ↓
-API wires up: Agent + LLM + Memory + Tools + Events
-    ↓
-Agent loop:
-  1. Build prompt (task + memory + tool list)
-  2. Route this step to best model profile
-  3. Ask selected model "what should I do?"
-  4. LLM picks a tool + input (or says "done")
-  5. Agent runs that tool
-  6. Events emit: "step done"
-  7. Repeat until: done or max 5 steps
-    ↓
-Return result to user
+You                 API                  Agent Loop              Tools
+ |                   |                       |                      |
+ |-- POST /run ------>|                       |                      |
+ |  { task: "..." }  |                       |                      |
+ |                   |-- agent.run(task) ---->|                      |
+ |                   |                       |                      |
+ |                   |               [Step 1-5 loop]               |
+ |                   |                       |-- build prompt        |
+ |                   |                       |-- route to model      |
+ |                   |                       |-- ask LLM             |
+ |                   |                       |   -> { thought,       |
+ |                   |                       |        action,        |
+ |                   |                       |        input }        |
+ |                   |                       |-- run tool ----------->|
+ |                   |                       |<-- tool result --------|
+ |                   |                       |-- append to context   |
+ |                   |                       |-- repeat or done      |
+ |                   |                       |                      |
+ |                   |<-- return answer ------|                      |
+ |<-- response -------|                       |                      |
 ```
 
-If this is enough, stop here.
+If this is enough to get started, stop here and go run a task.
 
-## Layer 2 — Clickable step map
+---
+
+## Layer 2 -- Clickable step map
 
 ### Entry point
 
-- **User sends task** → API endpoint: [/use-the-application](/use-the-application)
-- **API wires components** → package map: [/packages/](/packages/)
+- **User sends task** -> see [/use-the-application](/use-the-application) for exact curl commands
+- **API wires components** -> see [/packages/](/packages/) for what each package does
 
 ### Agent loop steps
 
-1. **Build prompt (task + memory + tool list)**
+1. **Build prompt** (task + memory + tool list + context from previous steps)
    - Deep dive: [/theory/prompt-context-memory](/theory/prompt-context-memory)
-2. **Route the step to a model profile**
+
+2. **Route step to a model profile** (fast / reasoning / code / default)
    - Deep dive: [/model-selection](/model-selection)
-3. **Ask LLM “what should I do?”**
+
+3. **Ask LLM "what should I do?"** -- returns strict JSON
    - Deep dive: [/packages/llm](/packages/llm)
-4. **LLM picks tool + input (or done)**
+
+4. **LLM picks tool + input (or says "none" = done)**
    - Decision contract: [/packages/agent](/packages/agent)
-5. **Agent runs that tool**
+
+5. **Agent runs that tool** (read_file, shell, mysql_query, etc.)
    - Agent runtime: [/packages/agent](/packages/agent)
    - Tool catalog: [/packages/tools/](/packages/tools/)
-6. **Events emit step progress**
+
+6. **Events emit step progress** (agent:step, tool:result, etc.)
    - Event flow: [/theory/events-observability](/theory/events-observability)
+
 7. **Repeat until done or max 5 steps**
    - Loop mental model: [/theory/agent-loop](/theory/agent-loop)
 
-## Layer 3 — What each block is really doing
+---
 
-- **API** receives `task`, creates runtime dependencies, and calls the agent.
-- **Agent** runs a bounded loop (max 5 steps) to avoid runaway behavior.
-- **LLM** proposes the next action in strict JSON (`thought`, `action`, `input`).
-- **Model router** chooses a profile (`fast` / `reasoning` / `code` / `default`) per step.
-- **Tools** perform deterministic operations (read file, shell, SQL, browser fetch).
-- **Memory** brings short-term recency + semantic recall into prompt building.
-- **Events** provide observable lifecycle signals (`start`, `step`, `tool:*`, `done`).
+## Layer 3 -- What each block is really doing
 
-Use this page like a hub, then open only one deep-dive page at a time.
+### API (`apps/api/index.ts`)
+- Receives HTTP `POST /run` with a `task` string
+- Creates one instance of: Agent + LLM + Memory + Tools + Events per request
+- Subscribes to all events for logging
+- Returns the final answer string
+
+### Agent (`packages/agent/agent.ts`)
+- Runs the bounded loop (max 5 steps)
+- Calls LLM, parses JSON, dispatches tools
+- Appends tool results to context after each step
+- Saves the outcome to memory when done
+
+### LLM (`packages/llm/ollama.ts`)
+- Thin HTTP wrapper around Ollama's API
+- Sends prompt -> gets back a text response
+- Forces JSON output format via Ollama's `format` option
+
+### Model router (`packages/agent/src/model-router.ts`)
+- Inspects current task/step and picks the most suitable model profile
+- `rules` mode: keyword heuristics
+- `model` mode: a small classifier model decides
+
+### Tools (`packages/tools/`)
+- Each tool is a `{ name, description, execute(input) }` object
+- Deterministic operations: read file, run command, SQL query, etc.
+- Safety checks built into each tool's `execute()` function
+
+### Memory (`packages/memory/memory.ts`)
+- `addMemory(entry)`: saves outcomes to Qdrant + local ring buffer
+- `getMemory(query)`: semantic similarity search to retrieve relevant past results
+- Falls back to local-only if Qdrant is unavailable
+
+### Events (`packages/events/bus.ts`)
+- In-process pub/sub
+- `emit(event)` -> `on(type, handler)` -> handler runs synchronously
+- API subscribes with `on("*", ...)` to log everything
+
+---
 
 ## Ideas & examples
 
-Try these focused prompts:
+Try these prompts to explore different layers:
 
 1. **Architecture overview**
    - `Explain the flow from POST /run to final answer in 6 bullet points.`
+
 2. **Prompt building focus**
-   - `What information is included in each agent prompt and why?`
+   - `What information is included in each agent prompt step and why?`
+
 3. **Tool execution focus**
    - `Show me one example where the agent should use read_file before answering.`
+
 4. **Events focus**
    - `Which events should I monitor to debug a failed tool call?`
+
 5. **Boundaries focus**
    - `Give me an example task that should be rejected by tool safety rules.`
 
-Learning pattern (ADHD-friendly):
+6. **Memory focus**
+   - `How does semantic memory help the agent on repeated similar tasks?`
 
-- Pick **one** prompt
-- Run it
-- Check logs/events
-- Write **one** takeaway
-- Move on
+---
+
+## ADHD-friendly learning pattern
+
+Pick **one** prompt above. Run it. Check the logs. Write **one** takeaway. Move on.
+
+Do not try to understand everything at once -- use this page as a hub and dive into one deep link per session.

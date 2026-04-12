@@ -1,30 +1,108 @@
 # Theory: Agent Loop Mental Model
 
-Think of the system as a controlled reasoning loop:
+## The one-sentence version
 
-1. Build prompt from task + memory + context + tools
-2. Route the step to a model profile
-3. Ask selected model for strict JSON decision
-4. Execute tool if needed
-5. Append result to context
-6. Repeat until done or step limit
+> The agent is a loop that asks the model "what should I do next?", runs the suggested tool, and repeats — until either the task is done or the step limit is hit.
+
+## Visual loop
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│                      AGENT LOOP                         │
+│                                                         │
+│  ┌──────────────┐                                       │
+│  │  Build prompt │  task + memory + context + tools     │
+│  └──────┬───────┘                                       │
+│         │                                               │
+│         ▼                                               │
+│  ┌──────────────┐                                       │
+│  │  Route step  │  fast / reasoning / code / default    │
+│  └──────┬───────┘                                       │
+│         │                                               │
+│         ▼                                               │
+│  ┌──────────────┐                                       │
+│  │  Ask LLM     │  → strict JSON: thought+action+input  │
+│  └──────┬───────┘                                       │
+│         │                                               │
+│    ┌────┴─────┐                                         │
+│    │ action?  │                                         │
+│    └────┬─────┘                                         │
+│         │                                               │
+│    ─────┼─────────────────────────────                  │
+│   "none"│            tool name (e.g."read_file")        │
+│         │                    │                          │
+│         ▼                    ▼                          │
+│      DONE ✅         ┌──────────────┐                   │
+│                      │  Run tool    │                   │
+│                      └──────┬───────┘                   │
+│                             │                           │
+│                             ▼                           │
+│                      ┌──────────────┐                   │
+│                      │ Append result│ → back to top     │
+│                      │ to context   │                   │
+│                      └──────────────┘                   │
+│                                                         │
+│  Max steps = 5  →  fallback answer if limit reached     │
+└─────────────────────────────────────────────────────────┘
+```
+
+## Concrete example: "What npm scripts are available?"
+
+```
+Step 1:
+  Prompt:   "What npm scripts are available? Tools: [read_file, shell, ...]"
+  LLM:      { thought: "I should read package.json", action: "read_file", input: { path: "package.json" } }
+  Tool:     reads package.json → returns JSON text
+  Context:  appends result
+
+Step 2:
+  Prompt:   [original task] + [package.json content from step 1]
+  LLM:      { thought: "I have the data, I can answer", action: "none", input: {} }
+  Result:   "The available npm scripts are: dev, build, typecheck, ..."
+```
 
 ## Why this works
 
-- The model does planning
-- Tools do deterministic execution
-- Context turns previous outputs into next-step inputs
+- The model does **planning** (decides what to do)
+- Tools do **deterministic execution** (actually do it)
+- Context turns previous outputs into next-step inputs (memory within a run)
 
 ## Why max 5 steps matters
 
-- Prevents runaway loops
-- Caps cost and latency
-- Forces concise planning behavior
+Without a step limit:
 
-## Failure modes (normal)
+```
+Infinite loop risk:
+  Step 1: tool A fails
+  Step 2: try tool A again
+  Step 3: try tool A again
+  ... forever
+```
 
-- Invalid JSON from model
-- Unknown tool request
-- Tool runtime errors
+With max 5 steps:
 
-The loop is built to recover and continue when possible.
+```
+Step 1-4: attempts
+Step 5:   fallback message: "Max steps reached without a conclusive answer."
+```
+
+This caps cost, latency, and runaway behavior.
+
+## Failure modes (and what happens)
+
+| What goes wrong | What the loop does |
+|---|---|
+| LLM returns invalid JSON | Appends parse error to context, tries again next step |
+| LLM requests a tool that does not exist | Appends "unknown tool" error + valid tool list, tries again |
+| Tool throws a runtime error | Appends error message to context, continues loop |
+| Max steps reached | Returns fallback string, emits `agent:max_steps` event |
+
+The loop is built to **recover and continue** whenever possible.
+
+## Stop conditions
+
+```text
+1. action: "none"   → model says it is done  → returns answer
+2. step count >= 5  → step limit reached      → returns fallback
+3. Unrecoverable error                        → emits agent:error
+```
