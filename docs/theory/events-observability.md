@@ -84,7 +84,7 @@ Example log output (with `LOG_PRETTY=true`):
 [agent:start]        task: "Query users table"
 [agent:model_routed] profile: "default", model: "llama3.1:8b"
 [agent:step]         step: 1, action: "mysql_query", input: { sql: "SELECT * FROM users LIMIT 5" }
-[tool:error]         tool: "mysql_query", error: "connect ECONNREFUSED 127.0.0.1:3306"
+[tool:error]         tool: "mysql_query", error: "connect ECONNREFUSED (MYSQL_HOST:3306 — check your MYSQL_HOST env var)"
 [agent:step]         step: 2, action: "none", thought: "Database is not reachable, I cannot complete this task."
 [agent:done]         answer: "I could not connect to MySQL. Check MYSQL_HOST and MYSQL_PORT."
 ```

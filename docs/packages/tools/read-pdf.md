@@ -1,4 +1,4 @@
-# tools/read_pdf
+# Tool: `read_pdf`
 
 ## What it does in plain English
 

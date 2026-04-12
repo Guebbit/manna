@@ -1,4 +1,4 @@
-# tools/speech_to_text
+# Tool: `speech_to_text`
 
 ## What it does in plain English
 

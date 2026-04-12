@@ -289,7 +289,12 @@ Step 1: semantic_search  ->  {
   "paths": ["docs/theory/agent-loop.md", "docs/theory/how-it-works-layered.md", ...],
   "topK": 3
 }
-returns: ranked list with similarity scores
+returns:
+[
+  { "text": "Stop conditions: action: none -> done. Max steps >= 5 -> fallback.", "score": 0.93, "source": "docs/theory/agent-loop.md" },
+  { "text": "Repeat until done or max 5 steps...", "score": 0.87, "source": "docs/theory/how-it-works-layered.md" },
+  { "text": "agent:max_steps -- When step limit is reached", "score": 0.81, "source": "docs/packages/events.md" }
+]
 ```
 
 **Key insight to observe**: the results should include agent-loop.md even though it does not contain the phrase "stops running" -- it contains "max steps", "action: none", "stop conditions" which are semantically similar.

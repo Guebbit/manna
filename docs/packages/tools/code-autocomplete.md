@@ -1,4 +1,4 @@
-# tools/code_autocomplete
+# Tool: `code_autocomplete`
 
 ## What it does in plain English
 
