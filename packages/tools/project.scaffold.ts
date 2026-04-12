@@ -60,6 +60,9 @@ export const scaffoldProjectTool: Tool = {
       typeof metadataFile === "string" && metadataFile.trim() !== ""
         ? metadataFile
         : "template.json";
+    if (path.basename(metadataFilename) !== metadataFilename || metadataFilename === "..") {
+      throw new Error("metadataFile must be a plain filename without path separators");
+    }
 
     const templateStat = await fs.stat(templatePath).catch(() => null);
     if (!templateStat || !templateStat.isDirectory()) {
