@@ -2,9 +2,11 @@ import express from "express";
 import { Agent } from "../../packages/agent/agent";
 import {
   readFileTool,
+  writeFileTool,
   shellTool,
   mysqlQueryTool,
   browserTool,
+  scaffoldProjectTool,
   imageClassifyTool,
   semanticSearchTool,
   speechToTextTool,
@@ -21,9 +23,7 @@ on("*", (event) => {
   log.info("event_emitted", { eventType: event.type, payload: event.payload });
 });
 
-// ── Initialise agent with available tools ──────────────────────────────────
-// Add / remove tools here as you expand the system.
-const agent = new Agent([
+const readOnlyTools = [
   readFileTool,
   shellTool,
   mysqlQueryTool,
@@ -33,7 +33,14 @@ const agent = new Agent([
   speechToTextTool,
   readPdfTool,
   codeAutocompleteTool,
-]);
+];
+const writeTools = [writeFileTool, scaffoldProjectTool];
+const readOnlyAgent = new Agent(readOnlyTools);
+const writeEnabledAgent = new Agent([...readOnlyTools, ...writeTools]);
+
+function createAgent(allowWrite: boolean): Agent {
+  return allowWrite ? writeEnabledAgent : readOnlyAgent;
+}
 
 // ── HTTP server ────────────────────────────────────────────────────────────
 const app = express();
@@ -42,11 +49,14 @@ app.use(express.json());
 /**
  * POST /run
  *
- * Body:    { "task": "describe what you want the agent to do" }
+ * Body:    {
+ *   "task": "describe what you want the agent to do",
+ *   "allowWrite": false // optional; when true enables write/scaffold tools
+ * }
  * Response: { "result": "agent's final answer" }
  */
 app.post("/run", async (req, res) => {
-  const { task } = req.body as { task?: string };
+  const { task, allowWrite } = req.body as { task?: string; allowWrite?: boolean };
 
   if (!task || typeof task !== "string" || task.trim() === "") {
     res
@@ -57,8 +67,10 @@ app.post("/run", async (req, res) => {
 
   try {
     log.info("run_request_received", { task });
+    const writeEnabled = allowWrite === true;
+    const agent = createAgent(writeEnabled);
     const result = await agent.run(task.trim());
-    log.info("run_request_completed", { taskLength: task.length });
+    log.info("run_request_completed", { taskLength: task.length, writeEnabled });
     res.json({ result });
   } catch (err) {
     log.error("run_request_failed", { error: String(err) });
@@ -77,7 +89,7 @@ app.get("/health", (_req, res) => {
 });
 
 // Default to 3001 — port 3000 is reserved for Open WebUI in docker-compose.yml
-const PORT = parseInt(process.env.PORT ?? "3001", 10);
+const PORT = Number.parseInt(process.env.PORT ?? "3001", 10);
 
 app.listen(PORT, () => {
   log.info("api_started", { url: `http://localhost:${PORT}` });

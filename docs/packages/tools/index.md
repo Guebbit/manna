@@ -27,6 +27,8 @@ Every tool provides:
 - `speech_to_text` — audio transcription via Ollama OpenAI-compatible endpoint
 - `read_pdf` — PDF text extraction
 - `code_autocomplete` — IDE-style code completion
+- `write_file` — write UTF-8 files under generated projects root (opt-in write mode only)
+- `scaffold_project` — copy a boilerplate template into generated projects root (opt-in write mode only)
 
 ## Security boundaries
 
@@ -34,6 +36,8 @@ Every tool provides:
 - `shell` only allows selected base commands
 - `mysql_query` only permits `SELECT`
 - `browser_fetch` only permits `http`/`https`
+- `write_file` only writes inside `PROJECT_OUTPUT_ROOT`
+- `scaffold_project` only reads inside `BOILERPLATE_ROOT` and writes inside `PROJECT_OUTPUT_ROOT`
 
 ## Tool pages
 
@@ -41,6 +45,8 @@ Every tool provides:
 - [/packages/tools/shell](/packages/tools/shell)
 - [/packages/tools/mysql-query](/packages/tools/mysql-query)
 - [/packages/tools/browser-fetch](/packages/tools/browser-fetch)
+- [/packages/tools/write-file](/packages/tools/write-file)
+- [/packages/tools/scaffold-project](/packages/tools/scaffold-project)
 - [/packages/tools/image-classify](/packages/tools/image-classify)
 - [/packages/tools/semantic-search](/packages/tools/semantic-search)
 - [/packages/tools/speech-to-text](/packages/tools/speech-to-text)

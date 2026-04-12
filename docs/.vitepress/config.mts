@@ -55,6 +55,8 @@ export default defineConfig({
                     { text: "tools/speech_to_text", link: "/packages/tools/speech-to-text" },
                     { text: "tools/read_pdf", link: "/packages/tools/read-pdf" },
                     { text: "tools/code_autocomplete", link: "/packages/tools/code-autocomplete" },
+                    { text: "tools/write_file", link: "/packages/tools/write-file" },
+                    { text: "tools/scaffold_project", link: "/packages/tools/scaffold-project" },
                 ],
             },
         ],

@@ -60,7 +60,27 @@ curl -X POST http://localhost:3001/run \
 `browser_fetch` is already wired in `apps/api/index.ts`.
 Chromium is installed automatically on `npm install` via the project `postinstall` script.
 
-## 7) Common troubleshooting
+## 7) Enable write mode only when needed
+
+Write tools are disabled by default and only exposed when request body sets `allowWrite: true`.
+
+```bash
+curl -X POST http://localhost:3001/run \
+  -H "Content-Type: application/json" \
+  -d '{"task":"Scaffold project my-react-app from template react-ts and create README notes","allowWrite":true}'
+```
+
+Write mode tools:
+
+- `scaffold_project`
+- `write_file`
+
+Optional env vars:
+
+- `BOILERPLATE_ROOT` (default `data/boilerplates`)
+- `PROJECT_OUTPUT_ROOT` (default `data/generated-projects`)
+
+## 8) Common troubleshooting
 
 - Ollama not reachable: check `OLLAMA_BASE_URL` (default `http://localhost:11434`)
 - Router selects wrong profile: tune `AGENT_MODEL_ROUTER_MODE` and `AGENT_MODEL_*` env vars
@@ -68,8 +88,22 @@ Chromium is installed automatically on `npm install` via the project `postinstal
 - Empty/invalid request: ensure body includes non-empty `"task"`
 - MySQL tool fails: verify `MYSQL_*` env vars and DB availability
 
-## 8) Learn-by-doing next
+## 9) Learn-by-doing next
 
 Go to [/scenarios](/scenarios) and run the exercises one by one.
 
 If you are deciding which Ollama model to run (fast vs heavy, coding vs reasoning, local limits), see [/model-selection](/model-selection).
+
+## 10) Start from your own boilerplates (write mode roadmap)
+
+Current setup is mostly read-oriented. To generate projects from your own templates, start with this sequence:
+
+1. Add your boilerplates under a fixed root (for example `data/boilerplates/`).
+2. Add a small metadata file per template (stack, language, package manager, test command).
+3. Keep your coding standards in docs (naming, architecture, folder style, quality rules).
+4. Add a write-capable tool (create/update files) with strict path boundaries.
+5. Add a scaffold tool (copy chosen boilerplate into a new target folder).
+6. Keep shell allowlist strict and only add commands required for safe project setup.
+7. Run generation tasks with explicit prompts (template, target path, constraints, required checks).
+
+This gives you controlled writing only when requested, while keeping the default behavior safe.

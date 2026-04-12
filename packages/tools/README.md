@@ -16,6 +16,8 @@ All tools implement:
 - `shell` — run allowlisted shell commands with timeout
 - `mysql_query` — run read-only `SELECT` queries against MySQL
 - `browser_fetch` — fetch title and visible text using Playwright
+- `write_file` — write UTF-8 file content under generated projects root
+- `scaffold_project` — scaffold a project from a boilerplate template
 - `image_classify` — vision-model image classification/description
 - `semantic_search` — embedding-based semantic ranking of texts/files
 - `speech_to_text` — audio transcription using Ollama OpenAI-compatible endpoint
@@ -25,9 +27,11 @@ All tools implement:
 ## Exports
 
 - `readFileTool`
+- `writeFileTool`
 - `shellTool`
 - `mysqlQueryTool`
 - `browserTool`
+- `scaffoldProjectTool`
 - `imageClassifyTool`
 - `semanticSearchTool`
 - `speechToTextTool`
