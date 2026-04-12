@@ -1,36 +1,52 @@
+/**
+ * Agent Quality Scorer — LLM-judge scorer for overall response quality.
+ *
+ * Uses a local Ollama LLM as an impartial "judge" to rate the
+ * quality of an agent's response on a 0–10 scale, then normalises
+ * the score to the standard [0, 1] range.
+ *
+ * **Local-first**: no cloud API key required — the judge calls
+ * Ollama directly.  Configure the judge model with the
+ * `EVAL_JUDGE_MODEL` environment variable.
+ *
+ * Falls back to a keyword-based heuristic when Ollama is unavailable
+ * so that evals can still run in offline environments.
+ *
+ * ## Metadata keys read
+ * - `metadata.maxStepsReached` (boolean) — hard penalty if `true`.
+ *
+ * @module evals/scorers/agent-quality
+ */
+
 import { createScorer } from "../scorer-builder";
 import type { ScorerResult, ScorerRunInput } from "../types";
 import { generate } from "../../llm/ollama";
 
+/** Model used to judge response quality — configurable via env var. */
 const JUDGE_MODEL =
   process.env.EVAL_JUDGE_MODEL ??
   process.env.OLLAMA_MODEL ??
   "llama3";
 
 /**
- * Agent Quality Scorer
+ * Exported scorer instance.
  *
- * Uses a local Ollama LLM as a "judge" to rate the overall quality of an
- * agent's response on a scale of 0–10, which is then normalised to [0, 1].
- *
- * Local-first: no cloud API key required — the judge calls Ollama directly.
- * Configure the judge model with the `EVAL_JUDGE_MODEL` environment variable.
- *
- * Falls back to a keyword-based heuristic when Ollama is unavailable so that
- * evals can still run in offline environments.
- *
- * ## Metadata keys read
- * - `metadata.stepCount` (number) — penalises excessive steps.
- * - `metadata.maxStepsReached` (boolean) — hard penalisation if true.
+ * Registered as `"agent-quality"` in the eval harness.
  */
 export const agentQualityScorer = createScorer({
   id: "agent-quality",
 
+  /**
+   * Score a single agent run for overall quality.
+   *
+   * @param run - The run to evaluate (input, output, metadata).
+   * @returns A normalised `ScorerResult` in [0, 1].
+   */
   async score(run: ScorerRunInput): Promise<ScorerResult> {
     const maxStepsReached =
       (run.metadata?.maxStepsReached as boolean | undefined) ?? false;
 
-    // Hard penalise: agent gave up without an answer
+    /* Hard penalty: agent exhausted all steps without answering. */
     if (maxStepsReached) {
       return {
         score: 0,
@@ -40,18 +56,28 @@ export const agentQualityScorer = createScorer({
       };
     }
 
-    // Try LLM judge
+    /* Try the LLM judge first; fall back to heuristic on failure. */
     try {
       return await scoreWithLlm(run);
     } catch {
-      // Ollama unavailable — fall back to simple heuristic
       return scoreWithHeuristic(run);
     }
   },
 });
 
-// ── LLM-based scoring ──────────────────────────────────────────────────────
+/* ── LLM-based scoring ──────────────────────────────────────────────── */
 
+/**
+ * Evaluate response quality by prompting a local LLM "judge".
+ *
+ * The judge is asked to return a JSON object with a numeric score
+ * (0–10) and a one-sentence reasoning.  The score is clamped and
+ * normalised to [0, 1].
+ *
+ * @param run - The agent run to evaluate.
+ * @returns A normalised `ScorerResult`.
+ * @throws {Error} When the LLM is unreachable or returns unparseable output.
+ */
 async function scoreWithLlm(run: ScorerRunInput): Promise<ScorerResult> {
   const prompt =
     `You are an impartial evaluator assessing the quality of an AI agent's response.\n\n` +
@@ -70,12 +96,14 @@ async function scoreWithLlm(run: ScorerRunInput): Promise<ScorerResult> {
     stream: false,
   });
 
+  /* Strip any markdown code fences the model may have added. */
   const cleaned = raw.replace(/```(?:json)?\n?/g, "").trim();
   const parsed = JSON.parse(cleaned) as {
     score?: unknown;
     reasoning?: unknown;
   };
 
+  /* Clamp raw score to [0, 10] and normalise to [0, 1]. */
   const rawScore =
     typeof parsed.score === "number"
       ? parsed.score
@@ -93,11 +121,21 @@ async function scoreWithLlm(run: ScorerRunInput): Promise<ScorerResult> {
   };
 }
 
-// ── Heuristic fallback ─────────────────────────────────────────────────────
+/* ── Heuristic fallback ─────────────────────────────────────────────── */
 
+/**
+ * Simple keyword-based heuristic used when Ollama is unavailable.
+ *
+ * Checks the agent output for negative signals (uncertainty, errors)
+ * and returns a conservative score.
+ *
+ * @param run - The agent run to evaluate.
+ * @returns A heuristic `ScorerResult`.
+ */
 function scoreWithHeuristic(run: ScorerRunInput): ScorerResult {
   const output = run.output.toLowerCase();
 
+  /** Phrases that indicate the agent failed or was uncertain. */
   const negativeSignals = [
     "i don't know",
     "i cannot",

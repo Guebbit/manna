@@ -1,6 +1,10 @@
 /**
  * Public surface of the tools package.
- * Import individual tools or the shared Tool interface from here.
+ *
+ * Import individual tool instances, the shared `Tool` interface,
+ * or the `createTool` factory from here.
+ *
+ * @module tools
  */
 
 export { readFileTool } from "./fs.read";
@@ -14,6 +18,7 @@ export { semanticSearchTool } from "./semantic.search";
 export { speechToTextTool } from "./speech.to.text";
 export { readPdfTool } from "./pdf.read";
 export { codeAutocompleteTool } from "./code.autocomplete";
+export { generateDiagramTool } from "./diagram.generate";
 export type { Tool } from "./types";
 export { createTool } from "./tool-builder";
 export type { CreateToolOptions } from "./tool-builder";

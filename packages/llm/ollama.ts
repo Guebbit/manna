@@ -1,60 +1,124 @@
 /**
  * Minimal wrapper around the Ollama local LLM API.
- * Deliberately simple — one function, one responsibility.
  *
- * Ollama docs: https://github.com/ollama/ollama/blob/main/docs/api.md
+ * Deliberately simple — one module, one responsibility: talk to Ollama.
+ * Every other package that needs LLM generation imports from here so the
+ * HTTP details are encapsulated in a single place.
+ *
+ * @see https://github.com/ollama/ollama/blob/main/docs/api.md
+ * @module llm/ollama
  */
 
+/** Base URL for the Ollama REST API, configurable via environment variable. */
 const OLLAMA_BASE_URL =
   process.env.OLLAMA_BASE_URL ?? "http://localhost:11434";
 
+/**
+ * Options accepted by both `generate` and `generateWithMetadata`.
+ *
+ * Every field is optional — sensible defaults are applied when omitted.
+ */
 export interface GenerateOptions {
-  /** Ollama model name (default: llama3 or OLLAMA_MODEL env var) */
+  /** Ollama model name (default: `OLLAMA_MODEL` env var or `"llama3"`). */
   model?: string;
-  /** Whether to stream the response (default: false) */
+
+  /** Whether to stream the response token-by-token (default: `false`). */
   stream?: boolean;
-  /** Optional text suffix for infill/completion use-cases */
+
+  /** Optional text suffix for fill-in-the-middle / infill completion. */
   suffix?: string;
-  /** Optional system prompt override */
+
+  /** Optional system prompt that overrides the model's built-in system message. */
   system?: string;
-  /** Optional response format (`json` or JSON schema object) */
+
+  /**
+   * Response format hint forwarded to Ollama.
+   * Pass `"json"` to request JSON output, or a JSON schema object for
+   * structured generation.
+   */
   format?: "json" | Record<string, unknown>;
-  /** Base64-encoded images for multimodal models */
+
+  /** Base64-encoded images for multimodal (vision) models. */
   images?: string[];
-  /** Provider-specific generation options forwarded to Ollama */
+
+  /**
+   * Provider-specific generation options forwarded verbatim to
+   * Ollama's `options` field (temperature, top_p, num_ctx, etc.).
+   */
   options?: Record<string, unknown>;
 }
 
+/**
+ * Rich result object returned by `generateWithMetadata`.
+ *
+ * Contains both the generated text and Ollama-specific telemetry
+ * (timing, token counts, done reason, etc.).
+ */
 export interface GenerateResult {
+  /** The generated text content. */
   response: string;
+
+  /** The model name that actually served the request. */
   model: string;
+
+  /** Whether generation is complete (always `true` for non-streaming). */
   done: boolean;
+
+  /** Reason generation ended (e.g. `"stop"`, `"length"`). */
   doneReason?: string;
+
+  /** Total wall-clock duration of the request in nanoseconds. */
   totalDurationNs?: number;
+
+  /** Time spent loading the model into memory in nanoseconds. */
   loadDurationNs?: number;
+
+  /** Number of tokens in the evaluated prompt. */
   promptEvalCount?: number;
+
+  /** Time spent evaluating the prompt in nanoseconds. */
   promptEvalDurationNs?: number;
+
+  /** Number of tokens generated in the response. */
   evalCount?: number;
+
+  /** Time spent generating the response in nanoseconds. */
   evalDurationNs?: number;
 }
 
 /**
- * Send a prompt to Ollama and return the full text response.
+ * Send a prompt to Ollama and return **only** the generated text.
  *
- * @param prompt - The prompt to send
- * @param options - Optional overrides for model and streaming
+ * This is a convenience wrapper around `generateWithMetadata` for callers
+ * that do not need telemetry data.
+ *
+ * @param prompt  - The full prompt string to send to the model.
+ * @param options - Optional overrides for model selection, streaming, etc.
+ * @returns The raw text response from the model.
  */
 export async function generate(
   prompt: string,
-  options: GenerateOptions = {}
+  options: GenerateOptions = {},
 ): Promise<string> {
   const result = await generateWithMetadata(prompt, options);
   return result.response;
 }
 
+/**
+ * Send a prompt to Ollama and return a rich result including telemetry.
+ *
+ * Performs a single `POST /api/generate` call to the Ollama REST API.
+ * The response body's snake_case fields are mapped to camelCase in the
+ * returned `GenerateResult`.
+ *
+ * @param prompt  - The full prompt string to send to the model.
+ * @param options - Optional overrides for model selection, streaming, etc.
+ * @returns A `GenerateResult` containing the text and Ollama telemetry.
+ * @throws {Error} When the Ollama API returns a non-2xx status code.
+ */
 export async function generateWithMetadata(
   prompt: string,
-  options: GenerateOptions = {}
+  options: GenerateOptions = {},
 ): Promise<GenerateResult> {
   const {
     model = process.env.OLLAMA_MODEL ?? "llama3",
@@ -84,10 +148,11 @@ export async function generateWithMetadata(
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new Error(
-      `Ollama API error: ${res.status} ${res.statusText}${body ? ` — ${body}` : ""}`
+      `Ollama API error: ${res.status} ${res.statusText}${body ? ` — ${body}` : ""}`,
     );
   }
 
+  /* Ollama returns snake_case keys — map them to our camelCase interface. */
   const data = (await res.json()) as {
     response: string;
     model?: string;

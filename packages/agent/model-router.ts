@@ -1,26 +1,97 @@
-import { generate } from "../llm/ollama";
+/**
+ * Model router — selects the best Ollama model for each agent step.
+ *
+ * Two routing strategies are supported, toggled by the
+ * `AGENT_MODEL_ROUTER_MODE` environment variable:
+ *
+ * 1. **`rules`** (default) — fast, synchronous keyword scan of the
+ *    task + accumulated context.  Zero LLM cost.
+ * 2. **`model`** — delegates the routing decision to a small, fast
+ *    LLM (`AGENT_MODEL_ROUTER_MODEL`).  Falls back to the `default`
+ *    profile on failure.
+ *
+ * A caller may also *force* a profile via `RouteInput.forcedProfile`,
+ * which bypasses all routing logic entirely.
+ *
+ * @module agent/model-router
+ */
 
+import { generate } from "../llm/ollama";
+import { envFloat, envInt } from "../shared";
+
+/* ── Public types ────────────────────────────────────────────────────── */
+
+/** Supported model profiles — each maps to a distinct Ollama model. */
 export type ModelProfile = "fast" | "reasoning" | "code" | "default";
 
+/** The decision returned by `routeModel`. */
 export interface ModelRouteDecision {
+  /** The selected profile name. */
   profile: ModelProfile;
+
+  /** Ollama model identifier resolved from the profile. */
   model: string;
+
+  /** Short human-readable reason for the routing decision. */
   reason: string;
+
+  /** Optional generation options (temperature, top_p, etc.) for this profile. */
+  options?: Record<string, unknown>;
 }
 
+/* ── Internal types ──────────────────────────────────────────────────── */
+
+/**
+ * Input consumed by the routing functions.
+ *
+ * The agent constructs this object at every step so the router can
+ * make context-aware decisions.
+ */
 interface RouteInput {
+  /** The original task description from the user. */
   task: string;
+
+  /** Accumulated context built up by previous agent steps. */
   context: string;
+
+  /** Current zero-based step index in the agent loop. */
   step: number;
+
+  /**
+   * When set, skip all routing logic and use this profile directly.
+   * This is how the `/run` endpoint's `profile` query-param works.
+   */
+  forcedProfile?: ModelProfile;
 }
 
+/* ── Resolved model names from environment ───────────────────────────── */
+
+/** Fallback model used when no profile-specific model is configured. */
 const DEFAULT_MODEL = process.env.AGENT_MODEL_DEFAULT ?? process.env.OLLAMA_MODEL ?? "llama3";
+
+/** Low-latency model for simple / quick tasks. */
 const FAST_MODEL = process.env.AGENT_MODEL_FAST ?? DEFAULT_MODEL;
+
+/** Larger model optimised for multi-step reasoning. */
 const REASONING_MODEL = process.env.AGENT_MODEL_REASONING ?? DEFAULT_MODEL;
+
+/** Code-specialised model (Qwen-Coder, DeepSeek-Coder, etc.). */
 const CODE_MODEL = process.env.AGENT_MODEL_CODE ?? DEFAULT_MODEL;
-const ROUTER_MODEL = process.env.AGENT_MODEL_ROUTER_MODEL ?? FAST_MODEL;
+
+/** Small, fast model used by the *model* routing strategy to classify tasks. */
+const ROUTER_MODEL = process.env.AGENT_MODEL_ROUTER_MODEL ?? "phi4-mini:latest";
+
+/** Active routing strategy: `"rules"` (default) or `"model"`. */
 const ROUTER_MODE = (process.env.AGENT_MODEL_ROUTER_MODE ?? "rules").toLowerCase();
 
+/* ── Profile → model / options resolution ────────────────────────────── */
+
+/**
+ * Map a profile name to its configured Ollama model string.
+ *
+ * @param profile - One of the four supported profiles.
+ * @returns The model identifier to pass to Ollama.
+ */
 function resolveModel(profile: ModelProfile): string {
   switch (profile) {
     case "fast":
@@ -34,9 +105,70 @@ function resolveModel(profile: ModelProfile): string {
   }
 }
 
+/**
+ * Build profile-specific generation options (temperature, top_p, etc.).
+ *
+ * Each profile reads its own set of environment variables with a
+ * naming convention of `AGENT_MODEL_<PROFILE>_<OPTION>` and falls back
+ * to sensible defaults tuned for that profile's purpose.
+ *
+ * @param profile - The profile to build options for.
+ * @returns A plain object forwarded to Ollama's `options` field.
+ */
+function resolveOptions(profile: ModelProfile): Record<string, unknown> {
+  const prefix = `AGENT_MODEL_${profile.toUpperCase()}`;
+  switch (profile) {
+    case "fast":
+      return {
+        temperature: envFloat(process.env[`${prefix}_TEMPERATURE`], 0.3),
+        top_p: envFloat(process.env[`${prefix}_TOP_P`], 0.85),
+        top_k: envInt(process.env[`${prefix}_TOP_K`], 30),
+        num_ctx: envInt(process.env[`${prefix}_NUM_CTX`], 4096),
+        repeat_penalty: envFloat(process.env[`${prefix}_REPEAT_PENALTY`], 1.2),
+      };
+    case "reasoning":
+      return {
+        temperature: envFloat(process.env[`${prefix}_TEMPERATURE`], 0.2),
+        top_p: envFloat(process.env[`${prefix}_TOP_P`], 0.8),
+        top_k: envInt(process.env[`${prefix}_TOP_K`], 20),
+        num_ctx: envInt(process.env[`${prefix}_NUM_CTX`], 8192),
+        repeat_penalty: envFloat(process.env[`${prefix}_REPEAT_PENALTY`], 1.3),
+      };
+    case "code":
+      return {
+        temperature: envFloat(process.env[`${prefix}_TEMPERATURE`], 0.2),
+        top_p: envFloat(process.env[`${prefix}_TOP_P`], 0.8),
+        top_k: envInt(process.env[`${prefix}_TOP_K`], 20),
+        num_ctx: envInt(process.env[`${prefix}_NUM_CTX`], 8192),
+        repeat_penalty: envFloat(process.env[`${prefix}_REPEAT_PENALTY`], 1.3),
+      };
+    default:
+      return {
+        temperature: envFloat(process.env[`${prefix}_TEMPERATURE`], 0.3),
+        top_p: envFloat(process.env[`${prefix}_TOP_P`], 0.85),
+        top_k: envInt(process.env[`${prefix}_TOP_K`], 30),
+        num_ctx: envInt(process.env[`${prefix}_NUM_CTX`], 8192),
+        repeat_penalty: envFloat(process.env[`${prefix}_REPEAT_PENALTY`], 1.2),
+      };
+  }
+}
+
+/* ── Rule-based routing ──────────────────────────────────────────────── */
+
+/**
+ * Select a model profile using simple keyword matching on the task + context.
+ *
+ * The heuristic checks for code-related keywords first, then reasoning
+ * signals, and defaults to the `fast` profile when nothing matches.
+ * This is cheap (no LLM call) and deterministic.
+ *
+ * @param input - The current routing input (task, context, step).
+ * @returns A `ModelRouteDecision` based on keyword heuristics.
+ */
 function routeWithRules(input: RouteInput): ModelRouteDecision {
   const text = `${input.task}\n${input.context}`.toLowerCase();
 
+  /* Keywords that indicate the task is code-centric. */
   const codeSignals = [
     "code",
     "refactor",
@@ -64,9 +196,11 @@ function routeWithRules(input: RouteInput): ModelRouteDecision {
       profile: "code",
       model: resolveModel("code"),
       reason: "keyword_match:code",
+      options: resolveOptions("code"),
     };
   }
 
+  /* Keywords that indicate multi-step reasoning or analysis. */
   const reasoningSignals = [
     "reason",
     "step by step",
@@ -91,16 +225,27 @@ function routeWithRules(input: RouteInput): ModelRouteDecision {
       profile: "reasoning",
       model: resolveModel("reasoning"),
       reason: "heuristic:reasoning_or_long_task",
+      options: resolveOptions("reasoning"),
     };
   }
 
+  /* Nothing matched — use the cheapest profile. */
   return {
     profile: "fast",
     model: resolveModel("fast"),
     reason: "default_fast",
+    options: resolveOptions("fast"),
   };
 }
 
+/* ── Model-based routing ─────────────────────────────────────────────── */
+
+/**
+ * Attempt to parse a raw string as a valid `ModelProfile`.
+ *
+ * @param raw - The candidate string (e.g. from an LLM response).
+ * @returns The matching `ModelProfile`, or `null` if invalid.
+ */
 function parseProfile(raw: string): ModelProfile | null {
   const value = raw.trim().toLowerCase();
   if (value === "fast" || value === "reasoning" || value === "code" || value === "default") {
@@ -109,6 +254,17 @@ function parseProfile(raw: string): ModelProfile | null {
   return null;
 }
 
+/**
+ * Select a model profile by asking a small, fast LLM to classify the task.
+ *
+ * The router model is prompted to return a JSON object with `profile`
+ * and `reason` keys.  If the response is unparseable or the profile
+ * is invalid, the caller should catch the error and fall back.
+ *
+ * @param input - The current routing input (task, context, step).
+ * @returns A `ModelRouteDecision` based on the LLM's classification.
+ * @throws {Error} When the LLM response cannot be parsed or contains an invalid profile.
+ */
 async function routeWithModel(input: RouteInput): Promise<ModelRouteDecision> {
   const routerPrompt =
     `You are a model router.\n` +
@@ -128,6 +284,7 @@ async function routeWithModel(input: RouteInput): Promise<ModelRouteDecision> {
     format: "json",
   });
 
+  /* Strip any markdown code fences the model may have added. */
   const cleaned = response.replace(/```(?:json)?\n?/g, "").trim();
   const parsed = JSON.parse(cleaned) as { profile?: string; reason?: string };
   const profile = parsed.profile ? parseProfile(parsed.profile) : null;
@@ -139,14 +296,42 @@ async function routeWithModel(input: RouteInput): Promise<ModelRouteDecision> {
     profile,
     model: resolveModel(profile),
     reason: parsed.reason?.slice(0, 240) ?? "router_model_decision",
+    options: resolveOptions(profile),
   };
 }
 
+/* ── Public API ──────────────────────────────────────────────────────── */
+
+/**
+ * Determine which Ollama model (and generation options) to use for the
+ * current agent step.
+ *
+ * Resolution order:
+ * 1. If `input.forcedProfile` is set → use it immediately (zero cost).
+ * 2. If `AGENT_MODEL_ROUTER_MODE` is `"rules"` → keyword heuristic.
+ * 3. If `AGENT_MODEL_ROUTER_MODE` is `"model"` → ask the router LLM.
+ *    Falls back to the `default` profile if the LLM call fails.
+ *
+ * @param input - Task, context, step index, and optional forced profile.
+ * @returns A `ModelRouteDecision` describing the chosen model.
+ */
 export async function routeModel(input: RouteInput): Promise<ModelRouteDecision> {
+  /* Forced profile — bypass all routing. */
+  if (input.forcedProfile) {
+    return {
+      profile: input.forcedProfile,
+      model: resolveModel(input.forcedProfile),
+      reason: "forced_by_caller",
+      options: resolveOptions(input.forcedProfile),
+    };
+  }
+
+  /* Rule-based routing (default). */
   if (ROUTER_MODE !== "model") {
     return routeWithRules(input);
   }
 
+  /* Model-based routing with fallback. */
   try {
     return await routeWithModel(input);
   } catch {
@@ -154,6 +339,7 @@ export async function routeModel(input: RouteInput): Promise<ModelRouteDecision>
       profile: "default",
       model: resolveModel("default"),
       reason: "router_model_failed_fallback_default",
+      options: resolveOptions("default"),
     };
   }
 }
