@@ -18,4 +18,4 @@ Options:
 
 ## Key file
 
-- `src/ollama.ts`
+- `ollama.ts`

@@ -33,4 +33,4 @@ Emits lifecycle events through `packages/events`:
 
 ## Key file
 
-- `src/agent.ts`
+- `agent.ts`

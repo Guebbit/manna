@@ -9,6 +9,8 @@ export default defineConfig({
       { text: "Home", link: "/" },
       { text: "Use the App", link: "/use-the-application" },
       { text: "Model Selection", link: "/model-selection" },
+      { text: "Ollama Models", link: "/infra/ollama-models" },
+      { text: "Ollama Notes", link: "/infra/ollama-notes" },
       { text: "Packages", link: "/packages/" },
       { text: "Theory", link: "/theory/agent-loop" },
       { text: "Scenarios", link: "/scenarios" },
@@ -21,6 +23,9 @@ export default defineConfig({
           { text: "Use the Application", link: "/use-the-application" },
           { text: "Model Selection", link: "/model-selection" },
           { text: "Scenarios & Tests", link: "/scenarios" },
+          { text: "Ollama Models", link: "/infra/ollama-models" },
+          { text: "Ollama Notes", link: "/infra/ollama-notes" },
+          { text: "Modelfile Example", link: "/infra/modelfile-example" },
         ],
       },
       {

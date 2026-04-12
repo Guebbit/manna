@@ -21,4 +21,4 @@ Rejects access outside project root directory.
 ## Good test prompts
 
 - "Read `package.json` and tell me available npm scripts."
-- "Open `packages/agent/src/agent.ts` and summarize the loop."
+- "Open `packages/agent/agent.ts` and summarize the loop."

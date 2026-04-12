@@ -1,19 +1,19 @@
 # Model Selection: Who the Agent Is and How to Choose Models
 
-This page integrates the practical guidance from `infra/docs/models.md` and `infra/docs/notes.md`, but aligned to this project runtime.
+This page aligns model strategy to the runtime in this repository. For the full model catalog and local runtime notes, see [/infra/ollama-models](/infra/ollama-models) and [/infra/ollama-notes](/infra/ollama-notes).
 
 ## Who is the "agent"?
 
 In this repository, the **agent** is not a model by itself.
 
-The agent is the runtime loop in `packages/agent/src/agent.ts`:
+The agent is the runtime loop in `packages/agent/agent.ts`:
 
 - builds prompt (task + memory + context + tool list)
 - asks the LLM for JSON (`thought`, `action`, `input`)
 - executes tools
 - repeats up to max steps
 
-The model is one dependency used by that loop (`packages/llm/src/ollama.ts`).
+The model is one dependency used by that loop (`packages/llm/ollama.ts`).
 
 ## Which model is used by default?
 
@@ -46,22 +46,23 @@ If you want "specialist personalities" (planner/coder/reviewer), you need explic
 
 Use this as a quick starting matrix:
 
-- **General assistant:** `llama3.1:8b` or `qwen3:4b`
-- **Coding-heavy tasks:** `deepseek-coder-v2:16b` or `qwen3-coder:14b`
-- **Reasoning/math-heavy tasks:** `deepseek-r1`
-- **Very low VRAM / fastest tests:** `phi3`, `phi4-mini`, `dolphin-phi`
-- **Vision (image + text):** `llava-llama3`
+- **General assistant (main):** `qwen3:32b`
+- **Coding-heavy tasks (main):** `qwen2.5-coder:32b`
+- **Reasoning/math-heavy tasks (main):** `deepseek-r1:32b`
+- **Fast utility tasks:** `phi4-mini`
+- **Vision (image + text):** `llava:13b`
+- **IDE assistant (later, WebStorm):** `starcoder2`
 
 Rule of thumb:
 
-1. start with 4B–8B
-2. increase size only if quality is not enough
-3. prefer coder models for repo work
-4. prefer reasoning models for logic/math-heavy prompts
+1. use `deepseek-r1:32b` for primary reasoning
+2. use `qwen3:32b` for general assistant quality
+3. use `qwen2.5-coder:32b` for core coding tasks
+4. keep `phi4-mini` for fast low-latency utility calls
 
 ## Local runtime constraints (important)
 
-From `infra/docs/notes.md`, these limits matter in practice:
+From [/infra/ollama-notes](/infra/ollama-notes), these limits matter in practice:
 
 - quantization (reducing numeric precision of model weights) reduces VRAM usage (quality/speed tradeoff)
 - large prompts and outputs increase token/memory pressure

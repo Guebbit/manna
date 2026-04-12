@@ -30,4 +30,4 @@ Stores recent context with a hybrid strategy:
 
 ## Where in code
 
-- `packages/memory/src/memory.ts`
+- `packages/memory/memory.ts`

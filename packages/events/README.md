@@ -17,4 +17,4 @@ Use `"*"` as event type to receive all events.
 
 ## Key file
 
-- `src/bus.ts`
+- `bus.ts`

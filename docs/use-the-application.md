@@ -57,7 +57,7 @@ curl -X POST http://localhost:3001/run \
 
 ## 6) Browser tool is enabled by default
 
-`browser_fetch` is already wired in `apps/api/src/index.ts`.
+`browser_fetch` is already wired in `apps/api/index.ts`.
 Chromium is installed automatically on `npm install` via the project `postinstall` script.
 
 ## 7) Common troubleshooting

@@ -33,4 +33,4 @@ Use `"*"` to subscribe to all event types.
 
 ## Where in code
 
-- `packages/events/src/bus.ts`
+- `packages/events/bus.ts`

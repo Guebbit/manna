@@ -35,4 +35,4 @@ Up to **5 steps** per task.
 
 ## Where in code
 
-- `packages/agent/src/agent.ts`
+- `packages/agent/agent.ts`
