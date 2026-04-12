@@ -16,10 +16,12 @@ import {
 import { on } from "../../packages/events/bus";
 import { getLogger } from "../../packages/logger/logger";
 import { registerIdeRoutes } from "./ide-endpoints";
+import { JobQueue } from "../../packages/queue/queue";
+import { registerQueueRoutes } from "./queue-endpoints";
 
 const log = getLogger("api");
 
-// ── Observability: log all agent events to stdout ──────────────────────────
+// ── Observability: log all agent and queue events to stdout ───────────────
 on("*", (event) => {
   log.info("event_emitted", { eventType: event.type, payload: event.payload });
 });
@@ -43,10 +45,14 @@ function createAgent(allowWrite: boolean): Agent {
   return allowWrite ? writeEnabledAgent : readOnlyAgent;
 }
 
+// ── Job queue ──────────────────────────────────────────────────────────────
+const queue = new JobQueue(createAgent);
+
 // ── HTTP server ────────────────────────────────────────────────────────────
 const app = express();
 app.use(express.json());
 registerIdeRoutes(app);
+registerQueueRoutes(app, queue);
 
 /**
  * POST /run

@@ -109,8 +109,8 @@ For each task:
 3. Ask selected model for strict JSON output: `thought`, `action`, `input`
 4. If `action !== "none"`, execute selected tool
 5. Append tool result to context
-6. Repeat up to max steps (currently 5)
-7. Stop when `action: "none"` or max steps reached
+6. Repeat up to max steps (default 5; override with `AGENTS_MAX_STEPS` env var or per-job `maxSteps`)
+7. Stop when `action: "none"`, max steps reached, max consecutive tool failures reached, or job is cancelled/timed out
 
 Lifecycle events are emitted through `packages/events` and logged by the API.
 
@@ -129,6 +129,9 @@ Used by Node app (shell environment, `.env` loader, container env, etc.):
 - `AGENT_MODEL_REASONING` (profile model)
 - `AGENT_MODEL_CODE` (profile model)
 - `AGENT_MODEL_DEFAULT` (fallback profile model)
+- `AGENTS_MAX_STEPS` (default `5`) — maximum reasoning steps per task; raise to `20`–`25` for complex overnight work
+- `AGENTS_ALL_NIGHT_MAX_STEPS` (default `25`) — step budget applied when `mode: "all_night"` is set and `maxSteps` is not explicitly specified
+- `AGENT_QUEUE_CONCURRENCY` (default `1`) — number of jobs processed in parallel; keep at `1` on single-GPU hardware
 - `TOOL_VISION_MODEL` (default `llava-llama3`)
 - `TOOL_STT_MODEL` (default `whisper`)
 - `TOOL_IDE_MODEL` (default `starcoder2`)
@@ -216,6 +219,149 @@ curl -X POST http://localhost:3001/autocomplete \
   -H "Content-Type: application/json" \
   -d '{"prefix":"function add(a, b) {","suffix":"}","language":"javascript"}'
 ```
+
+## Job queue endpoints
+
+Submit tasks to a background queue so they are processed one at a time without blocking your terminal.
+Useful for batches and for leaving long tasks running overnight.
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `POST` | `/queue/submit` | Enqueue a single task |
+| `POST` | `/queue/submit/batch` | Enqueue multiple tasks at once |
+| `GET` | `/queue/jobs` | List all jobs + aggregate stats |
+| `GET` | `/queue/jobs/:id` | Get a single job's full record |
+| `DELETE` | `/queue/jobs/:id` | Cancel a queued or running job |
+| `GET` | `/queue/stats` | Aggregate counts only |
+
+### Single task
+
+```bash
+curl -X POST http://localhost:3001/queue/submit \
+  -H "Content-Type: application/json" \
+  -d '{"task":"Summarize all TypeScript files in packages/agent"}'
+```
+
+Response:
+```json
+{ "jobId": "3fa85f64-...", "status": "queued", "createdAt": "2026-04-12T20:00:00Z" }
+```
+
+### Batch submission
+
+```bash
+curl -X POST http://localhost:3001/queue/submit/batch \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tasks": [
+      "Read README.md and list all env vars",
+      "Read package.json and summarize all scripts",
+      "Find all TODO comments in packages/"
+    ]
+  }'
+```
+
+### All-night mode
+
+```bash
+curl -X POST http://localhost:3001/queue/submit \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task": "Thoroughly review every TypeScript file in packages/ and list all potential issues",
+    "mode": "all_night",
+    "allowWrite": false
+  }'
+```
+
+`all_night` automatically applies:
+- `maxSteps`: 25 (override with `AGENTS_ALL_NIGHT_MAX_STEPS`)
+- `maxToolFailures`: 5 consecutive failures before giving up
+- `timeoutMs`: 8 hours
+
+### Per-job overrides
+
+All options can be specified explicitly regardless of mode:
+
+```bash
+curl -X POST http://localhost:3001/queue/submit \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task": "Deep-analyse the agent loop and produce a detailed report",
+    "maxSteps": 20,
+    "maxToolFailures": 3,
+    "timeoutMs": 7200000
+  }'
+```
+
+### Poll for result
+
+```bash
+curl http://localhost:3001/queue/jobs/3fa85f64-...
+```
+
+```json
+{
+  "id": "3fa85f64-...",
+  "status": "done",
+  "result": "The agent found ...",
+  "createdAt": "...",
+  "startedAt": "...",
+  "finishedAt": "..."
+}
+```
+
+### Cancel a job
+
+```bash
+curl -X DELETE http://localhost:3001/queue/jobs/3fa85f64-...
+```
+
+## Overnight / all-night profile (RTX 4090 single-GPU)
+
+When you want to let the system work unattended overnight, combine these settings:
+
+**Environment variables to export before `npm run dev`:**
+
+```bash
+# Raise step budget globally (the queue all_night preset uses 25 by default)
+export AGENTS_MAX_STEPS=10
+
+# Only process one queue job at a time — safe for single-GPU setups
+export AGENT_QUEUE_CONCURRENCY=1
+
+# Use your best quality models (the PC will be idle anyway)
+export AGENT_MODEL_CODE=qwen2.5-coder:32b
+export AGENT_MODEL_REASONING=deepseek-r1:32b
+export AGENT_MODEL_FAST=qwen3:4b
+export AGENT_MODEL_DEFAULT=qwen3:32b
+```
+
+**In `infra/podman/docker-compose.yml`, the `ollama` service already has conservative resource caps:**
+
+```yaml
+environment:
+  - OLLAMA_NUM_THREADS=1   # limits CPU thread use so host stays responsive
+  - OLLAMA_KEEP_ALIVE=5m   # unloads model after 5 min idle
+mem_limit: 16g
+cpus: "8.0"
+```
+
+These are already set. You do not need to change them for overnight use.
+
+**Then submit your batch with `all_night` mode:**
+
+```bash
+curl -X POST http://localhost:3001/queue/submit/batch \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tasks": ["task 1", "task 2", "task 3"],
+    "mode": "all_night"
+  }'
+```
+
+Each job gets 25 steps, 5-failure tolerance, and an 8-hour timeout.  
+The queue processes them one at a time overnight.  
+Check results in the morning with `GET /queue/jobs`.
 
 ## Package docs
 

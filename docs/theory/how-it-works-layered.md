@@ -21,7 +21,7 @@ Agent loop:
   4. LLM picks a tool + input (or says "done")
   5. Agent runs that tool
   6. Events emit: "step done"
-  7. Repeat until: done or max 5 steps
+  7. Repeat until: done or max steps (default 5; configurable via `AGENTS_MAX_STEPS` or per-job `maxSteps`)
     ↓
 Return result to user
 ```
@@ -50,13 +50,14 @@ If this is enough, stop here.
    - Tool catalog: [/packages/tools/](/packages/tools/)
 6. **Events emit step progress**
    - Event flow: [/theory/events-observability](/theory/events-observability)
-7. **Repeat until done or max 5 steps**
+7. **Repeat until done or max steps (default 5; configurable)**
    - Loop mental model: [/theory/agent-loop](/theory/agent-loop)
+   - Queue & overnight mode: [/queue](/queue)
 
 ## Layer 3 — What each block is really doing
 
 - **API** receives `task`, creates runtime dependencies, and calls the agent.
-- **Agent** runs a bounded loop (max 5 steps) to avoid runaway behavior.
+- **Agent** runs a bounded loop (max steps configurable via `AGENTS_MAX_STEPS`, default 5) to avoid runaway behavior.
 - **LLM** proposes the next action in strict JSON (`thought`, `action`, `input`).
 - **Model router** chooses a profile (`fast` / `reasoning` / `code` / `default`) per step.
 - **Tools** perform deterministic operations (read file, shell, SQL, browser fetch).

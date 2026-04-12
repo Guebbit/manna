@@ -79,7 +79,7 @@ curl -X POST http://localhost:3001/run \
 - Agent builds prompt + context + memory + tool list
 - LLM returns JSON with `thought`, `action`, `input`
 - Tool executes (if `action` is not `none`)
-- Loop repeats until done or max 5 steps
+- Loop repeats until done or max steps (default 5; set `AGENTS_MAX_STEPS` env var to raise this)
 
 ## 6) Browser tool is enabled by default
 
@@ -114,7 +114,60 @@ Optional env vars:
 - Empty/invalid request: ensure body includes non-empty `"task"`
 - MySQL tool fails: verify `MYSQL_*` env vars and DB availability
 
-## 9) Learn-by-doing next
+## 9) Use the job queue for batches and overnight tasks
+
+The `/run` endpoint is synchronous — it blocks until the agent finishes.  
+The queue endpoints let you submit tasks in the background and poll for results.
+
+### Submit a single job
+
+```bash
+curl -X POST http://localhost:3001/queue/submit \
+  -H "Content-Type: application/json" \
+  -d '{"task":"List all TypeScript files in packages/ and count lines"}'
+```
+
+Returns immediately: `{ "jobId": "...", "status": "queued", "createdAt": "..." }`
+
+### All-night mode — unattended batch
+
+```bash
+curl -X POST http://localhost:3001/queue/submit/batch \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tasks": [
+      "Summarize packages/agent/agent.ts",
+      "Summarize packages/llm/ollama.ts",
+      "Summarize packages/memory/memory.ts"
+    ],
+    "mode": "all_night"
+  }'
+```
+
+`all_night` automatically raises the step budget to 25, allows 5 consecutive tool
+failures before giving up, and sets an 8-hour timeout per job.
+
+### Check queue status
+
+```bash
+curl http://localhost:3001/queue/jobs
+```
+
+### Get one job result
+
+```bash
+curl http://localhost:3001/queue/jobs/<jobId>
+```
+
+### Cancel a job
+
+```bash
+curl -X DELETE http://localhost:3001/queue/jobs/<jobId>
+```
+
+See the full queue reference in the README or [/queue](/queue).
+
+## 10) Learn-by-doing next
 
 Go to [/scenarios](/scenarios) and run the exercises one by one.
 

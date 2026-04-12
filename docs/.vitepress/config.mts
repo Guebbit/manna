@@ -8,6 +8,7 @@ export default defineConfig({
         nav: [
             { text: "Home", link: "/" },
             { text: "Getting Started", link: "/use-the-application" },
+            { text: "Queue & All-Night", link: "/queue" },
             { text: "Model Selection", link: "/model-selection" },
             { text: "Ollama Models", link: "/infra/ollama-models" },
             { text: "Ollama Notes", link: "/infra/ollama-notes" },
@@ -21,6 +22,7 @@ export default defineConfig({
                 items: [
                     { text: "Home", link: "/" },
                     { text: "Use the Application", link: "/use-the-application" },
+                    { text: "Job Queue & All-Night Mode", link: "/queue" },
                     { text: "Scenarios & Tests", link: "/scenarios" },
                     { text: "Ollama Models", link: "/infra/ollama-models" },
                     { text: "Ollama Notes", link: "/infra/ollama-notes" },

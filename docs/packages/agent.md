@@ -10,7 +10,21 @@ Makes decisions in a loop and routes each step to the most appropriate model pro
 
 ## Repeats
 
-Up to **5 steps** per task.
+Up to **N steps** per task where N defaults to `5` and is controlled by:
+
+1. `AGENTS_MAX_STEPS` environment variable (process-wide default)
+2. `maxSteps` option passed to `Agent.run()` (per-call override, used by the queue)
+
+## Per-run safety controls
+
+`Agent.run(task, options?)` accepts:
+
+| Option | Type | Default | Purpose |
+|---|---|---|---|
+| `maxSteps` | `number` | `AGENTS_MAX_STEPS` (5) | Step ceiling for this run |
+| `maxToolFailures` | `number` | unlimited | Abort after N consecutive tool failures |
+| `timeoutMs` | `number` | none | Wall-clock timeout in ms |
+| `signal` | `AbortSignal` | none | External cancellation (used by the job queue) |
 
 ## Uses
 
@@ -31,8 +45,10 @@ Up to **5 steps** per task.
 
 ## Stop conditions
 
-- `action: "none"` => done
-- max steps reached => returns fallback message
+- `action: "none"` → done
+- max steps reached → returns fallback message
+- max consecutive tool failures reached → returns fallback message
+- AbortSignal fired (timeout or external cancel) → returns cancellation message
 
 ## Where in code
 
