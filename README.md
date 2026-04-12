@@ -65,6 +65,14 @@ curl -X POST http://localhost:3001/run \
   -d '{"task":"List files in the current directory"}'
 ```
 
+Write mode is opt-in per request:
+
+```bash
+curl -X POST http://localhost:3001/run \
+  -H "Content-Type: application/json" \
+  -d '{"task":"Scaffold a new project from template react-ts","allowWrite":true}'
+```
+
 ## How tools are used
 
 Tools are configured in `apps/api/index.ts` when creating the `Agent`.
@@ -76,11 +84,14 @@ Tools are configured in `apps/api/index.ts` when creating the `Agent`.
 - `shell` — run allowlisted shell commands
 - `mysql_query` — run read-only `SELECT` queries
 - `browser_fetch` — fetch and summarize web page content
+- `write_file` — write files under generated projects root (**disabled by default**)
+- `scaffold_project` — copy a boilerplate into generated projects root (**disabled by default**)
 
 </details>
 
 `browser_fetch` is enabled by default.
 Chromium is installed automatically during `npm install` via `postinstall`.
+`write_file` and `scaffold_project` are available only when request body sets `"allowWrite": true`.
 
 ## How the agentic loop works
 
@@ -117,6 +128,8 @@ Used by Node app (shell environment, `.env` loader, container env, etc.):
 - `LOG_ENABLED` (`true`/`false`, default `true`)
 - `LOG_LEVEL` (default `info`, for example: `error`, `warn`, `info`, `debug`)
 - `LOG_PRETTY` (`true`/`false`, default `false`; when `false`, logs are JSON)
+- `BOILERPLATE_ROOT` (default `data/boilerplates`)
+- `PROJECT_OUTPUT_ROOT` (default `data/generated-projects`)
 
 ### Infra compose variables
 

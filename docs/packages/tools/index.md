@@ -33,6 +33,12 @@ Execute read-only `SELECT` queries.
 ### `browser_fetch`
 Fetch page title and visible text (Playwright).
 
+### `write_file`
+Write UTF-8 files under generated projects root (opt-in write mode only).
+
+### `scaffold_project`
+Copy a boilerplate template into generated projects root (opt-in write mode only).
+
 </details>
 
 ## Security boundaries
@@ -41,6 +47,8 @@ Fetch page title and visible text (Playwright).
 - `shell` only allows selected base commands
 - `mysql_query` only permits `SELECT`
 - `browser_fetch` only permits `http`/`https`
+- `write_file` only writes inside `PROJECT_OUTPUT_ROOT`
+- `scaffold_project` only reads inside `BOILERPLATE_ROOT` and writes inside `PROJECT_OUTPUT_ROOT`
 
 ## Tool pages
 
@@ -48,3 +56,5 @@ Fetch page title and visible text (Playwright).
 - [/packages/tools/shell](/packages/tools/shell)
 - [/packages/tools/mysql-query](/packages/tools/mysql-query)
 - [/packages/tools/browser-fetch](/packages/tools/browser-fetch)
+- [/packages/tools/write-file](/packages/tools/write-file)
+- [/packages/tools/scaffold-project](/packages/tools/scaffold-project)

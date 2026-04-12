@@ -60,20 +60,40 @@ curl -X POST http://localhost:3001/run \
 `browser_fetch` is already wired in `apps/api/index.ts`.
 Chromium is installed automatically on `npm install` via the project `postinstall` script.
 
-## 7) Common troubleshooting
+## 7) Enable write mode only when needed
+
+Write tools are disabled by default and only exposed when request body sets `allowWrite: true`.
+
+```bash
+curl -X POST http://localhost:3001/run \
+  -H "Content-Type: application/json" \
+  -d '{"task":"Scaffold project my-react-app from template react-ts and create README notes","allowWrite":true}'
+```
+
+Write mode tools:
+
+- `scaffold_project`
+- `write_file`
+
+Optional env vars:
+
+- `BOILERPLATE_ROOT` (default `data/boilerplates`)
+- `PROJECT_OUTPUT_ROOT` (default `data/generated-projects`)
+
+## 8) Common troubleshooting
 
 - Ollama not reachable: check `OLLAMA_BASE_URL` (default `http://localhost:11434`)
 - Qdrant not reachable: check `QDRANT_URL` (default `http://localhost:6333`)
 - Empty/invalid request: ensure body includes non-empty `"task"`
 - MySQL tool fails: verify `MYSQL_*` env vars and DB availability
 
-## 8) Learn-by-doing next
+## 9) Learn-by-doing next
 
 Go to [/scenarios](/scenarios) and run the exercises one by one.
 
 If you are deciding which Ollama model to run (fast vs heavy, coding vs reasoning, local limits), see [/model-selection](/model-selection).
 
-## 9) Start from your own boilerplates (write mode roadmap)
+## 10) Start from your own boilerplates (write mode roadmap)
 
 Current setup is mostly read-oriented. To generate projects from your own templates, start with this sequence:
 

@@ -11,7 +11,7 @@ interface AgentStep {
 }
 
 // Maximum number of reasoning steps before giving up.
-const MAX_STEPS = parseInt(process.env.AGENTS_MAX_STEPS ?? "5", 10);
+const MAX_STEPS = Number.parseInt(process.env.AGENTS_MAX_STEPS ?? "5", 10);
 const log = getLogger("agent");
 
 /**

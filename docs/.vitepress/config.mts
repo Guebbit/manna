@@ -41,6 +41,8 @@ export default defineConfig({
           { text: "tools/shell", link: "/packages/tools/shell" },
           { text: "tools/mysql_query", link: "/packages/tools/mysql-query" },
           { text: "tools/browser_fetch", link: "/packages/tools/browser-fetch" },
+          { text: "tools/write_file", link: "/packages/tools/write-file" },
+          { text: "tools/scaffold_project", link: "/packages/tools/scaffold-project" },
         ],
       },
       {
