@@ -1,6 +1,10 @@
 /**
  * Public surface of the tools package.
- * Import individual tools or the shared Tool interface from here.
+ *
+ * Import individual tool instances, the shared `Tool` interface,
+ * or the `createTool` factory from here.
+ *
+ * @module tools
  */
 
 export { readFileTool } from "./fs.read";

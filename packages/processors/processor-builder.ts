@@ -1,17 +1,14 @@
-import type { Processor } from "./types";
-
 /**
- * Convenience factory for creating `Processor` objects.
+ * Processor builder — convenience factory for creating `Processor` objects.
  *
- * Equivalent to writing `const p: Processor = { ... }` but provides
- * Mastra-compatible naming and guarantees the returned value satisfies the
- * `Processor` interface.
+ * Equivalent to writing `const p: Processor = { … }` but provides
+ * Mastra-compatible naming and guarantees the returned value satisfies
+ * the `Processor` interface at the type level.
  *
  * ## Usage
  * ```typescript
  * import { createProcessor } from "../processors";
  *
- * // Inject a timestamp into the context before each LLM call
  * const timestampProcessor = createProcessor({
  *   processInputStep(args) {
  *     return {
@@ -23,6 +20,18 @@ import type { Processor } from "./types";
  *
  * agent.addProcessor(timestampProcessor);
  * ```
+ *
+ * @module processors/processor-builder
+ */
+
+import type { Processor } from "./types";
+
+/**
+ * Create a `Processor` from a plain object literal.
+ *
+ * @param processor - An object implementing one or both processor hooks
+ *                    (`processInputStep`, `processOutputStep`).
+ * @returns The same object, typed as `Processor`.
  */
 export function createProcessor(processor: Processor): Processor {
   return processor;

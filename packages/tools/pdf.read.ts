@@ -1,21 +1,35 @@
+/**
+ * PDF reader tool — extract text content from PDF files.
+ *
+ * Uses the `pdf-parse` library to parse the document and the shared
+ * `resolveSafePath` helper to prevent directory traversal.
+ *
+ * @module tools/pdf.read
+ */
+
 import fs from "fs/promises";
-import path from "path";
 import { PDFParse } from "pdf-parse";
 import type { Tool } from "./types";
+import { resolveSafePath } from "../shared";
 
-function resolveSafePath(filePath: string): string {
-  const resolved = path.resolve(process.cwd(), filePath);
-  const root = path.resolve(process.cwd());
-  if (!resolved.startsWith(root + path.sep) && resolved !== root) {
-    throw new Error("Access denied: path is outside the project root");
-  }
-  return resolved;
-}
-
+/**
+ * Tool instance for reading text from PDF files.
+ *
+ * Input: `{ path: string }`
+ * Output: `{ path, pageCount, text }`
+ */
 export const readPdfTool: Tool = {
   name: "read_pdf",
   description: "Read text from a PDF file. Input: { path: string }",
 
+  /**
+   * Read and parse the PDF at the given path, returning its text content.
+   *
+   * @param input      - Tool input object.
+   * @param input.path - Path to the PDF file (relative to project root).
+   * @returns `{ path, pageCount, text }` with the extracted text.
+   * @throws {Error} When the path is missing, empty, or escapes the project root.
+   */
   async execute({ path: pdfPath }) {
     if (typeof pdfPath !== "string" || pdfPath.trim() === "") {
       throw new Error('"path" must be a non-empty string');
