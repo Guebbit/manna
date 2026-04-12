@@ -1,24 +1,45 @@
+/**
+ * Code autocomplete tool — generate IDE-style completions via an
+ * Ollama code model.
+ *
+ * Uses the shared `envFloat` / `envInt` helpers for generation
+ * option parsing.
+ *
+ * @module tools/code.autocomplete
+ */
+
 import { generate } from "../llm/ollama";
 import type { Tool } from "./types";
+import { envFloat, envInt } from "../shared";
 
+/** Default IDE completion model, configurable via environment variable. */
 const DEFAULT_IDE_MODEL = process.env.TOOL_IDE_MODEL ?? process.env.AGENT_MODEL_CODE ?? "starcoder2";
 
-function envFloat(value: string | undefined, fallback: number): number {
-  const parsed = parseFloat(value ?? String(fallback));
-  return Number.isNaN(parsed) ? fallback : parsed;
-}
-
-function envInt(value: string | undefined, fallback: number): number {
-  const parsed = parseInt(value ?? String(fallback), 10);
-  return Number.isNaN(parsed) ? fallback : parsed;
-}
-
+/**
+ * Tool instance for generating code completions from prefix/suffix context.
+ *
+ * Input:
+ * ```json
+ * { "prefix": "function add(", "suffix": "}", "language": "typescript", "model": "starcoder2" }
+ * ```
+ */
 export const codeAutocompleteTool: Tool = {
   name: "code_autocomplete",
   description:
     "Generate code completion suggestions from prefix/suffix context. " +
     "Input: { prefix: string, suffix?: string, language?: string, model?: string }",
 
+  /**
+   * Generate a code continuation given the text before and after the cursor.
+   *
+   * @param input          - Tool input object.
+   * @param input.prefix   - Code text before the cursor (required).
+   * @param input.suffix   - Code text after the cursor (optional, for fill-in-the-middle).
+   * @param input.language - Programming language hint (default: `"plaintext"`).
+   * @param input.model    - Optional override for the completion model.
+   * @returns `{ model, language, completion }` with the generated continuation.
+   * @throws {Error} When `prefix` is missing or empty.
+   */
   async execute({ prefix, suffix, language, model }) {
     if (typeof prefix !== "string" || prefix.trim() === "") {
       throw new Error('"prefix" must be a non-empty string');

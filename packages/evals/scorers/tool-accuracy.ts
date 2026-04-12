@@ -1,31 +1,43 @@
-import { createScorer } from "../scorer-builder";
-import type { ScorerResult, ScorerRunInput } from "../types";
-
 /**
- * Tool Accuracy Scorer
- *
- * Measures whether the agent used appropriate tools to satisfy the request.
+ * Tool Accuracy Scorer — measures whether the agent used the right
+ * tools and used them successfully.
  *
  * ## Scoring logic (local-first, no LLM required)
  * 1. Extract tool names from `metadata.toolsUsed` (array of strings).
- * 2. If no tools were used and the task clearly needed one → score 0.
- * 3. If an error tool call was made (recorded in `metadata.toolErrors`) → penalise.
+ * 2. If no tools were used and `stepCount === 0` → score 1 (direct answer).
+ * 3. If no tools were used but `stepCount > 0` → score 0.5 (possible issue).
  * 4. Otherwise → proportional score based on error ratio.
  *
  * The heuristic is intentionally simple so it works without an LLM judge.
  * For higher-quality evaluation, swap in an LLM-based scorer (see
  * `agent-quality.ts` for an example).
+ *
+ * @module evals/scorers/tool-accuracy
+ */
+
+import { createScorer } from "../scorer-builder";
+import type { ScorerResult, ScorerRunInput } from "../types";
+
+/**
+ * Exported scorer instance.
+ *
+ * Registered as `"tool-accuracy"` in the eval harness.
  */
 export const toolAccuracyScorer = createScorer({
   id: "tool-accuracy",
 
+  /**
+   * Score a single agent run for tool-usage accuracy.
+   *
+   * @param run - The run to evaluate (input, output, metadata).
+   * @returns A normalised `ScorerResult` in [0, 1].
+   */
   async score(run: ScorerRunInput): Promise<ScorerResult> {
     const toolsUsed = (run.metadata?.toolsUsed as string[] | undefined) ?? [];
     const toolErrors = (run.metadata?.toolErrors as string[] | undefined) ?? [];
     const stepCount = (run.metadata?.stepCount as number | undefined) ?? 0;
 
-    // If the agent completed in 0 steps with no tools — could be valid (simple answer)
-    // or invalid (needed tools but skipped them).  We check for error indicators.
+    /* Direct answer with no tools and no steps — perfectly valid. */
     if (toolsUsed.length === 0 && stepCount === 0) {
       return {
         score: 1,
@@ -35,6 +47,7 @@ export const toolAccuracyScorer = createScorer({
       };
     }
 
+    /* Steps executed but no tools selected — possibly a routing issue. */
     if (toolsUsed.length === 0 && stepCount > 0) {
       return {
         score: 0.5,
@@ -44,6 +57,7 @@ export const toolAccuracyScorer = createScorer({
       };
     }
 
+    /* Calculate error ratio and derive a proportional score. */
     const errorRatio =
       toolsUsed.length > 0 ? toolErrors.length / toolsUsed.length : 0;
     const score = Math.max(0, 1 - errorRatio);

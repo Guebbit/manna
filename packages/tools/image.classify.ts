@@ -1,35 +1,48 @@
+/**
+ * Image classification / description tool.
+ *
+ * Reads an image from disk, base64-encodes it, and sends it to a
+ * multimodal (vision) model via Ollama.  The model returns a textual
+ * description or classification of the image.
+ *
+ * Uses the shared `resolveSafePath` helper to prevent path traversal.
+ * Uses the shared `envFloat` / `envInt` helpers for option parsing.
+ *
+ * @module tools/image.classify
+ */
+
 import fs from "fs/promises";
-import path from "path";
 import { generate } from "../llm/ollama";
 import type { Tool } from "./types";
+import { resolveSafePath, envFloat, envInt } from "../shared";
 
+/** Default vision model, configurable via environment variable. */
 const DEFAULT_VISION_MODEL = process.env.TOOL_VISION_MODEL ?? "llava-llama3";
 
-function envFloat(value: string | undefined, fallback: number): number {
-  const parsed = parseFloat(value ?? String(fallback));
-  return Number.isNaN(parsed) ? fallback : parsed;
-}
-
-function envInt(value: string | undefined, fallback: number): number {
-  const parsed = parseInt(value ?? String(fallback), 10);
-  return Number.isNaN(parsed) ? fallback : parsed;
-}
-
-function resolveSafePath(filePath: string): string {
-  const resolved = path.resolve(process.cwd(), filePath);
-  const root = path.resolve(process.cwd());
-  if (!resolved.startsWith(root + path.sep) && resolved !== root) {
-    throw new Error("Access denied: path is outside the project root");
-  }
-  return resolved;
-}
-
+/**
+ * Tool instance for classifying / describing images.
+ *
+ * Input:
+ * ```json
+ * { "path": "images/photo.jpg", "prompt": "What is this?", "model": "llava:13b" }
+ * ```
+ */
 export const imageClassifyTool: Tool = {
   name: "image_classify",
   description:
     "Classify/describe an image with a vision model. " +
     "Input: { path: string, prompt?: string, model?: string }",
 
+  /**
+   * Read the image, encode it as base64, and ask the vision model.
+   *
+   * @param input        - Tool input object.
+   * @param input.path   - Path to the image file (relative to project root).
+   * @param input.prompt - Optional custom prompt (defaults to a generic "describe this image" prompt).
+   * @param input.model  - Optional override for the vision model name.
+   * @returns `{ model, path, response }` where `response` is the model's description.
+   * @throws {Error} When the path is missing, empty, or escapes the project root.
+   */
   async execute({ path: imagePath, prompt, model }) {
     if (typeof imagePath !== "string" || imagePath.trim() === "") {
       throw new Error('"path" must be a non-empty string');

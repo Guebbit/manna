@@ -1,7 +1,5 @@
-import type { Scorer, CreateScorerOptions } from "./types";
-
 /**
- * Factory for creating `Scorer` objects.
+ * Scorer builder — factory for creating `Scorer` objects.
  *
  * Adopts Mastra's `createScorer` naming for future compatibility.
  *
@@ -20,6 +18,17 @@ import type { Scorer, CreateScorerOptions } from "./types";
  * const result = await myScorer.score({ input: "Say hi", output: "Hello!" });
  * console.log(result.score); // 1
  * ```
+ *
+ * @module evals/scorer-builder
+ */
+
+import type { Scorer, CreateScorerOptions } from "./types";
+
+/**
+ * Create a `Scorer` from a plain options object.
+ *
+ * @param options - Configuration for the scorer (`id` and `score` function).
+ * @returns A `Scorer` object ready to be used in the eval harness.
  */
 export function createScorer(options: CreateScorerOptions): Scorer {
   return {
