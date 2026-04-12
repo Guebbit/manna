@@ -39,7 +39,7 @@
 | `AGENT_MODEL_REASONING` | `deepseek-r1:32b-qwen-distill-q4_K_M` | 32 B at Q4 fits in 24 GB; strong reasoning |
 | `AGENT_MODEL_CODE` | `qwen2.5-coder:14b-instruct-q8_0` | Best code quality that still fits in VRAM |
 | `AGENT_MODEL_DEFAULT` | `llama3.1:8b-instruct-q8_0` | Same as FAST; safe fallback |
-| `AGENT_MODEL_ROUTER_MODEL` | `llama3.1:8b-instruct-q8_0` | Fast routing; model must return valid JSON |
+| `AGENT_MODEL_ROUTER_MODEL` | `phi4-mini:latest` | Fast routing; ~3.8 B params ≈ 2× throughput vs 8 B; model must return valid JSON |
 | `OLLAMA_EMBED_MODEL` | `nomic-embed-text` | Efficient, high-quality embeddings |
 | `TOOL_VISION_MODEL` | `llava:13b-v1.6-vicuna-q4_K_M` | Multimodal; 13 B Q4 fits in VRAM |
 | `TOOL_STT_MODEL` | `whisper` | No GPU requirement; CPU is fast enough |
@@ -77,16 +77,18 @@ Two operational surfaces:
 ## Execution graph — `POST /run`
 
 ```
-HTTP POST /run  { task, allowWrite? }
+HTTP POST /run  { task, allowWrite?, profile? }
   └─ apps/api/index.ts
+       ├─ validates profile (if present) against fast|reasoning|code|default
        ├─ selects Agent instance (readOnly or writeEnabled)
-       └─ agent.run(task)
+       └─ agent.run(task, { profile? })
             ├─ getMemory(task)          ← packages/memory/memory.ts
             ├─ emit("agent:start")
             └─ LOOP (max MAX_STEPS, default 5):
                  ├─ processInputStep processors
                  ├─ buildPrompt(task, context, memory)
-                 ├─ routeModel(task, context, step) → { profile, model }
+                 ├─ routeModel(task, context, step, forcedProfile?)
+                 │    ├─ if forcedProfile set: return it immediately (no LLM cost)
                  │    ├─ mode=rules: keyword + heuristic match
                  │    └─ mode=model: calls ROUTER_MODEL with JSON prompt
                  ├─ generateWithMetadata(prompt, { model })
@@ -278,7 +280,7 @@ These are **not** agent-loop routes. They respond with a single LLM call.
 | `OLLAMA_MODEL` | `llama3` | Base model (fallback for all profiles) |
 | `OLLAMA_EMBED_MODEL` | `nomic-embed-text` | Embedding model for semantic search & memory |
 | `AGENT_MODEL_ROUTER_MODE` | `rules` | `rules` or `model` |
-| `AGENT_MODEL_ROUTER_MODEL` | `AGENT_MODEL_FAST` | Model used when mode=model |
+| `AGENT_MODEL_ROUTER_MODEL` | `phi4-mini:latest` | Model used when mode=model; also default router when mode=rules falls through |
 | `AGENT_MODEL_FAST` | `OLLAMA_MODEL` | Model for fast/simple tasks |
 | `AGENT_MODEL_REASONING` | `OLLAMA_MODEL` | Model for multi-step reasoning |
 | `AGENT_MODEL_CODE` | `OLLAMA_MODEL` | Model for code tasks |
