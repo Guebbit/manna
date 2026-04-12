@@ -1,3 +1,26 @@
+/**
+ * Core agent module — implements the reason → act → observe loop.
+ *
+ * The `Agent` class orchestrates the entire agentic workflow:
+ *  1. Load relevant memory for the task.
+ *  2. For each step (up to `MAX_STEPS`):
+ *     a. Run `processInputStep` hooks (middleware before LLM call).
+ *     b. Build a prompt with the task, accumulated context, and memory.
+ *     c. Route to the best model via `routeModel`.
+ *     d. Call the LLM and parse the JSON response with Zod.
+ *     e. Run `processOutputStep` hooks (middleware after LLM call).
+ *     f. Execute the chosen tool, or return if `action === "none"`.
+ *     g. Append the tool result to context and repeat.
+ *
+ * Design principles:
+ *  - **No magic** — every decision is traceable via structured logs and events.
+ *  - **Resilient** — bad JSON and unknown tools are recovered, not crashed.
+ *  - **Observable** — every significant state change emits a typed event.
+ *  - **Extensible** — processors can intercept input/output at each step.
+ *
+ * @module agent/agent
+ */
+
 import { generateWithMetadata } from "../llm/ollama";
 import { addMemory, getMemory } from "../memory/memory";
 import { emit } from "../events/bus";
@@ -13,46 +36,62 @@ import type {
   ProcessOutputStepArgs,
 } from "../processors/types";
 
-// Maximum number of reasoning steps before giving up.
+/**
+ * Maximum number of reasoning iterations before the agent gives up.
+ * Configurable via the `AGENTS_MAX_STEPS` environment variable.
+ */
 const MAX_STEPS = Number.parseInt(process.env.AGENTS_MAX_STEPS ?? "5", 10);
+
 const log = getLogger("agent");
 
 /**
- * Core agent loop.
+ * The core agent — wraps tools, processors, memory, and an LLM into a
+ * single `run()` method that executes an agentic reasoning loop.
  *
- * Each iteration:
- *  1. Run processInputStep processors (middleware hooks).
- *  2. Build a prompt from the task, accumulated context, and memory.
- *  3. Call the LLM and parse its JSON response with Zod schema validation.
- *  4. Run processOutputStep processors.
- *  5. Execute the chosen tool (or return if action === "none").
- *  6. Append the tool result to context and repeat.
- *
- * Design principles:
- *  - No magic — every decision is traceable via console logs and events.
- *  - Resilient — bad JSON and unknown tools are recovered rather than crashing.
- *  - Observable — every significant state change emits a typed event.
- *  - Extensible — processors can intercept input/output at each step.
+ * Usage:
+ * ```typescript
+ * const agent = new Agent([readFileTool, shellTool]);
+ * const answer = await agent.run("List all TypeScript files in src/");
+ * ```
  */
 export class Agent {
+  /** Registered processors (middleware hooks), invoked in order. */
   private readonly processors: Processor[] = [];
 
+  /**
+   * Create a new Agent.
+   *
+   * @param tools - The set of tools the agent is allowed to use.
+   *                The agent loop discovers tools from this array.
+   */
   constructor(private readonly tools: Tool[]) {}
 
   /**
    * Register a processor whose hooks will be called at each agent step.
    *
-   * Processors are invoked in registration order.  A processor may return a
-   * modified argument object to influence what the agent does next, or return
-   * `void` / `undefined` to leave the arguments unchanged.
+   * Processors are invoked in registration order.  A processor may
+   * return a modified argument object to influence the agent, or
+   * return `void` / `undefined` to leave the arguments unchanged.
    *
-   * Follows Mastra's processor pattern for future compatibility.
+   * @param processor - The processor to register.
+   * @returns `this` for fluent chaining.
    */
   addProcessor(processor: Processor): this {
     this.processors.push(processor);
     return this;
   }
 
+  /**
+   * Execute the full agentic loop for a given task.
+   *
+   * Optionally accepts a `profile` override that forces the model
+   * router to use a specific profile for every step, bypassing
+   * automatic routing.
+   *
+   * @param task    - The user's natural-language task description.
+   * @param options - Optional configuration (e.g. `{ profile: "code" }`).
+   * @returns The agent's final answer as a string.
+   */
   async run(task: string, options?: { profile?: ModelProfile }): Promise<string> {
     const runStartedAt = Date.now();
     let context = "";
@@ -63,6 +102,7 @@ export class Agent {
       toolCount: this.tools.length,
     });
 
+    /* Load semantic + recent memory relevant to this task. */
     const memoryStartedAt = Date.now();
     const memory = await getMemory(task);
     log.info("agent_memory_loaded", {
@@ -75,7 +115,7 @@ export class Agent {
     for (let step = 0; step < MAX_STEPS; step++) {
       const stepStartedAt = Date.now();
 
-      // ── Run input processors ─────────────────────────────────────────────
+      // ── Run input processors ─────────────────────────────────────────
       let inputArgs: ProcessInputStepArgs = {
         task,
         context,
@@ -103,7 +143,7 @@ export class Agent {
           prompt.length > 300 ? prompt.slice(0, 300) + "…" : prompt,
       });
 
-      // ── Call the LLM ────────────────────────────────────────────────────────
+      // ── Call the LLM ─────────────────────────────────────────────────
       let response: string;
       try {
         const route = await routeModel({
@@ -150,14 +190,14 @@ export class Agent {
         throw error;
       }
 
-      // ── Parse the LLM response with Zod schema validation ──────────────────
+      // ── Parse the LLM response with Zod schema validation ────────────
       let parsed: AgentStep;
       try {
-        // Strip markdown code fences that some models add around JSON
+        /* Strip markdown code fences that some models wrap around JSON. */
         const cleaned = response.replace(/```(?:json)?\n?/g, "").trim();
         parsed = agentStepSchema.parse(JSON.parse(cleaned));
       } catch {
-        // Give the model a chance to self-correct on the next iteration
+        /* Give the model a chance to self-correct on the next iteration. */
         context +=
           "\nYour previous response was not valid JSON. " +
           "Please respond ONLY with a single valid JSON object.";
@@ -176,7 +216,7 @@ export class Agent {
       });
       emit({ type: "agent:step", payload: { step, parsed } });
 
-      // ── Run output processors ────────────────────────────────────────────
+      // ── Run output processors ────────────────────────────────────────
       let outputArgs: ProcessOutputStepArgs = {
         stepNumber: step,
         text: response,
@@ -190,14 +230,14 @@ export class Agent {
           if (result) outputArgs = result;
         }
       }
-      // Reflect any processor overrides back into parsed
+      /* Reflect any processor overrides back into the parsed step. */
       parsed = {
         thought: outputArgs.thought,
         action: outputArgs.action,
         input: outputArgs.toolInput,
       };
 
-      // ── Done — no tool action needed ────────────────────────────────────────
+      // ── Done — no tool action needed ─────────────────────────────────
       if (parsed.action === "none") {
         await addMemory(`Task: ${task} → ${parsed.thought}`);
         log.info("agent_run_completed", {
@@ -209,7 +249,7 @@ export class Agent {
         return parsed.thought;
       }
 
-      // ── Find and execute the requested tool ─────────────────────────────────
+      // ── Find and execute the requested tool ──────────────────────────
       const tool = this.tools.find((t) => t.name === parsed.action);
       if (!tool) {
         log.warn("agent_unknown_tool", {
@@ -265,6 +305,7 @@ export class Agent {
       });
     }
 
+    /* Loop exhausted without the model returning action "none". */
     log.warn("agent_max_steps_reached", {
       durationMs: Date.now() - runStartedAt,
       task,
@@ -273,6 +314,22 @@ export class Agent {
     return "Max steps reached without a conclusive answer.";
   }
 
+  /**
+   * Assemble the full prompt string sent to the LLM at each step.
+   *
+   * The prompt contains:
+   * - A system preamble describing the agent's role.
+   * - The user's task.
+   * - Relevant memory entries (if any).
+   * - Accumulated context from previous steps.
+   * - The list of available tools with descriptions.
+   * - The expected JSON response schema.
+   *
+   * @param task    - The user's task description.
+   * @param context - Accumulated context from prior steps.
+   * @param memory  - Relevant memory strings.
+   * @returns The fully assembled prompt string.
+   */
   private buildPrompt(
     task: string,
     context: string,
