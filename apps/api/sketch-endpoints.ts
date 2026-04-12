@@ -1,8 +1,11 @@
 import type express from "express";
 import { randomUUID } from "node:crypto";
 import multer from "multer";
-import { generate } from "../../packages/llm/ollama";
-import { classifySketchState } from "../../packages/tools/image.colorize";
+import { describeInkingFromBase64 } from "../../packages/tools/image.ink";
+import {
+  classifySketchState,
+  describeColorizationFromBase64,
+} from "../../packages/tools/image.colorize";
 import type { SketchState } from "../../packages/tools/image.colorize";
 import { getLogger } from "../../packages/logger/logger";
 
@@ -50,45 +53,6 @@ async function withTimeout<T>(work: Promise<T>, timeoutMs: number, label: string
   });
 }
 
-async function describeInking(base64Image: string, model: string): Promise<string> {
-  const prompt =
-    "You are an expert illustration assistant. This image is a hand-drawn sketch. " +
-    "Describe in detail how this sketch would look as a clean, inked line drawing: " +
-    "which lines should be bold or thin, where shadows and hatching would appear, " +
-    "and how the final inked version would differ from the rough sketch. " +
-    "Be specific about line weights, contours, and inking style.";
-
-  return generate(prompt, {
-    model,
-    stream: false,
-    images: [base64Image],
-  });
-}
-
-async function describeColorization(
-  base64Image: string,
-  detectedState: SketchState,
-  model: string,
-): Promise<string> {
-  const prompt =
-    detectedState === "sketch"
-      ? "You are an expert colorist. This image is a rough sketch. " +
-        "First describe how you would ink this sketch (line weights, contours, style), " +
-        "then describe in detail how you would colorize it: " +
-        "which color palette to use, where shadows and highlights go, " +
-        "the mood and style of the final colored illustration."
-      : "You are an expert colorist. This image is a clean inked drawing. " +
-        "Describe in detail how you would colorize it: " +
-        "which color palette to use, where to place shadows and highlights, " +
-        "the overall mood, lighting direction, and illustration style.";
-
-  return generate(prompt, {
-    model,
-    stream: false,
-    images: [base64Image],
-  });
-}
-
 export function registerSketchRoutes(application: express.Express): void {
   /**
    * POST /ink
@@ -118,7 +82,7 @@ export function registerSketchRoutes(application: express.Express): void {
       const base64Image = request.file.buffer.toString("base64");
 
       const inkingDescription = await withTimeout(
-        describeInking(base64Image, model),
+        describeInkingFromBase64(base64Image, model),
         SKETCH_TIMEOUT_MS,
         "ink",
       );
@@ -183,7 +147,7 @@ export function registerSketchRoutes(application: express.Express): void {
             );
 
       const colorizationDescription = await withTimeout(
-        describeColorization(base64Image, detectedState, model),
+        describeColorizationFromBase64(base64Image, detectedState, model),
         SKETCH_TIMEOUT_MS,
         "ink-and-color",
       );

@@ -1,20 +1,11 @@
 import fs from "fs/promises";
-import path from "path";
 import { generate } from "../llm/ollama";
+import { resolveSafePath } from "./image.utils";
 import type { Tool } from "./types";
 
 const DEFAULT_VISION_MODEL = process.env.TOOL_VISION_MODEL ?? "llava-llama3";
 
 export type SketchState = "sketch" | "inked" | "unknown";
-
-function resolveSafePath(filePath: string): string {
-  const resolved = path.resolve(process.cwd(), filePath);
-  const root = path.resolve(process.cwd());
-  if (!resolved.startsWith(root + path.sep) && resolved !== root) {
-    throw new Error("Access denied: path is outside the project root");
-  }
-  return resolved;
-}
 
 export async function classifySketchState(
   base64Image: string,
@@ -40,6 +31,30 @@ export async function classifySketchState(
   return "unknown";
 }
 
+export async function describeColorizationFromBase64(
+  base64Image: string,
+  detectedState: SketchState,
+  model: string,
+): Promise<string> {
+  const prompt =
+    detectedState === "sketch"
+      ? "You are an expert colorist. This image is a rough sketch. " +
+        "First describe how you would ink this sketch (line weights, contours, style), " +
+        "then describe in detail how you would colorize it: " +
+        "which color palette to use, where shadows and highlights go, " +
+        "the mood and style of the final colored illustration."
+      : "You are an expert colorist. This image is a clean inked drawing. " +
+        "Describe in detail how you would colorize it: " +
+        "which color palette to use, where to place shadows and highlights, " +
+        "the overall mood, lighting direction, and illustration style.";
+
+  return generate(prompt, {
+    model,
+    stream: false,
+    images: [base64Image],
+  });
+}
+
 export const imageColorizeTool: Tool = {
   name: "image_colorize",
   description:
@@ -63,29 +78,17 @@ export const imageColorizeTool: Tool = {
       resolvedState = await classifySketchState(base64Image, usedModel);
     }
 
-    const colorPrompt =
-      resolvedState === "sketch"
-        ? "You are an expert colorist. This image is a rough sketch. " +
-          "First describe how you would ink this sketch (line weights, contours, style), " +
-          "then describe in detail how you would colorize it: " +
-          "which color palette to use, where shadows and highlights go, " +
-          "the mood and style of the final colored illustration."
-        : "You are an expert colorist. This image is a clean inked drawing. " +
-          "Describe in detail how you would colorize it: " +
-          "which color palette to use, where to place shadows and highlights, " +
-          "the overall mood, lighting direction, and illustration style.";
-
-    const response = await generate(colorPrompt, {
-      model: usedModel,
-      stream: false,
-      images: [base64Image],
-    });
+    const colorizationDescription = await describeColorizationFromBase64(
+      base64Image,
+      resolvedState,
+      usedModel,
+    );
 
     return {
       model: usedModel,
       path: imagePath,
       detectedState: resolvedState,
-      colorizationDescription: response.trim(),
+      colorizationDescription: colorizationDescription.trim(),
     };
   },
 };
