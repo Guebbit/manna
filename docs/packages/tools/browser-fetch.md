@@ -4,6 +4,12 @@
 
 Fetch title and visible page text using Playwright (Chromium, headless).
 
+## What it does in plain English
+
+> "Open this URL in a real headless browser, wait for the page to load, and give me the title and all visible text."
+
+This is different from a plain HTTP GET — it actually **renders JavaScript**, waits for dynamic content, then extracts text. Perfect for modern web apps that load content after the initial HTML.
+
 ## Input
 
 ```json
@@ -13,21 +19,90 @@ Fetch title and visible page text using Playwright (Chromium, headless).
 ## Output
 
 ```json
-{ "title": "...", "content": "..." }
+{ "title": "Example Domain", "content": "This domain is for use in illustrative examples..." }
 ```
 
-`content` is truncated to first 5000 chars.
+`content` is truncated to the first 5 000 characters to keep prompts manageable.
 
 ## Safety
 
-- URL must be valid
-- Protocol must be `http` or `https`
+- URL must be a valid URL string
+- Protocol must be exactly `http` or `https` — `file://`, `ftp://`, `javascript:` etc. are rejected
 
 ## Runtime setup
 
-- `browserTool` is enabled by default in `apps/api/index.ts`
-- Chromium is installed automatically during `npm install` (`postinstall`)
+- `browserTool` is **enabled by default** in `apps/api/index.ts`
+- Chromium is installed automatically during `npm install` (the project `postinstall` script runs `playwright install chromium`)
+- You do **not** need to install Chromium separately
+
+## How the agent uses it (step-by-step)
+
+```text
+You ask:  "What does the Ollama homepage say about its features?"
+             ↓
+Agent thinks: "I should fetch that page"
+             ↓
+Agent calls:  browser_fetch  →  { "url": "https://ollama.com" }
+             ↓
+Playwright launches Chromium (headless), navigates to the URL
+             ↓
+Page renders fully (JS executes, dynamic content appears)
+             ↓
+Tool extracts: title + innerText of the body
+             ↓
+Agent reads the content and summarises the features for you
+```
+
+## Real-life use cases
+
+### Use case 1 — Research a library before using it
+
+**Prompt:**
+```
+Fetch https://vitepress.dev and summarise what VitePress is in 2 sentences.
+```
+
+What happens:
+1. Chromium loads the VitePress homepage
+2. Full text extracted (including JS-rendered sections)
+3. Agent summarises in plain English
+
+---
+
+### Use case 2 — Check a package's latest changelog
+
+**Prompt:**
+```
+Fetch https://github.com/ollama/ollama/releases and tell me what changed in the latest release.
+```
+
+---
+
+### Use case 3 — Scrape a documentation page
+
+**Prompt:**
+```
+Fetch https://docs.docker.com/compose/install/ and give me the Linux install steps.
+```
+
+---
+
+### Use case 4 — Check if a site is up and what it says
+
+**Prompt:**
+```
+Fetch http://localhost:3000 and tell me if Open WebUI loaded correctly.
+```
+
+Agent fetches the page, checks the title/content, and tells you whether it looks like a normal Open WebUI page or an error.
+
+---
 
 ## Good test prompts
 
-- "Fetch the title and summary text from https://example.com"
+| What you type | What the agent fetches |
+|---|---|
+| `Fetch https://example.com and summarise the main text.` | `https://example.com` |
+| `What does the npm page for express say about its purpose?` | `https://www.npmjs.com/package/express` |
+| `Summarise the Playwright docs homepage.` | `https://playwright.dev` |
+| `Is https://httpstat.us/200 returning OK?` | `https://httpstat.us/200` |

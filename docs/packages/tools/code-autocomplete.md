@@ -1,8 +1,12 @@
 # tools/code_autocomplete
 
-## What
+## What it does in plain English
 
-Generates IDE-style code continuation suggestions from prefix/suffix context.
+> "I am typing code and my cursor is here — continue this for me."
+
+This is the same concept as GitHub Copilot's inline completion: you give it what you have typed so far (`prefix`) and optionally what comes after the cursor (`suffix`), and it generates the most likely code continuation.
+
+Unlike the agent loop, this tool is designed to be **fast and low-latency** — it is called from the `/autocomplete` endpoint directly, without going through the full agentic loop.
 
 ## Input
 
@@ -15,10 +19,122 @@ Generates IDE-style code continuation suggestions from prefix/suffix context.
 }
 ```
 
-## Defaults
+| Field | Required | Default | Notes |
+|---|---|---|---|
+| `prefix` | ✅ | — | Everything typed before the cursor |
+| `suffix` | ❌ | — | Everything after the cursor (fill-in-the-middle) |
+| `language` | ❌ | — | Hint like `"typescript"`, `"python"` for better suggestions |
+| `model` | ❌ | `TOOL_IDE_MODEL` → `AGENT_MODEL_CODE` → `starcoder2` | Override completion model |
 
-- model: `TOOL_IDE_MODEL`, then `AGENT_MODEL_CODE`, then `starcoder2`
+## Output
 
-## Notes
+The completed/suggested code as a plain string.
 
-- Designed for autocomplete/suggestion style responses, not full-file generation.
+```typescript
+// prefix: "function add(a: number, b: number) {"
+// output:
+  return a + b;
+}
+```
+
+## How it works internally
+
+```text
+Your prefix + suffix
+    |
+Tool sends to Ollama using "suffix" field (infill mode)
+    |
+Code model (e.g. starcoder2) generates the middle/continuation
+    |
+Returns completion string
+```
+
+## Model defaults (priority order)
+
+1. `model` field in input (explicit override)
+2. `TOOL_IDE_MODEL` env var
+3. `AGENT_MODEL_CODE` env var
+4. `starcoder2` (hardcoded fallback)
+
+## Real-life use cases
+
+### Use case 1 -- Complete a function signature
+
+You are typing a TypeScript function and want the body filled in.
+
+**Request to `/autocomplete`:**
+```json
+{
+  "prefix": "function calculateTax(income: number, rate: number) {",
+  "suffix": "}",
+  "language": "typescript"
+}
+```
+
+**Response:**
+```typescript
+  return income * (rate / 100);
+```
+
+---
+
+### Use case 2 -- Fill in the middle (infill mode)
+
+You have the start and end of a function but the middle is missing.
+
+```json
+{
+  "prefix": "async function fetchUser(id: string) {\n  const response = await fetch(",
+  "suffix": "\n  return response.json();\n}",
+  "language": "typescript"
+}
+```
+
+Model fills in the URL argument.
+
+---
+
+### Use case 3 -- Complete a class method
+
+```json
+{
+  "prefix": "class EventBus {\n  private handlers: Map<string, Function[]> = new Map();\n\n  on(type: string, handler: Function) {",
+  "language": "typescript"
+}
+```
+
+Model suggests the method body.
+
+---
+
+### Use case 4 -- Complete a SQL query
+
+```json
+{
+  "prefix": "SELECT u.id, u.name, COUNT(o.id) as order_count\nFROM users u\nLEFT JOIN orders o ON",
+  "language": "sql"
+}
+```
+
+---
+
+## Calling the endpoint directly (no agent loop)
+
+```bash
+curl -X POST http://localhost:3001/autocomplete \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prefix": "function add(a, b) {",
+    "suffix": "}",
+    "language": "javascript"
+  }'
+```
+
+This is **separate from `/run`** and does not involve the agentic loop — it is optimised for fast, cursor-time responses.
+
+## Good test prompts (via `/run`)
+
+| What you type | What the agent does |
+|---|---|
+| `Complete this function: function multiply(a: number, b: number) {` | Returns completion |
+| `Suggest the next line after: const result = await db.query(` | Returns likely argument |

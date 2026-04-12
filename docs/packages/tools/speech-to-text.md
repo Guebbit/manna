@@ -1,8 +1,10 @@
 # tools/speech_to_text
 
-## What
+## What it does in plain English
 
-Transcribes audio files with Ollama’s OpenAI-compatible transcription endpoint.
+> "Listen to this audio file and write down everything that was said."
+
+Sends an audio file to a speech transcription model (Whisper) and returns the transcribed text. Works for meeting recordings, voice notes, interview recordings, etc.
 
 ## Input
 
@@ -15,9 +17,103 @@ Transcribes audio files with Ollama’s OpenAI-compatible transcription endpoint
 }
 ```
 
+| Field | Required | Default | Notes |
+|---|---|---|---|
+| `path` | ✅ | — | Path to audio file, relative to project root |
+| `model` | ❌ | `TOOL_STT_MODEL` or `whisper` | Override the transcription model |
+| `language` | ❌ | auto-detect | ISO language code e.g. `"en"`, `"it"`, `"fr"` |
+| `prompt` | ❌ | — | Optional context hint to improve accuracy (e.g. "technical discussion about TypeScript") |
+
+## Output
+
+The transcribed text as a plain string:
+
+```
+"Good morning team. Today we are going to review the sprint results and plan the next iteration..."
+```
+
 ## Defaults
 
-- model: `TOOL_STT_MODEL` or `whisper`
+- Model: reads `TOOL_STT_MODEL` env var, falls back to `whisper`
+- Language auto-detected from audio content if not specified
+
+## How it works internally
+
+```text
+Audio file on disk  (.wav / .mp3 / .m4a)
+    |
+Tool reads file bytes
+    |
+POST /v1/audio/transcriptions  ->  Ollama (OpenAI-compatible endpoint)
+  multipart/form-data: file + model + language + prompt
+    |
+Whisper model transcribes the audio
+    |
+Tool returns transcribed text to agent
+```
+
+## Real-life use cases
+
+### Use case 1 -- Transcribe a meeting recording
+
+You recorded your daily standup and want searchable notes.
+
+**Prompt:**
+```
+Transcribe data/recordings/standup-2024-01-15.wav and summarise the 3 main discussion points.
+```
+
+**What happens:**
+1. Tool sends audio to Whisper
+2. Returns full transcript
+3. Agent summarises into bullet points
+
+---
+
+### Use case 2 -- Turn a voice note into a task list
+
+You recorded yourself thinking out loud about what to build next.
+
+**Prompt:**
+```
+Transcribe data/voice-notes/ideas.wav and extract all the action items mentioned.
+```
+
+---
+
+### Use case 3 -- Transcribe with language hint (better accuracy)
+
+**Prompt:**
+```
+Transcribe data/recordings/italian-meeting.wav in Italian.
+```
+
+Agent uses `language: "it"` for better accuracy on non-English audio.
+
+---
+
+### Use case 4 -- Multi-step: transcribe then analyse
+
+**Prompt:**
+```
+Transcribe data/examples/meeting.wav and tell me if any decisions were made.
+```
+
+**Steps:**
+```
+Step 1: speech_to_text  ->  { "path": "data/examples/meeting.wav" }
+Step 2: action: "none"  ->  Agent analyses the transcript and highlights decisions
+```
+
+---
+
+## Good test prompts
+
+| What you type | What the agent does |
+|---|---|
+| `Transcribe data/examples/meeting.wav` | Returns full transcript |
+| `Transcribe audio file data/voice-notes/todo.wav and list all tasks mentioned.` | Transcribes + extracts tasks |
+| `How long is the speech in data/recordings/intro.wav?` | Transcribes, agent estimates duration from word count |
 
 ## Notes
 

@@ -1,34 +1,149 @@
 # Theory: Prompt, Context, and Memory
 
-The agent prompt is assembled from multiple blocks:
+## The one-sentence version
 
-- **Task**: what user wants now
-- **Memory**: recent useful outcomes from earlier runs
-- **Context**: step-by-step outputs in current run
-- **Tool list**: what actions are currently possible
+> Every time the model is asked "what should I do?", it sees a prompt assembled from four blocks — and the quality of that prompt determines the quality of the decision.
 
-## Practical interpretation
+## Visual: What the model sees each step
 
-- Task gives direction
-- Context gives local progress
-- Memory gives short-term continuity plus semantic recall across tasks
-- Tool list constrains action space
+```text
+┌──────────────────────────────────────────────────────────────┐
+│                   PROMPT (sent to LLM)                       │
+│                                                              │
+│  ┌───────────────────────────────────────────────────────┐   │
+│  │ TASK                                                  │   │
+│  │  "Find where the agent emits completion events."      │   │
+│  └───────────────────────────────────────────────────────┘   │
+│                                                              │
+│  ┌───────────────────────────────────────────────────────┐   │
+│  │ MEMORY  (from previous runs — semantic recall)        │   │
+│  │  "Previous run: read_file on agent.ts returned loop"  │   │
+│  └───────────────────────────────────────────────────────┘   │
+│                                                              │
+│  ┌───────────────────────────────────────────────────────┐   │
+│  │ CONTEXT  (steps so far in THIS run)                   │   │
+│  │  "Step 1 result: agent.ts content = ..."              │   │
+│  └───────────────────────────────────────────────────────┘   │
+│                                                              │
+│  ┌───────────────────────────────────────────────────────┐   │
+│  │ TOOL LIST  (what actions are available)               │   │
+│  │  read_file: "Read a file..." │ shell: "Run command..."│   │
+│  └───────────────────────────────────────────────────────┘   │
+│                                                              │
+│  → Model must return:                                        │
+│    { "thought": "...", "action": "...", "input": {...} }     │
+└──────────────────────────────────────────────────────────────┘
+```
+
+## Each block explained
+
+### Task
+What the user wants right now. Provided once at the start, included in every step's prompt.
+
+```
+"Read package.json and tell me all npm scripts."
+```
+
+### Memory
+Relevant outcomes from **previous runs** (not the current one). Retrieved by semantic similarity to the current task.
+
+```
+Memory entry: "task=read npm scripts, result=found 6 scripts: dev, build, ..."
+```
+
+This lets the agent "remember" that it did something similar before, even across sessions.
+
+### Context
+The **growing log** of what happened in the current run. Each tool result is appended here.
+
+```
+Step 1 result: [package.json content]
+Step 2 result: [agent answer]
+```
+
+Context is local to one run — it resets when a new `/run` request comes in.
+
+### Tool list
+The list of currently available tools with their descriptions. This is what the model reads to decide which tool to call.
+
+```
+read_file: "Read UTF-8 file content from disk. Input: { path }"
+shell: "Run an allowlisted shell command. Input: { command }"
+...
+```
 
 ## Why memory is capped
 
-Unbounded memory inflates prompts and hurts focus.
+```text
+Unbounded memory = massive prompt = slow + expensive + confused model
 
-Current implementation uses a hybrid model:
+Current limits:
+  Local ring buffer:  20 entries max  (oldest evicted first)
+  Qdrant recall:      top N by similarity  (relevant, not just recent)
+```
 
-- local ring buffer capped at 20 entries for recency
-- Qdrant vector search for relevance using Ollama embeddings
+Capped memory keeps prompts focused and the model sharp.
 
-## Prompt engineering choice
+## The strict JSON contract
 
-The model is forced to return one strict JSON object:
+The model is forced to return **exactly this structure**:
 
-- `thought`
-- `action`
-- `input`
+```json
+{
+  "thought": "I need to read package.json to find the scripts.",
+  "action": "read_file",
+  "input": { "path": "package.json" }
+}
+```
 
-This reduces ambiguous outputs and simplifies runtime parsing.
+```json
+{
+  "thought": "I have all the information I need to answer.",
+  "action": "none",
+  "input": {}
+}
+```
+
+### Why strict JSON?
+
+- **No ambiguity**: the runtime parses the JSON deterministically
+- **Reliable tool dispatch**: `action` maps directly to a registered tool name
+- **No hallucinated prose**: the model cannot ramble instead of deciding
+- **Easy error handling**: if JSON is invalid, the runtime adds a correction to context
+
+## Real-life example: multi-step context building
+
+```
+Task: "Find where the agent emits completion events and summarise them."
+
+STEP 1 PROMPT:
+  task: "Find where agent emits completion events..."
+  memory: (empty for first run)
+  context: (empty)
+  tools: [read_file, shell, ...]
+
+  → LLM: { thought: "Check agent.ts", action: "read_file", input: { path: "packages/agent/agent.ts" } }
+
+STEP 2 PROMPT:
+  task: "Find where agent emits completion events..."
+  memory: (empty)
+  context: "Step 1: [full content of agent.ts]"
+  tools: [read_file, shell, ...]
+
+  → LLM: { thought: "I can see the emit calls, I can answer now", action: "none", input: {} }
+  → Final answer: "The agent emits agent:done in agent.ts line 87, and agent:max_steps on line 94."
+```
+
+## Memory lifecycle (across runs)
+
+```text
+Run 1:
+  task → agent runs → result → addMemory({ task, result })
+                                         stored in Qdrant
+
+Run 2 (different task, same topic):
+  task → getMemory(task)
+       → Qdrant finds similar past entries
+       → injects into prompt as "memory" block
+       → agent benefits from previous work
+```

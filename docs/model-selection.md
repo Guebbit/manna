@@ -1,61 +1,246 @@
 # Model Selection & Routing
 
-This project now supports a **model-routing layer** between the agent loop and Ollama.
+## The one-sentence version
 
-## Agent vs model
+> Instead of using one model for everything, this project picks the best model for each step of the agent loop based on what kind of task it is.
 
-- **Agent**: orchestration loop (`packages/agent/src/agent.ts`)
-- **Router**: per-step model-profile selector (`packages/agent/src/model-router.ts`)
-- **Model**: Ollama runtime chosen by router for that step
+---
 
-So, `OLLAMA_MODEL` is not “the agent”. It is only a default model fallback.
+## Agent vs model -- what is the difference?
+
+```text
+AGENT                           MODEL
+  |                               |
+  | orchestration loop            | Ollama runtime
+  | (packages/agent/agent.ts)     | (chosen by router per step)
+  |                               |
+  | asks: "what should I do?"     |
+  |------------------------------> model processes prompt
+  |<------------------------------ returns JSON decision
+  |                               |
+  | runs tool, loops...           |
+```
+
+- **Agent** = the loop that runs up to 5 steps
+- **Router** = picks which model to use for this step
+- **Model** = the Ollama model that does the actual thinking
+
+`OLLAMA_MODEL` is NOT "the agent". It is just the final fallback when no profile model is configured.
+
+---
 
 ## Per-step routing profiles
 
-The router selects one profile at each loop step:
+At each step, the router assigns the current task to one of four profiles:
 
-- `fast` → simple/light Q&A
-- `reasoning` → hard logic and multi-step analysis
-- `code` → coding/refactor/debug tasks
-- `default` → safety fallback
+| Profile | When it is used | Goal |
+|---|---|---|
+| `fast` | Simple Q&A, quick lookups | Low latency, small model |
+| `reasoning` | Logic, math, multi-step analysis | Best reasoning capability |
+| `code` | Coding, debugging, refactoring | Best code understanding |
+| `default` | Everything else, safety fallback | Balanced general model |
+
+### Visual: how routing works
+
+```text
+Each agent loop step:
+
+  task/context
+       |
+       v
+  ┌─────────────┐
+  │   ROUTER    │
+  │             │
+  │  rules mode │ -- keyword check -- "debug", "refactor", "implement"
+  │     OR      │                          |
+  │  model mode │ -- tiny LLM classifies --+
+  └──────┬──────┘
+         |
+    ┌────┴────┬──────────┬────────────┐
+    v         v          v            v
+  fast    reasoning    code       default
+    |         |          |            |
+  qwen3:4b  deepseek  qwen3-coder  llama3.1
+```
+
+---
 
 ## Router modes
 
-Set `AGENT_MODEL_ROUTER_MODE`:
+Set `AGENT_MODEL_ROUTER_MODE` to choose how the router decides:
 
-- `rules` (default): deterministic keyword + heuristic routing
-- `model`: a fast router model classifies the step and returns a profile
+### `rules` mode (default)
 
-When `model` mode fails, the runtime safely falls back to `default`.
+Uses keyword matching and heuristics. Fast, no extra model call needed.
 
-## Router environment variables
+Examples of what triggers each profile:
 
-- `AGENT_MODEL_ROUTER_MODE` (`rules` | `model`, default `rules`)
-- `AGENT_MODEL_ROUTER_MODEL` (tiny classifier model when in `model` mode)
-- `AGENT_MODEL_FAST`
-- `AGENT_MODEL_REASONING`
-- `AGENT_MODEL_CODE`
-- `AGENT_MODEL_DEFAULT` (fallback)
-- `OLLAMA_MODEL` (global fallback if profile-specific vars are not set)
+```
+"fast" triggers:
+  - "what is", "list", "show me", "tell me"
+  - simple one-step questions
 
-## Recommended profile mapping (from your installed model set)
+"reasoning" triggers:
+  - "analyse", "explain why", "step by step"
+  - "compare", "pros and cons", "tradeoffs"
 
-- `fast`: `qwen3:4b` (or `phi4-mini`)
-- `reasoning`: `deepseek-r1`
-- `code`: `qwen3-coder:14b` (or `deepseek-coder-v2:16b`)
-- `default`: `llama3.1:8b`
-- `router model` (if mode=`model`): `qwen3:4b`
+"code" triggers:
+  - "debug", "refactor", "implement", "write a function"
+  - "typescript", "javascript", "python", file extensions
 
-## Tool-specific model vars
+"default":
+  - anything that does not match the above
+```
 
-1. start with 4B–8B
-2. increase size only if quality is not enough
-3. prefer coder models for repo work
-4. prefer reasoning models for logic/math-heavy prompts
+### `model` mode
 
-## Runtime constraints
+A small, fast model classifies the step and returns a profile name.
 
-From `infra/docs/notes.md`:
+```bash
+export AGENT_MODEL_ROUTER_MODE=model
+export AGENT_MODEL_ROUTER_MODEL=qwen3:4b
+```
 
-- on constrained hardware, keep `OLLAMA_MAX_LOADED_MODELS=1` and `OLLAMA_NUM_PARALLEL=1`
-- start with small/fast models and scale only when quality demands it
+When `model` mode fails (model unreachable, bad response), it automatically falls back to `default`.
+
+---
+
+## Environment variables (full reference)
+
+| Variable | Default | Description |
+|---|---|---|
+| `AGENT_MODEL_ROUTER_MODE` | `rules` | `rules` or `model` |
+| `AGENT_MODEL_ROUTER_MODEL` | -- | Classifier model (model mode only) |
+| `AGENT_MODEL_FAST` | -- | Model for `fast` profile |
+| `AGENT_MODEL_REASONING` | -- | Model for `reasoning` profile |
+| `AGENT_MODEL_CODE` | -- | Model for `code` profile |
+| `AGENT_MODEL_DEFAULT` | -- | Model for `default` profile |
+| `OLLAMA_MODEL` | `llama3` | Global fallback (used if profile var is unset) |
+
+### Priority order for model selection
+
+```
+1. Profile-specific var (e.g. AGENT_MODEL_CODE)
+2. OLLAMA_MODEL (global fallback)
+3. "llama3" (hardcoded final fallback)
+```
+
+---
+
+## Recommended profile mapping
+
+Based on the locally installed model set:
+
+```bash
+# .env or shell exports
+
+# Fast profile -- small and quick
+export AGENT_MODEL_FAST=qwen3:4b
+
+# Reasoning profile -- best logical/analytical model
+export AGENT_MODEL_REASONING=deepseek-r1:32b
+
+# Code profile -- best coding model
+export AGENT_MODEL_CODE=qwen2.5-coder:32b
+
+# Default profile -- solid general model
+export AGENT_MODEL_DEFAULT=llama3.1:8b
+
+# Router model (only needed for model mode)
+export AGENT_MODEL_ROUTER_MODEL=qwen3:4b
+```
+
+---
+
+## Tool-specific model variables
+
+Some tools have their own model vars (separate from the agent routing profiles):
+
+| Variable | Default | Tool |
+|---|---|---|
+| `TOOL_VISION_MODEL` | `llava-llama3` | `image_classify` |
+| `TOOL_STT_MODEL` | `whisper` | `speech_to_text` |
+| `TOOL_IDE_MODEL` | `starcoder2` | `code_autocomplete` |
+| `OLLAMA_EMBED_MODEL` | `nomic-embed-text` | `semantic_search` + memory |
+
+---
+
+## Runtime constraints (hardware guide)
+
+### Constrained hardware (8-16 GB RAM)
+
+```bash
+# Only one model loaded at a time
+export OLLAMA_MAX_LOADED_MODELS=1
+export OLLAMA_NUM_PARALLEL=1
+
+# Use small models
+export AGENT_MODEL_FAST=phi4-mini:latest       # 2.5 GB
+export AGENT_MODEL_DEFAULT=llama3.1:8b         # 4.9 GB
+export AGENT_MODEL_CODE=deepseek-r1:14b        # 9.0 GB
+```
+
+### Powerful hardware (32+ GB RAM or GPU VRAM)
+
+```bash
+# Allow multiple models loaded simultaneously
+export OLLAMA_MAX_LOADED_MODELS=3
+
+# Use larger, higher quality models
+export AGENT_MODEL_FAST=qwen3:4b
+export AGENT_MODEL_REASONING=deepseek-r1:32b
+export AGENT_MODEL_CODE=qwen2.5-coder:32b
+export AGENT_MODEL_DEFAULT=qwen3:32b
+```
+
+### Sizing strategy
+
+```
+Start small -> test quality -> increase only if needed
+
+1. Begin with 4B-8B models for all profiles
+2. If reasoning is weak: upgrade AGENT_MODEL_REASONING to 14B-32B
+3. If code quality is low: upgrade AGENT_MODEL_CODE to a coder model
+4. Prefer coder-specific models for repo work (qwen2.5-coder > llama for code tasks)
+5. Prefer reasoning models for logic/math/analysis (deepseek-r1 > general models)
+```
+
+---
+
+## Real-life examples of routing in action
+
+### Example 1 -- A "fast" step
+
+```
+Task: "What is the current date?"
+
+Router: no code keywords, no reasoning keywords -> profile: fast
+Model: qwen3:4b
+LLM: { thought: "I can answer this directly", action: "none", input: {} }
+Answer: "I don't have real-time access, but you can check with 'date'."
+```
+
+No tools needed, fast model handles it instantly.
+
+### Example 2 -- A "code" step
+
+```
+Task: "Debug this TypeScript error: Type 'string' is not assignable to type 'number'"
+
+Router: "typescript", "debug" keywords -> profile: code
+Model: qwen2.5-coder:32b
+LLM: { thought: "I should look at the file", action: "read_file", input: { path: "src/index.ts" } }
+```
+
+Code model selected for better language understanding.
+
+### Example 3 -- A "reasoning" step
+
+```
+Task: "Analyse the tradeoffs between using Qdrant vs in-memory storage for agent memory"
+
+Router: "analyse", "tradeoffs" keywords -> profile: reasoning
+Model: deepseek-r1:32b
+```
+
+Best reasoning model selected for deep analysis.
