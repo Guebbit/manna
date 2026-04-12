@@ -49,7 +49,7 @@ export function resolveSafePath(userPath: string): string {
 export function resolveInsideRoot(root: string, userPath: string): string {
   const resolved = path.resolve(root, userPath);
   if (!resolved.startsWith(root + path.sep) && resolved !== root) {
-    throw new Error("Access denied: path is outside the allowed output root");
+    throw new Error("Access denied: path is outside the allowed root");
   }
   return resolved;
 }
