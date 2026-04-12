@@ -44,6 +44,7 @@
 | `TOOL_VISION_MODEL` | `llava:13b-v1.6-vicuna-q4_K_M` | Multimodal; 13 B Q4 fits in VRAM |
 | `TOOL_STT_MODEL` | `whisper` | No GPU requirement; CPU is fast enough |
 | `TOOL_IDE_MODEL` | `qwen2.5-coder:7b-instruct-q8_0` | Sub-100 ms completions; cursor-time latency |
+| `TOOL_DIAGRAM_MODEL` | `qwen2.5-coder:14b-instruct-q8_0` | Code-specialised model excels at structured Mermaid syntax generation |
 
 **Rules for recommending models**:
 1. Prefer models that fit entirely in 24 GB VRAM (no layer offload).
@@ -175,6 +176,7 @@ Tools registered per request in `apps/api/index.ts`:
 | `speech_to_text` | `speech.to.text.ts` | no | Calls `TOOL_STT_MODEL` (default `whisper`) |
 | `read_pdf` | `pdf.read.ts` | no | Returns `{ text, pages }` |
 | `code_autocomplete` | `code.autocomplete.ts` | no | IDE-style completion via `TOOL_IDE_MODEL` (default `starcoder2`) |
+| `generate_diagram` | `diagram.generate.ts` | no | Generates Mermaid diagrams from descriptions; renders to SVG/PNG via mmdc |
 | `scaffold_project` | `project.scaffold.ts` | **yes** | Copies boilerplate from `BOILERPLATE_ROOT` |
 
 Write tools (`write_file`, `scaffold_project`) are only registered when the request body contains `"allowWrite": true`.
@@ -291,6 +293,8 @@ These are **not** agent-loop routes. They respond with a single LLM call.
 | `TOOL_VISION_MODEL` | `llava-llama3` | Vision model for `image_classify` |
 | `TOOL_STT_MODEL` | `whisper` | Speech-to-text model |
 | `TOOL_IDE_MODEL` | `starcoder2` | Completion model for IDE endpoints |
+| `TOOL_DIAGRAM_MODEL` | `AGENT_MODEL_CODE` | Model used to generate Mermaid diagram markup |
+| `DIAGRAM_OUTPUT_DIR` | `data/diagrams` | Output directory for rendered diagrams |
 | `PORT` | `3001` | Express server port |
 | `MYSQL_HOST/PORT/USER/PASSWORD/DATABASE` | various | MySQL connection for `mysql_query` |
 | `QDRANT_URL` | `http://localhost:6333` | Qdrant endpoint for semantic memory |
@@ -337,6 +341,7 @@ These are **not** agent-loop routes. They respond with a single LLM call.
 │   │   ├── speech.to.text.ts — speech_to_text
 │   │   ├── pdf.read.ts       — read_pdf
 │   │   ├── code.autocomplete.ts — code_autocomplete
+│   │   ├── diagram.generate.ts  — generate_diagram
 │   │   └── project.scaffold.ts  — scaffold_project
 │   ├── processors/
 │   │   ├── types.ts          — Processor interface; ProcessInputStepArgs; ProcessOutputStepArgs
@@ -355,6 +360,7 @@ These are **not** agent-loop routes. They respond with a single LLM call.
 │   └── podman/               — docker-compose for Ollama + Open WebUI; no MySQL
 ├── data/                     — runtime data; gitignored
 │   ├── boilerplates/         — template sources for scaffold_project
+│   ├── diagrams/             — output of generate_diagram (SVG/PNG + .mmd sources)
 │   ├── generated-projects/   — output of write_file / scaffold_project
 │   └── qdrant/               — Qdrant storage volume
 └── docs/                     — VitePress documentation site
