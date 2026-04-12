@@ -26,6 +26,7 @@ import {
   speechToTextTool,
   readPdfTool,
   codeAutocompleteTool,
+  generateDiagramTool,
 } from "../../packages/tools/index";
 import { on } from "../../packages/events/bus";
 import { getLogger } from "../../packages/logger/logger";
@@ -51,6 +52,7 @@ const readOnlyTools = [
   speechToTextTool,
   readPdfTool,
   codeAutocompleteTool,
+  generateDiagramTool,
 ];
 
 /** Tools that mutate the filesystem — only enabled when `allowWrite` is `true`. */

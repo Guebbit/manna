@@ -18,6 +18,7 @@ export { semanticSearchTool } from "./semantic.search";
 export { speechToTextTool } from "./speech.to.text";
 export { readPdfTool } from "./pdf.read";
 export { codeAutocompleteTool } from "./code.autocomplete";
+export { generateDiagramTool } from "./diagram.generate";
 export type { Tool } from "./types";
 export { createTool } from "./tool-builder";
 export type { CreateToolOptions } from "./tool-builder";
