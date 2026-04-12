@@ -145,13 +145,21 @@ function createAutocompleteCacheKey(prefix: string, suffix: string, language: st
 
 function pruneAutocompleteCache(): void {
   while (autocompleteCache.size > AUTOCOMPLETE_CACHE_MAX_ENTRIES) {
-    const firstKey = autocompleteCache.keys().next().value;
-    if (firstKey === undefined) {
+    const evictionKey = autocompleteCache.keys().next().value;
+    if (evictionKey === undefined) {
       break;
     }
 
-    autocompleteCache.delete(firstKey);
+    autocompleteCache.delete(evictionKey);
   }
+}
+
+function isTypeScriptLike(language: string): boolean {
+  return language === "typescript" || language === "ts" || language === "tsx";
+}
+
+function isJavaScriptLike(language: string): boolean {
+  return language === "javascript" || language === "js" || language === "jsx";
 }
 
 function inferLanguage(
@@ -278,10 +286,7 @@ function getConventionFindings(content: string, language: string): Finding[] {
       });
     }
 
-    if (
-      (language === "typescript" || language === "ts" || language === "tsx") &&
-      /:\s*any\b/.test(line)
-    ) {
+    if (isTypeScriptLike(language) && /:\s*any\b/.test(line)) {
       findings.push({
         source: "convention",
         severity: "warning",
@@ -525,7 +530,7 @@ export function registerIdeRoutes(application: express.Express): void {
     const filePath = parsed.data.filePath?.trim() || "in-memory.ts";
     const language = inferLanguage(parsed.data.language, filePath);
     const deterministicFindings = [
-      ...(language.includes("typescript") || language.includes("javascript")
+      ...(isTypeScriptLike(language) || isJavaScriptLike(language)
         ? getTypeScriptFindings(parsed.data.content, filePath)
         : []),
       ...getConventionFindings(parsed.data.content, language),
