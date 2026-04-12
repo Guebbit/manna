@@ -20,9 +20,11 @@ on("*", (event) => {
 
 const readOnlyTools = [readFileTool, shellTool, mysqlQueryTool, browserTool];
 const writeTools = [writeFileTool, scaffoldProjectTool];
+const readOnlyAgent = new Agent(readOnlyTools);
+const writeEnabledAgent = new Agent([...readOnlyTools, ...writeTools]);
 
 function createAgent(allowWrite: boolean): Agent {
-  return new Agent(allowWrite ? [...readOnlyTools, ...writeTools] : readOnlyTools);
+  return allowWrite ? writeEnabledAgent : readOnlyAgent;
 }
 
 // ── HTTP server ────────────────────────────────────────────────────────────

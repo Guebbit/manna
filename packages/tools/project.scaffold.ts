@@ -79,7 +79,16 @@ export const scaffoldProjectTool: Tool = {
     await fs.mkdir(path.dirname(targetPath), { recursive: true });
     await fs.cp(templatePath, targetPath, { recursive: true });
 
-    const metadataPath = resolveInsideRoot(templatePath, metadataFilename);
+    const metadataPath = resolveInsideRoot(
+      BOILERPLATE_ROOT,
+      path.join(template, metadataFilename)
+    );
+    if (
+      !metadataPath.startsWith(templatePath + path.sep) &&
+      metadataPath !== templatePath
+    ) {
+      throw new Error("metadataFile must be inside the selected template directory");
+    }
     let metadata: unknown = null;
     if (await exists(metadataPath)) {
       const raw = await fs.readFile(metadataPath, "utf-8");
