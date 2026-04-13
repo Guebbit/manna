@@ -25,7 +25,6 @@ import { generate } from "../llm/ollama";
 import { emit } from "../events/bus";
 import { getLogger } from "../logger/logger";
 import { createProcessor } from "./processor-builder";
-import type { IDiagnosticEntry } from "../diagnostics/types";
 
 const log = getLogger("verification-processor");
 
@@ -41,16 +40,6 @@ const VERIFICATION_MODEL =
   "llama3";
 
 /**
- * Shape of the diagnostic entries array optionally shared across processors.
- * The agent wires `diagnosticEntries` into processors via duck-typing:
- * if `args` has this field it will be populated.
- */
-export interface IVerificationDiagnostics {
-  /** Mutable array where the processor appends diagnostic entries. */
-  diagnosticEntries?: IDiagnosticEntry[];
-}
-
-/**
  * Verification gate `Processor`.
  *
  * Implements `processOutputStep` — called after the LLM response is
@@ -64,7 +53,7 @@ export const verificationProcessor = createProcessor({
   /**
    * Check whether the chosen tool correctly addresses the task.
    *
-   * @param args - Output step arguments from the agent.
+   * @param args - Output step arguments from the agent (includes task and action).
    * @returns Modified args (with issue appended to thought) or void.
    */
   async processOutputStep(args) {
@@ -73,7 +62,7 @@ export const verificationProcessor = createProcessor({
     const verifyPrompt =
       `You are a verification assistant.\n` +
       `The agent chose the following tool for the given task.\n\n` +
-      `Task: ${(args as unknown as { task?: string }).task ?? "(unknown)"}\n` +
+      `Task: ${args.task}\n` +
       `Chosen tool: ${args.action}\n` +
       `Tool input: ${JSON.stringify(args.toolInput)}\n` +
       `Agent thought: ${args.thought}\n\n` +

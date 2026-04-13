@@ -2,12 +2,12 @@
  * DOCX reader tool — extract plain text from `.docx` files.
  *
  * Reads the `word/document.xml` entry from the DOCX ZIP archive and
- * strips all XML tags to produce a plain-text representation.  This
- * avoids a heavy runtime dependency (e.g. `mammoth`) while handling
- * the common use-case of text extraction.
+ * strips all XML tags to produce a plain-text representation.
  *
- * **Limitation:** Only the main document body is read; headers,
- * footers, and embedded images are ignored.
+ * This implementation parses the ZIP format using Node.js built-in
+ * `zlib` (for deflate decompression) without any external dependencies.
+ * Only the main document body is read; headers, footers, and embedded
+ * images are ignored.
  *
  * @module tools/docx.read
  */
@@ -80,21 +80,26 @@ async function extractZipEntry(
  * Strip XML tags from a string, returning plain text.
  *
  * Inserts newlines at OOXML paragraph/line-break boundaries before
- * removing all remaining tags.  The output contains no angle brackets.
+ * removing all remaining tags.  The output is sanitised to contain no
+ * angle brackets (a final pass removes any residual `<` characters).
  *
  * @param xml - Raw XML string.
  * @returns Text content with all XML tags removed.
  */
 function stripXml(xml: string): string {
-  return xml
+  const stripped = xml
     /* Insert newlines at paragraph/line-break elements before stripping. */
     .replace(/<w:p[\s/>]/gi, "\n")
     .replace(/<w:br[^>]*\/>/gi, "\n")
-    /* Remove all XML/HTML tags — must run before any output is used. */
-    .replace(/<[^>]*>/g, "")
+    /* Remove all XML/HTML tags — use [\s\S]*? to handle multi-line tag content. */
+    .replace(/<[\s\S]*?>/g, "")
     /* Collapse excessive blank lines. */
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+
+  /* Final safety pass: remove any residual '<' characters so the output
+   * can never be interpreted as markup by a downstream renderer. */
+  return stripped.replace(/</g, "");
 }
 
 /**

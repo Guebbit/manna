@@ -12,6 +12,9 @@ import { resolveSafePath } from "../shared";
 import { createTool } from "./tool-builder";
 import { z } from "zod";
 
+/** Maximum HTML input size in bytes to process. Larger files are truncated. */
+const MAX_HTML_INPUT_CHARS = 1_000_000;
+
 /**
  * Decode a small set of common HTML entities.
  *
@@ -41,9 +44,9 @@ function decodeEntities(html: string): string {
 function htmlToText(html: string): string {
   return decodeEntities(
     html
-      /* Remove <script>…</script> blocks including closing tags with spaces. */
-      .replace(/<script[\s\S]*?<\/script\s*>/gi, " ")
-      .replace(/<style[\s\S]*?<\/style\s*>/gi, " ")
+      /* Remove <script>…</script> blocks including closing tags with spaces/attributes. */
+      .replace(/<script[\s\S]*?<\/script[^>]*>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style[^>]*>/gi, " ")
       /* Insert newlines at block-level boundaries. */
       .replace(/<\/(p|div|li|h[1-6]|tr|br)[^>]*>/gi, "\n")
       /* Strip remaining tags. */
@@ -91,7 +94,11 @@ export const readHtmlTool = createTool({
    */
   async execute({ path: htmlPath }) {
     const safePath = resolveSafePath(htmlPath);
-    const raw = await fs.readFile(safePath, "utf-8");
+    let raw = await fs.readFile(safePath, "utf-8");
+    /* Truncate very large inputs to avoid catastrophic backtracking. */
+    if (raw.length > MAX_HTML_INPUT_CHARS) {
+      raw = raw.slice(0, MAX_HTML_INPUT_CHARS);
+    }
     const text = htmlToText(raw);
     const title = extractTitle(raw);
     return { text, ...(title !== undefined ? { title } : {}) };

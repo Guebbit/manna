@@ -101,8 +101,8 @@ async function extractText(filePath: string, ext: string): Promise<string> {
     }
     default: {
       /* Fallback: treat as plain text. */
-      const r = (await readFileTool.execute({ path: rel })) as string;
-      return r;
+      const r = await readFileTool.execute({ path: rel });
+      return typeof r === "string" ? r : JSON.stringify(r);
     }
   }
 }

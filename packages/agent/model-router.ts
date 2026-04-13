@@ -41,6 +41,18 @@ const BUDGET_MAX_CONTEXT_CHARS = envInt(
   50_000,
 );
 
+/**
+ * Context length fraction at which the router upgrades to the `reasoning`
+ * profile (which has a larger `num_ctx`).
+ */
+const BUDGET_CONTEXT_THRESHOLD = 0.8;
+
+/**
+ * Elapsed-duration fraction at which the router downgrades to the `fast`
+ * profile so the run can finish quickly within the allowed wall-clock time.
+ */
+const BUDGET_DURATION_THRESHOLD = 0.7;
+
 /* ── Public types ────────────────────────────────────────────────────── */
 
 /** Supported model profiles — each maps to a distinct Ollama model. */
@@ -209,7 +221,7 @@ function routeWithRules(input: RouteInput): ModelRouteDecision {
   /* ── Budget-aware heuristics (highest priority) ───────────────────── */
 
   const contextLen = input.contextLength ?? input.context.length;
-  if (contextLen > BUDGET_MAX_CONTEXT_CHARS * 0.8) {
+  if (contextLen > BUDGET_MAX_CONTEXT_CHARS * BUDGET_CONTEXT_THRESHOLD) {
     return {
       profile: "reasoning",
       model: resolveModel("reasoning"),
@@ -220,7 +232,7 @@ function routeWithRules(input: RouteInput): ModelRouteDecision {
 
   if (
     input.cumulativeDurationMs !== undefined &&
-    input.cumulativeDurationMs > BUDGET_MAX_DURATION_MS * 0.7
+    input.cumulativeDurationMs > BUDGET_MAX_DURATION_MS * BUDGET_DURATION_THRESHOLD
   ) {
     return {
       profile: "fast",

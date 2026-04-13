@@ -34,16 +34,16 @@ const LOG_DIR = process.env.DIAGNOSTIC_LOG_DIR ?? "data/diagnostics";
  * @returns A lowercase, hyphen-separated slug.
  */
 function slugify(task: string): string {
-  return task
+  const raw = task
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
-    .slice(0, 60)
-    /* Trim leading/trailing hyphens with a simple split-join (no ReDoS risk). */
-    .split("")
-    .reduce<string>((acc, ch, i, arr) => {
-      if (ch === "-" && (i === 0 || i === arr.length - 1)) return acc;
-      return acc + ch;
-    }, "");
+    .slice(0, 60);
+  /* Trim leading/trailing hyphens without a regex to avoid ReDoS. */
+  let start = 0;
+  let end = raw.length;
+  while (start < end && raw[start] === "-") start++;
+  while (end > start && raw[end - 1] === "-") end--;
+  return raw.slice(start, end);
 }
 
 /**

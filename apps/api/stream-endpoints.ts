@@ -27,6 +27,9 @@ import type { ModelProfile } from "../../packages/agent/model-router";
 
 const log = getLogger("stream-endpoints");
 
+/** Maximum characters to include in SSE event data payloads. */
+const SSE_PAYLOAD_MAX_LENGTH = 300;
+
 /**
  * Serialise an event as an SSE frame.
  *
@@ -95,7 +98,7 @@ export function registerStreamRoutes(app: Express): void {
             writeEvent("step", {
               step: p.step,
               action: p.parsed.action,
-              thought: p.parsed.thought.slice(0, 300),
+              thought: p.parsed.thought.slice(0, SSE_PAYLOAD_MAX_LENGTH),
             });
             break;
           }
@@ -103,7 +106,7 @@ export function registerStreamRoutes(app: Express): void {
             const p = event.payload as { tool: string; result: unknown };
             writeEvent("tool", {
               tool: p.tool,
-              result: JSON.stringify(p.result).slice(0, 300),
+              result: JSON.stringify(p.result).slice(0, SSE_PAYLOAD_MAX_LENGTH),
             });
             break;
           }

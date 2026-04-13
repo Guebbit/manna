@@ -54,7 +54,7 @@ export interface IChunkOptions {
  * ```
  */
 export function chunkText(text: string, options?: IChunkOptions): IChunk[] {
-  const chunkSize = options?.chunkSize ?? 500;
+  const chunkSize = Math.max(1, options?.chunkSize ?? 500);
   const overlap = Math.min(options?.overlap ?? 50, chunkSize - 1);
   const step = chunkSize - overlap;
 

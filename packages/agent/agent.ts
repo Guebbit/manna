@@ -261,6 +261,7 @@ export class Agent {
 
       // ── Run output processors ────────────────────────────────────────
       let outputArgs: ProcessOutputStepArgs = {
+        task,
         stepNumber: step,
         text: response,
         thought: parsed.thought,
