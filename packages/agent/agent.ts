@@ -212,7 +212,7 @@ export class Agent {
     if (options?.resumeContext) {
       context = options.resumeContext;
       log.info("agent_resume_context_injected", {
-        resumeContextLength: context.length,
+        resumeContextLength: options.resumeContext.length,
       });
     }
 
@@ -252,7 +252,13 @@ export class Agent {
           });
           condensedContext = summaryResult.response.trim();
         } catch (e) {
-          log.warn("agent_context_overflow_summary_failed", { error: String(e) });
+          /* Summarisation LLM failed — fall back to a plain tail truncation.
+           * The caller receives raw context (not an AI-generated summary).
+           * This degraded path is indicated by the log warning below. */
+          log.warn("agent_context_overflow_summary_failed_using_truncation", {
+            error: String(e),
+            fallbackWindowChars: OVERFLOW_FALLBACK_CONTEXT_WINDOW,
+          });
           condensedContext = context.slice(-OVERFLOW_FALLBACK_CONTEXT_WINDOW);
         }
 

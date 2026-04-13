@@ -25,7 +25,7 @@
  */
 
 import { mkdir, readdir, unlink, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { envInt } from "../shared";
 import { getLogger } from "../logger/logger";
 import type { DiagnosticEntry } from "./types";
@@ -202,15 +202,18 @@ async function enforceFileLimit(dir: string, maxFiles: number): Promise<void> {
 
     const excess = mdFiles.slice(0, mdFiles.length - maxFiles);
     for (const file of excess) {
-      /* Resolve and validate each path stays inside the diagnostics directory
-       * to prevent any unexpected traversal (belt-and-suspenders safety check). */
-      const filePath = resolve(join(dir, file));
-      if (!filePath.startsWith(dir + "/") && filePath !== dir) {
-        log.warn("diagnostic_cleanup_skipped_unsafe_path", { file });
+      /* Use basename() to guarantee we work with a plain filename component
+       * (no directory separators), then join it with the resolved directory.
+       * This eliminates any path-traversal risk regardless of OS or how
+       * the directory was configured. */
+      const safeFilename = basename(file);
+      if (!safeFilename.endsWith(".md")) {
+        /* Double-check after basename extraction — skip if somehow altered. */
         continue;
       }
+      const filePath = join(dir, safeFilename);
       await unlink(filePath).catch((e) => {
-        log.warn("diagnostic_cleanup_failed", { file, error: String(e) });
+        log.warn("diagnostic_cleanup_failed", { file: safeFilename, error: String(e) });
       });
     }
     log.info("diagnostic_cleanup_done", { deleted: excess.length, remaining: maxFiles });
