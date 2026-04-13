@@ -579,6 +579,14 @@ When writing code in this repository, the AI **must** follow these conventions:
    - Path safety helpers (`resolveSafePath`, `resolveInsideRoot`) live in `packages/shared/path-safety.ts`.
    - Do **not** duplicate these helpers in individual tool files — import from `packages/shared/`.
 
+4. **Use Mermaid diagrams for visual representations:**
+   - When writing or updating documentation (in `docs/`, `AI_README.md`, or `CHANGELOG.md`), include **Mermaid diagrams** (```` ```mermaid ````) for any flow, architecture, sequence, or relationship that benefits from a visual representation.
+   - Prefer `flowchart TD` (top-down) or `flowchart LR` (left-right) for pipelines and data flows.
+   - Use `sequenceDiagram` for request/response interaction flows.
+   - Use `classDiagram` or `erDiagram` for data models or entity relationships.
+   - ASCII box-and-arrow diagrams (```` ```text ````) are acceptable as a **compact supplement** when inline with explanatory text, but **every documentation page that describes a pipeline, architecture, or multi-step process must include at least one Mermaid diagram**.
+   - VitePress renders Mermaid natively via `vitepress-plugin-mermaid` (already configured in `docs/.vitepress/config.mts`).
+
 ---
 
 ## Directory map

@@ -33,63 +33,29 @@ The design emerged from a use-case discussion around building a local knowledge 
 
 ## System Architecture
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                        INGESTION PIPELINE                        │
-│                                                                  │
-│  PDF files on disk (/storage/library/{libraryId}/)               │
-│          │                                                       │
-│          ▼                                                       │
-│  ┌──────────────────────┐                                        │
-│  │  Pass 1: Structure   │  LLM reads table of contents →        │
-│  │  Discovery           │  produces article list with titles     │
-│  │                      │  + page ranges (JSON)                  │
-│  └───────────┬──────────┘                                        │
-│              │                                                   │
-│              ▼                                                   │
-│  ┌──────────────────────┐                                        │
-│  │  Pass 2: Content     │  For each article:                     │
-│  │  Extraction          │  - Extract text for page range         │
-│  │                      │  - LLM summarises + generates tags     │
-│  └───────────┬──────────┘                                        │
-│              │                                                   │
-│              ▼                                                   │
-│  ┌──────────────────────┐                                        │
-│  │  Embedding           │  nomic-embed-text embeds:              │
-│  │                      │  "{title}. {summary}"                  │
-│  └───────────┬──────────┘                                        │
-│              │                                                   │
-│              ▼                                                   │
-│  ┌──────────────────────┐                                        │
-│  │  Qdrant Storage      │  One point per article:                │
-│  │                      │  vector + payload (title, summary,     │
-│  │                      │  year, month, page, pdfPath, tags)     │
-│  └──────────────────────┘                                        │
-└──────────────────────────────────────────────────────────────────┘
+### Ingestion Pipeline
 
-┌──────────────────────────────────────────────────────────────────┐
-│                          QUERY PIPELINE                          │
-│                                                                  │
-│  User: "What has SA published about ocean acidification?"        │
-│          │                                                       │
-│          ▼                                                       │
-│  ┌──────────────────────┐                                        │
-│  │  Embed query         │  nomic-embed-text                      │
-│  └───────────┬──────────┘                                        │
-│              │                                                   │
-│              ▼                                                   │
-│  ┌──────────────────────┐                                        │
-│  │  Qdrant ANN search   │  top-K by cosine similarity            │
-│  │                      │  optional: filter by year/month        │
-│  └───────────┬──────────┘                                        │
-│              │                                                   │
-│              ▼                                                   │
-│  Ranked article list with metadata + PDF path + score            │
-│                                                                  │
-│  1. "The Oceans' Tipping Point" — March 2026, p.42  [📄 Open]   │
-│  2. "Carbon Sinks Under Stress" — Nov 2025, p.68    [📄 Open]   │
-│  3. "Reef Restoration Tech" — Jul 2025, p.34        [📄 Open]   │
-└──────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    PDF["PDF files on disk\n/storage/library/{libraryId}/"] --> P1
+    subgraph Ingestion["Ingestion Pipeline"]
+        P1["Pass 1: Structure Discovery\nLLM reads table of contents →\narticle list with titles + page ranges"]
+        P1 --> P2["Pass 2: Content Extraction\nFor each article:\n- Extract text for page range\n- LLM summarises + generates tags"]
+        P2 --> EMB["Embedding\nnomic-embed-text embeds:\n'{title}. {summary}'"]
+        EMB --> QD[("Qdrant Storage\nOne point per article:\nvector + payload")]
+    end
+```
+
+### Query Pipeline
+
+```mermaid
+flowchart TD
+    U["User: 'What has SA published\nabout ocean acidification?'"] --> E[Embed Query\nnomic-embed-text]
+    E --> S["Qdrant ANN Search\ntop-K by cosine similarity\noptional: filter by year/month"]
+    S --> R["Ranked Article List\nmetadata + PDF path + score"]
+    R --> R1["1. 'The Oceans' Tipping Point'\nMarch 2026, p.42  📄 Open"]
+    R --> R2["2. 'Carbon Sinks Under Stress'\nNov 2025, p.68  📄 Open"]
+    R --> R3["3. 'Reef Restoration Tech'\nJul 2025, p.34  📄 Open"]
 ```
 
 ---

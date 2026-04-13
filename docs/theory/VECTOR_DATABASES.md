@@ -10,13 +10,18 @@ A **vector database** is a storage engine optimised for one operation: given a q
 
 "Vectors" here are the numerical representations produced by embedding models: arrays of 384–4096 floating-point numbers (depending on the model). Each dimension encodes some semantic feature of the original text or image. Nearby vectors in this high-dimensional space represent semantically similar content.
 
-```
-                    "cat"
-                      ●
-                   ●      ●
-     "dog"   "kitten"  "feline"
-                ●
-  ● "car"   (far away in vector space)
+```mermaid
+flowchart TD
+    subgraph VectorSpace["Vector Space (simplified 2D)"]
+        cat["● cat"]
+        dog["● dog"]
+        kitten["● kitten"]
+        feline["● feline"]
+        car["● car (far away)"]
+    end
+    cat -.semantic similarity.- kitten
+    cat -.semantic similarity.- feline
+    cat -.semantic similarity.- dog
 ```
 
 The database must answer: *"which stored vectors are closest to my query vector?"* — a task called **Approximate Nearest Neighbour (ANN) search**.
@@ -48,14 +53,21 @@ The most widely used ANN algorithm in production vector databases (Qdrant, Weavi
 
 Concept: build a multi-layer graph where each node is a vector. Higher layers are coarse skip-lists; lower layers are dense local neighbourhoods. Search traverses from the top layer down, greedily following the nearest node at each layer.
 
-```
-Layer 2 (sparse):   A ──── B ──── C
-                          │
-Layer 1 (medium):   A──B──D──E──C──F
-                       │     │
-Layer 0 (dense):   A─B─D─G─E─H─C─F─…  (full graph)
-                               ↑
-                         query enters here → navigates up
+```mermaid
+flowchart TD
+    subgraph Layer2["Layer 2 (sparse)"]
+        A2[A] --- B2[B] --- C2[C]
+    end
+    subgraph Layer1["Layer 1 (medium)"]
+        A1[A] --- B1[B] --- D1[D] --- E1[E] --- C1[C] --- F1[F]
+    end
+    subgraph Layer0["Layer 0 (dense — full graph)"]
+        A0[A] --- B0[B] --- D0[D] --- G0[G] --- E0[E] --- H0[H] --- C0[C] --- F0[F]
+    end
+    B2 --> D1
+    D1 --> D0
+    E1 --> E0
+    QQ[Query enters at Layer 0] --> A0
 ```
 
 **Properties:**
@@ -133,32 +145,19 @@ const results = await qdrant.search("my-collection", {
 
 ### Architecture Overview
 
-```
-┌──────────────────────────────────────────────┐
-│                  Qdrant Node                  │
-│                                               │
-│  ┌─────────────┐      ┌─────────────────────┐ │
-│  │  REST API   │      │   gRPC API           │ │
-│  │  :6333      │      │   :6334              │ │
-│  └──────┬──────┘      └──────────┬──────────┘ │
-│         │                        │             │
-│         └────────────┬───────────┘             │
-│                      │                         │
-│              ┌───────▼────────┐                │
-│              │  Collections   │                │
-│              │  Manager       │                │
-│              └───────┬────────┘                │
-│                      │                         │
-│         ┌────────────┼──────────────┐          │
-│         │            │              │          │
-│   ┌─────▼──────┐ ┌───▼───────┐ ┌───▼──────┐   │
-│   │  Segment 0 │ │ Segment 1 │ │  …       │   │
-│   │  HNSW idx  │ │ HNSW idx  │ │          │   │
-│   │  Payload   │ │ Payload   │ │          │   │
-│   └────────────┘ └───────────┘ └──────────┘   │
-│                                               │
-│  Persistence: RocksDB + WAL on disk           │
-└──────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph QdrantNode["Qdrant Node"]
+        REST["REST API :6333"] --> CM[Collections Manager]
+        GRPC["gRPC API :6334"] --> CM
+        CM --> S0["Segment 0\nHNSW index\nPayload"]
+        CM --> S1["Segment 1\nHNSW index\nPayload"]
+        CM --> SN["Segment N\n…"]
+        DISK[("Persistence:\nRocksDB + WAL on disk")]
+        S0 --> DISK
+        S1 --> DISK
+        SN --> DISK
+    end
 ```
 
 ### Practical Qdrant Settings for This Project

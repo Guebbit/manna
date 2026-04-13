@@ -8,11 +8,13 @@ RAG = retrieve relevant facts from a document store, then feed them to an LLM so
 
 **Retrieval-Augmented Generation (RAG)** is a pattern for grounding LLM answers in a private or up-to-date knowledge base. Instead of asking the model to recall a fact from training data (which can be stale, incomplete, or hallucinated), you first search a document store for relevant passages and then inject those passages into the prompt.
 
-```
-User question  ──►  Retrieval (search)  ──►  LLM (generate)  ──►  Answer + citations
-                          │
-                    Vector database
-                    (your documents)
+```mermaid
+flowchart LR
+    Q[User Question] --> R[Retrieval / Search]
+    R --> VDB[(Vector Database\nyour documents)]
+    VDB --> R
+    R --> LLM[LLM Generate]
+    LLM --> A[Answer + Citations]
 ```
 
 The LLM only "reads" the passages you gave it in the prompt. It cannot access knowledge outside of those passages (if you prompt it correctly). This gives you:
@@ -28,35 +30,12 @@ The LLM only "reads" the passages you gave it in the prompt. It cannot access kn
 
 ### Phase 1: Ingestion (Offline)
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     INGESTION PIPELINE                      │
-│                                                             │
-│  Raw documents (PDFs, web pages, docs, ...)                 │
-│          │                                                  │
-│          ▼                                                  │
-│  ┌──────────────────┐                                       │
-│  │  1. Parse / OCR  │  Extract clean text + metadata        │
-│  └───────┬──────────┘                                       │
-│          │                                                  │
-│          ▼                                                  │
-│  ┌──────────────────┐                                       │
-│  │  2. Chunk        │  Split into overlapping ~500-token    │
-│  │                  │  windows; attach source metadata      │
-│  └───────┬──────────┘                                       │
-│          │                                                  │
-│          ▼                                                  │
-│  ┌──────────────────┐                                       │
-│  │  3. Embed        │  Embed each chunk → float[] vector    │
-│  │                  │  (e.g. nomic-embed-text via Ollama)   │
-│  └───────┬──────────┘                                       │
-│          │                                                  │
-│          ▼                                                  │
-│  ┌──────────────────┐                                       │
-│  │  4. Store        │  Insert vector + metadata + text into │
-│  │                  │  vector database (Qdrant, Chroma, …)  │
-│  └──────────────────┘                                       │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A[Raw Documents\nPDFs, web pages, docs] --> B[1. Parse / OCR\nExtract clean text + metadata]
+    B --> C[2. Chunk\nSplit into overlapping ~500-token windows\nattach source metadata]
+    C --> D["3. Embed\nEmbed each chunk → float[] vector\n(e.g. nomic-embed-text via Ollama)"]
+    D --> E["4. Store\nInsert vector + metadata + text\ninto vector database (Qdrant, Chroma, …)"]
 ```
 
 **Key design choices at ingestion time:**
@@ -72,47 +51,14 @@ The LLM only "reads" the passages you gave it in the prompt. It cannot access kn
 
 ### Phase 2: Query (Runtime)
 
-```
-User question
-     │
-     ▼
-┌──────────────┐
-│  Embed query │  same model used at ingestion time
-└──────┬───────┘
-       │
-       ▼
-┌───────────────────────┐
-│  Vector similarity    │  cosine similarity → top-K nearest chunks
-│  search in DB         │
-└───────┬───────────────┘
-       │
-       ▼ (optional)
-┌───────────────────────┐
-│  Re-rank              │  cross-encoder or BM25 hybrid scoring
-│  (optional)           │
-└───────┬───────────────┘
-       │
-       ▼
-┌───────────────────────────────────────────────────────────┐
-│  Build prompt:                                            │
-│                                                           │
-│  "Answer the question using ONLY the sources below.      │
-│   Cite each source as [Source N].                        │
-│                                                           │
-│   Source 1: {chunk text} [{file, page, date}]            │
-│   Source 2: {chunk text} [{file, page, date}]            │
-│   ...                                                     │
-│                                                           │
-│   Question: {user question}"                              │
-└───────┬───────────────────────────────────────────────────┘
-       │
-       ▼
-┌───────────────┐
-│  LLM generate │
-└───────┬───────┘
-       │
-       ▼
-Answer + citations to original sources
+```mermaid
+flowchart TD
+    Q[User Question] --> E[Embed Query\nsame model used at ingestion time]
+    E --> S[Vector Similarity Search\ncosine similarity → top-K nearest chunks]
+    S --> R["Re-rank (optional)\ncross-encoder or BM25 hybrid scoring"]
+    R --> P["Build Prompt\n'Answer using ONLY these sources.\nCite each source as [Source N].'"]
+    P --> L[LLM Generate]
+    L --> A[Answer + Citations\nto original sources]
 ```
 
 ---
@@ -142,17 +88,13 @@ For a few hundred documents this is perfectly sufficient. No separate vector DB 
 
 ### Standard (Team / production)
 
-```
-                  ┌──────────────────┐
-Documents ──────► │  Ingestion worker │
-                  └────────┬─────────┘
-                           │ chunks + vectors
-                           ▼
-                  ┌──────────────────┐          ┌────────────────┐
-                  │  Qdrant / Weaviate│ ◄──────  │  Query service │ ◄── API
-                  └──────────────────┘          └───────┬────────┘
-                                                        │
-                                                   LLM (local or cloud)
+```mermaid
+flowchart LR
+    D[Documents] --> IW[Ingestion Worker]
+    IW -->|chunks + vectors| VDB[(Qdrant / Weaviate)]
+    API[API] --> QS[Query Service]
+    QS --> VDB
+    QS --> LLM[LLM\nlocal or cloud]
 ```
 
 ### Hybrid search (better relevance)
@@ -168,12 +110,11 @@ Most modern vector DBs (Qdrant, Weaviate, Elasticsearch) support hybrid scoring 
 
 For large document collections, a two-level approach significantly improves recall:
 
-```
-Level 1:  Article summaries (one embedding per article)
-          → Fast filter: "which articles are relevant?"
-
-Level 2:  Paragraph chunks (many embeddings per article)
-          → Precise extraction: "which passage answers the question?"
+```mermaid
+flowchart TD
+    Q[User Query] --> L1["Level 1: Article Summaries\n(one embedding per article)\nFast filter: which articles are relevant?"]
+    L1 --> L2["Level 2: Paragraph Chunks\n(many embeddings per article)\nPrecise extraction: which passage answers the question?"]
+    L2 --> A[Answer with exact citations]
 ```
 
 This is the approach recommended for the Scientific American use case in this project.
