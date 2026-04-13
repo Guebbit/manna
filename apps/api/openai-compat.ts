@@ -316,7 +316,7 @@ export function registerOpenAiRoutes(application: express.Express): void {
     // Validate any explicitly forced profile (guard against unknown manna-* IDs).
     if (profile !== undefined && !VALID_PROFILES.has(profile)) {
       response.status(400).json({
-        error: `Unrecognised model profile derived from model "${model}"`,
+        error: `Unrecognized model profile derived from model "${model}"`,
       });
       return;
     }
