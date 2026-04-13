@@ -37,7 +37,9 @@ app.use(express.json());
 /* Register IDE-specific direct-LLM endpoints. */
 registerIdeRoutes(app);
 
-/* Register OpenAI-compatible endpoints (/v1/models, /v1/chat/completions). */
+/* Register OpenAI-compatible endpoints (/v1/models, /v1/chat/completions).
+ * TODO: Remove once the custom Manna frontend ships — this is a temporary
+ *       Open WebUI bridge. See apps/api/openai-compat.ts for details. */
 registerOpenAiRoutes(app);
 
 /**

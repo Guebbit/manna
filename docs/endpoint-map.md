@@ -359,6 +359,12 @@ curl -X POST http://localhost:3001/page-review \
 
 ---
 
+> ⚠ **Temporary — OpenAI compatibility layer**
+>
+> The endpoints in this section (`GET /v1/models` and `POST /v1/chat/completions`) are a stopgap bridge that lets Open WebUI use Manna as a backend without a dedicated frontend.
+> They are implemented in `apps/api/openai-compat.ts` and registered via `registerOpenAiRoutes(app)` in `apps/api/index.ts`.
+> **These endpoints should be removed once the custom Manna frontend is available.**
+
 ### `GET /v1/models`
 
 Returns the list of Manna model profiles in [OpenAI `ListModelsResponse`](https://platform.openai.com/docs/api-reference/models/list) format.  Used by Open WebUI and any other OpenAI-compatible client to populate the model picker.

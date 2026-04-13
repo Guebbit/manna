@@ -11,7 +11,18 @@
  * Streaming (`stream: true`) is supported: the agent response is buffered
  * and sent as a single SSE chunk followed by `[DONE]`.
  *
+ * ---
+ * **⚠ TEMPORARY — to be removed when the custom Manna frontend is ready.**
+ *
+ * This entire module exists solely as an Open WebUI bridge so that Manna
+ * can be used without a dedicated frontend.  Once a custom frontend is
+ * available, these endpoints should be deleted along with the registration
+ * call in `apps/api/index.ts` and the shared `apps/api/agents.ts` module
+ * (if it is no longer needed by any other route).
+ * ---
+ *
  * @module apps/api/openai-compat
+ * @deprecated Temporary Open WebUI bridge — remove when the custom frontend ships.
  */
 
 import type express from "express";
@@ -249,7 +260,13 @@ function extractTextContent(message: ChatMessage): string {
  * - `GET  /v1/models`
  * - `POST /v1/chat/completions`
  *
+ * **⚠ TEMPORARY** — this function and the entire `openai-compat.ts` module
+ * are a stopgap bridge for Open WebUI.  Remove this registration call (and
+ * the module) once the custom Manna frontend is available.
+ *
  * @param application - The Express app instance to register routes on.
+ * @deprecated Temporary Open WebUI bridge — remove when the custom frontend ships.
+ * @todo Remove this function and `openai-compat.ts` when the custom frontend is ready.
  */
 export function registerOpenAiRoutes(application: express.Express): void {
   /* ── GET /v1/models ──────────────────────────────────────────────── */

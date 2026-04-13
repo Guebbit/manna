@@ -277,7 +277,12 @@ These are **not** agent-loop routes. They respond with a single LLM call.
 
 ---
 
-## OpenAI-compatibility endpoints
+## OpenAI-compatibility endpoints ⚠ TEMPORARY
+
+> **This section describes a temporary Open WebUI bridge.**
+> `apps/api/openai-compat.ts` and the `registerOpenAiRoutes(app)` call in `apps/api/index.ts`
+> should be **deleted** once the custom Manna frontend is available.
+> Do not add new features to this layer.
 
 File: `apps/api/openai-compat.ts`  
 Registered in `apps/api/index.ts` via `registerOpenAiRoutes(app)`.

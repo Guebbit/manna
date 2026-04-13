@@ -223,7 +223,9 @@ npm run build
 npm run dev
 ```
 
-## Connect Open WebUI to Manna
+## Connect Open WebUI to Manna (temporary)
+
+> ⚠ **This integration is temporary.** The OpenAI-compatibility layer (`apps/api/openai-compat.ts`) exists only as a stopgap so that Open WebUI can be used as a quick frontend while the dedicated Manna custom frontend is in development. It will be removed once the custom frontend ships.
 
 Manna exposes OpenAI-compatible endpoints (`GET /v1/models` and `POST /v1/chat/completions`) so that **Open WebUI** — or any other OpenAI-compatible client — can use Manna as its backend.  When you route Open WebUI through Manna, your chats go through the full agentic loop: tools, memory, and model routing are all active.
 
