@@ -151,6 +151,113 @@ curl -X POST http://localhost:3001/run \
 
 ---
 
+### `POST /run/stream`
+
+Same as `POST /run` but streams agent lifecycle events in real time as
+[Server-Sent Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events).
+The original `POST /run` is completely unchanged.
+
+**Request body** — identical to `POST /run`
+
+| Field        | Type                                           | Required | Description                                            |
+| ------------ | ---------------------------------------------- | -------- | ------------------------------------------------------ |
+| `task`       | `string`                                       | ✅       | Natural-language task description                      |
+| `allowWrite` | `boolean`                                      | —        | Unlock write tools. Default `false`.                   |
+| `profile`    | `"fast" \| "reasoning" \| "code" \| "default"` | —        | Force a specific model profile, bypassing auto-routing |
+
+**Response headers**
+
+```
+Content-Type: text/event-stream
+Cache-Control: no-cache
+Connection: keep-alive
+```
+
+**SSE event types**
+
+| Event type  | Trigger                       | Data shape                                                       |
+| ----------- | ----------------------------- | ---------------------------------------------------------------- |
+| `step`      | `agent:step`                  | `{ step: number, action: string, thought: string }`              |
+| `tool`      | `tool:result` or `tool:error` | `{ tool: string, result?: string }` or `{ tool, error: string }` |
+| `route`     | `agent:model_routed`          | `{ profile: string, model: string, reason: string }`             |
+| `done`      | `agent:done`                  | `{ result: string }`                                             |
+| `error`     | `agent:error`                 | `{ error: string }`                                              |
+| `max_steps` | `agent:max_steps`             | `{ task: string, summary: string }`                              |
+
+The connection closes automatically when the agent completes (on `done`, `error`, or `max_steps`).
+Thought content in `step` events is truncated at 300 characters.
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as POST /run/stream
+    participant B as Event Bus
+    participant A as Agent
+
+    C->>S: POST { task, allowWrite?, profile? }
+    S-->>C: 200 (text/event-stream headers)
+    S->>B: on("*", handler)
+    S->>A: agent.run(task)
+
+    loop Per agent step
+        A->>B: emit("agent:model_routed")
+        B-->>S: handler fires
+        S-->>C: event: route\ndata: {profile, model, reason}
+
+        A->>B: emit("agent:step")
+        B-->>S: handler fires
+        S-->>C: event: step\ndata: {step, action, thought}
+
+        A->>B: emit("tool:result" or "tool:error")
+        B-->>S: handler fires
+        S-->>C: event: tool\ndata: {tool, result|error}
+    end
+
+    A->>B: emit("agent:done" | "agent:error" | "agent:max_steps")
+    B-->>S: handler fires
+    S-->>C: event: done|error|max_steps\ndata: {...}
+    S->>B: off("*", handler)
+    S-->>C: (connection closed)
+```
+
+**Error responses**
+
+| Status | When                                                               |
+| ------ | ------------------------------------------------------------------ |
+| `400`  | `task` is missing, empty, or not a string; or `profile` is invalid |
+
+**curl example**
+
+```bash
+curl -N -X POST http://localhost:3001/run/stream \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task": "List all TypeScript files in packages/agent/",
+    "allowWrite": false
+  }'
+```
+
+Example output:
+
+```
+event: route
+data: {"profile":"code","model":"qwen2.5-coder:14b-instruct-q8_0","reason":"keyword_match:code"}
+
+event: step
+data: {"step":0,"action":"shell","thought":"I need to list all TypeScript files..."}
+
+event: tool
+data: {"tool":"shell","result":"packages/agent/agent.ts\npackages/agent/model-router.ts\n..."}
+
+event: step
+data: {"step":1,"action":"none","thought":"Here are all TypeScript files in packages/agent/: ..."}
+
+event: done
+data: {"result":"Here are all TypeScript files in packages/agent/: ..."}
+```
+
+---
+
 ### `POST /autocomplete`
 
 IDE-style cursor-time code completion. Makes a single LLM call via `TOOL_IDE_MODEL` (default `starcoder2`). Results are cached in-memory (LRU-style) for 30 seconds to reduce load during rapid typing.

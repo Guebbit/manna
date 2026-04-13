@@ -97,6 +97,60 @@ paths:
                 '500':
                     $ref: '#/components/responses/InternalError'
 
+    /run/stream:
+        post:
+            tags: [core]
+            summary: Submit a task and receive Server-Sent Events
+            description: |
+                Same as `POST /run` but streams agent lifecycle events in real time as
+                Server-Sent Events (SSE).
+
+                The connection stays open until the agent completes (on `done`, `error`, or
+                `max_steps` event). The original `POST /run` endpoint is completely unchanged.
+
+                **SSE event types**:
+                - `step` — emitted after each LLM response: `{ step, action, thought }`
+                - `tool` — emitted after each tool execution: `{ tool, result? }` or `{ tool, error }`
+                - `route` — emitted when a model profile is selected: `{ profile, model, reason }`
+                - `done` — final answer ready: `{ result }`
+                - `error` — agent threw: `{ error }`
+                - `max_steps` — loop exhausted: `{ task, summary }`
+            operationId: postRunStream
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/RunRequest'
+                        examples:
+                            basic:
+                                summary: Stream a simple read task
+                                value:
+                                    task: 'List all TypeScript files in packages/agent/'
+            responses:
+                '200':
+                    description: SSE stream — connection kept open until agent completes
+                    content:
+                        text/event-stream:
+                            schema:
+                                type: string
+                                description: Newline-delimited SSE frames
+                            example: |
+                                event: route
+                                data: {"profile":"code","model":"qwen2.5-coder:14b-instruct-q8_0","reason":"keyword_match:code"}
+
+                                event: step
+                                data: {"step":0,"action":"shell","thought":"I need to list TypeScript files..."}
+
+                                event: tool
+                                data: {"tool":"shell","result":"packages/agent/agent.ts\n..."}
+
+                                event: done
+                                data: {"result":"The TypeScript files in packages/agent/ are: ..."}
+
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+
     # ── IDE endpoints ─────────────────────────────────────────────────────────
 
     /autocomplete:
