@@ -205,7 +205,7 @@ At this scale, you could skip Qdrant entirely and do brute-force cosine similari
 
 ## Choosing an Embedding Model
 
-All embeddings in this project are produced by **`nomic-embed-text`** via Ollama (`OLLAMA_EMBED_MODEL`).
+By default this project uses **`nomic-embed-text`** via Ollama, configured via the `OLLAMA_EMBED_MODEL` environment variable. Any Ollama-compatible embedding model can be substituted by changing that variable — however, see the invariant below.
 
 | Model | Dimensions | Best for | VRAM / RAM |
 |---|---|---|---|

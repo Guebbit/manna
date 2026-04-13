@@ -441,7 +441,10 @@ The GPU is used only during LLM summarisation. Embedding runs on CPU. A typical 
 - Pass 1: ~5 seconds (TOC extraction + LLM parse)
 - Pass 2: ~30–90 seconds (10 articles × 3–9 s per article at 8B model speed)
 
-A 20-year archive (240 issues, ~2 400 articles) would take approximately **2–8 hours** unattended.
+A 20-year archive (240 issues, ~2 400 articles) would take approximately **2–8 hours** unattended. The wide range reflects:
+- **Model quantisation**: a Q4 model is roughly 2× faster than Q8 at the cost of some summary quality.
+- **PDF complexity**: issues with heavy multi-column layouts or many short articles take longer per page to extract.
+- **GPU utilisation**: if the GPU is shared with other processes during ingestion, throughput drops accordingly.
 
 ---
 
