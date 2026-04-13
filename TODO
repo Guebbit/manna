@@ -12,3 +12,19 @@ that bypasses the agent loop (direct generate() call, like the endpoints above) 
     storeContext can inject a product catalog, daily specials, store hours, etc.
   - Reuse existing rate-limiting and timeout infrastructure from this file.
 Good fit for small businesses wanting a domain-specific chatbot at zero ongoing cost (local Ollama).
+
+TODO: Optional cloud LLM provider layer (secondary priority — local-first remains the focus)
+Add an opt-in abstraction that allows routing specific profiles to a cloud API instead of Ollama.
+  - Introduce an ILlmProvider interface in packages/llm/types.ts with generate() and
+    generateWithMetadata() methods, so Ollama becomes one provider among many.
+  - Add an OpenAI-compatible provider (packages/llm/openai-compat-provider.ts) that works with:
+    • GitHub Models (https://models.inference.ai.azure.com) — free tier with GitHub Pro
+    • OpenAI (api.openai.com)
+    • OpenRouter (openrouter.ai) — single key, many models
+    • Anthropic (with minor adaptation)
+  - Add a "cloud" ModelProfile to the model router; when CLOUD_LLM_API_KEY is unset,
+    the profile silently falls back to the local default (zero disruption).
+  - New env vars: CLOUD_LLM_PROVIDER, CLOUD_LLM_BASE_URL, CLOUD_LLM_API_KEY, CLOUD_LLM_MODEL.
+  - Router integration: either force "cloud" per-request via profile param, or let the
+    rules/model router escalate to cloud for tasks that exceed local model capability.
+  - Keep it 100 % optional — no API key means the system behaves exactly as before.
