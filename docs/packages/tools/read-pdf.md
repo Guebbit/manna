@@ -1,5 +1,9 @@
 # Tool: `read_pdf`
 
+::: tip TL;DR
+Extracts text from PDF files using pdf-parse. Returns text + page count.
+:::
+
 ## What it does in plain English
 
 > "Extract all the text from this PDF so I can read and reason about it."
@@ -8,8 +12,16 @@ PDFs are binary files — you cannot just `cat` them. This tool uses the `pdf-pa
 
 ## Input
 
+The tool accepts either a file path (disk) or inline base64 data (e.g. from an API upload). When both are provided, `data` takes precedence.
+
+**From disk:**
 ```json
 { "path": "relative/path/to/file.pdf" }
+```
+
+**From upload (base64):**
+```json
+{ "data": "<base64-encoded PDF>" }
 ```
 
 ## Output
@@ -27,9 +39,9 @@ PDFs are binary files — you cannot just `cat` them. This tool uses the `pdf-pa
 ## How it works internally
 
 ```text
-PDF file on disk
+PDF from disk OR base64 data from upload
     |
-Tool resolves path against project root (rejects traversal)
+Tool resolves path against project root (rejects traversal) or uses base64 directly
     |
 pdf-parse library reads binary PDF
     |
@@ -39,6 +51,8 @@ Returns: { text: "...", pages: N }
     |
 Agent can now reason about the PDF content
 ```
+
+There is also a dedicated upload endpoint: `POST /upload/read-pdf` (accepts `multipart/form-data`).
 
 ## Real-life use cases
 

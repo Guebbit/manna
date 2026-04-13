@@ -1,5 +1,9 @@
 # Endpoint Map
 
+::: tip TL;DR
+`/run` = full agent loop for open-ended tasks. `/autocomplete`, `/lint-conventions`, `/page-review` = fast single-LLM-call endpoints. `/upload/*` = file uploads. `/v1/*` = OpenAI compatibility.
+:::
+
 This page is the authoritative human-readable reference for every HTTP endpoint exposed by the Manna API server.
 
 ---
@@ -20,13 +24,17 @@ Manna API  (default port :3001)
 ├── POST /lint-conventions           — Direct: Lint + convention findings (deterministic + LLM)
 ├── POST /page-review                — Direct: Whole-file categorized review (single LLM call)
 │
+├── POST /upload/image-classify      — Upload: Image classification via multipart file upload
+├── POST /upload/speech-to-text      — Upload: Audio transcription via multipart file upload
+├── POST /upload/read-pdf            — Upload: PDF text extraction via multipart file upload
+│
+├── GET  /v1/models                  — OpenAI-compat: list available Manna model profiles
+├── POST /v1/chat/completions        — OpenAI-compat: chat request → agent.run() → OpenAI response
+│
 └── (future specialized endpoints — not yet implemented)
     ├── POST /docs-chat              — Fast documentation Q&A
     ├── POST /summarize-file         — Single-file summarization
-    ├── POST /query-database         — Structured SQL query + explanation
-    ├── POST /analyze-image          — Direct vision classification
-    ├── POST /transcribe             — Direct speech-to-text
-    └── POST /read-pdf               — PDF extraction + summary
+    └── POST /query-database         — Structured SQL query + explanation
 ```
 
 ---
@@ -39,6 +47,21 @@ Manna API  (default port :3001)
 | **Specialized** (`/autocomplete`, etc.) | Single LLM call or deterministic logic; no loop, no tool selection overhead | High-frequency, latency-sensitive operations with a predictable input/output contract |
 
 The rule of thumb is: **when a use case is frequent enough and has a well-defined input/output contract, it gets its own endpoint.** Specialized endpoints are faster, easier to integrate, and give frontend surfaces a reliable schema to depend on.
+
+### Request routing overview
+
+```mermaid
+flowchart TD
+    Client[Client Request]
+    Client --> Generic["/run — Full Agent Loop"]
+    Client --> Specialized["/autocomplete, /lint, /review"]
+    Client --> Upload["/upload/* — File Upload"]
+    Client --> OpenAI["/v1/* — OpenAI Compat"]
+    Generic --> AgentLoop["Model routing → Tool selection → Multi-step → Answer"]
+    Specialized --> SingleLLM["Single LLM call → Structured response"]
+    Upload --> ToolDirect["Tool with base64 data → Result"]
+    OpenAI --> AgentLoop
+```
 
 ---
 
@@ -356,6 +379,241 @@ curl -X POST http://localhost:3001/page-review \
 
 ---
 
+## Upload endpoints
+
+File: `apps/api/upload-endpoints.ts`
+Registered in `apps/api/index.ts` via `registerUploadRoutes(app)`.
+
+These endpoints accept files via `multipart/form-data` upload — no need for files to be on disk. They call the corresponding tool with inline base64 data. Max upload size: **50 MB**.
+
+### `POST /upload/image-classify`
+
+Classify or describe an uploaded image using a vision model.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `file` | file | **yes** | — | The image file to classify |
+| `prompt` | string | no | `"Describe this image…"` | Custom vision prompt |
+| `model` | string | no | `TOOL_VISION_MODEL` | Override the vision model |
+
+**Response shape:**
+
+```json
+{
+  "model": "llava-llama3",
+  "response": "The image shows a cat sitting on a windowsill..."
+}
+```
+
+**curl example:**
+
+```bash
+curl -X POST http://localhost:3001/upload/image-classify \
+  -F 'file=@photo.jpg' \
+  -F 'prompt=What breed of cat is this?'
+```
+
+### `POST /upload/speech-to-text`
+
+Transcribe an uploaded audio file.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `file` | file | **yes** | — | The audio file to transcribe |
+| `model` | string | no | `TOOL_STT_MODEL` | Override the STT model |
+| `language` | string | no | — | ISO 639-1 language hint (e.g. `"en"`) |
+| `prompt` | string | no | — | Context/prompt for transcription |
+
+**Response shape:**
+
+```json
+{
+  "model": "whisper",
+  "text": "Hello, this is a transcription of the audio..."
+}
+```
+
+**curl example:**
+
+```bash
+curl -X POST http://localhost:3001/upload/speech-to-text \
+  -F 'file=@recording.wav' \
+  -F 'language=en'
+```
+
+### `POST /upload/read-pdf`
+
+Extract text from an uploaded PDF.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `file` | file | **yes** | — | The PDF file to parse |
+
+**Response shape:**
+
+```json
+{
+  "pageCount": 5,
+  "text": "Extracted text content from the PDF..."
+}
+```
+
+**curl example:**
+
+```bash
+curl -X POST http://localhost:3001/upload/read-pdf \
+  -F 'file=@document.pdf'
+```
+
+---
+
+> ⚠ **Temporary — OpenAI compatibility layer**
+>
+> The endpoints in this section (`GET /v1/models` and `POST /v1/chat/completions`) are a stopgap bridge that lets Open WebUI use Manna as a backend without a dedicated frontend.
+> They are implemented in `apps/api/openai-compat.ts` and registered via `registerOpenAiRoutes(app)` in `apps/api/index.ts`.
+> **These endpoints should be removed once the custom Manna frontend is available.**
+
+### `GET /v1/models`
+
+Returns the list of Manna model profiles in [OpenAI `ListModelsResponse`](https://platform.openai.com/docs/api-reference/models/list) format.  Used by Open WebUI and any other OpenAI-compatible client to populate the model picker.
+
+**Rate limit**: 120 requests / minute per client IP.
+
+**Response** `200 OK`
+
+```json
+{
+  "object": "list",
+  "data": [
+    { "id": "manna",           "object": "model", "created": 1700000000, "owned_by": "manna" },
+    { "id": "manna-agent",     "object": "model", "created": 1700000000, "owned_by": "manna" },
+    { "id": "manna-fast",      "object": "model", "created": 1700000000, "owned_by": "manna" },
+    { "id": "manna-reasoning", "object": "model", "created": 1700000000, "owned_by": "manna" },
+    { "id": "manna-code",      "object": "model", "created": 1700000000, "owned_by": "manna" }
+  ]
+}
+```
+
+**Model → profile mapping**
+
+| Model ID | Manna profile | Description |
+|---|---|---|
+| `manna` / `manna-agent` | auto | Router selects the best profile per task |
+| `manna-fast` | `fast` | Forces the `fast` profile |
+| `manna-reasoning` | `reasoning` | Forces the `reasoning` profile |
+| `manna-code` | `code` | Forces the `code` profile |
+
+**curl example**
+
+```bash
+curl http://localhost:3001/v1/models
+```
+
+---
+
+### `POST /v1/chat/completions`
+
+OpenAI-compatible chat completions endpoint.  Translates the incoming OpenAI request into a Manna `agent.run()` call (full agentic loop with tools, memory, and model routing) and returns the result in [OpenAI `ChatCompletion`](https://platform.openai.com/docs/api-reference/chat/object) format.
+
+**Rate limit**: 60 requests / minute per client IP (configurable via `OPENAI_COMPAT_RATE_LIMIT`).
+
+**Request body**
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `model` | `string` | ✅ | One of the Manna model IDs from `GET /v1/models` |
+| `messages` | `ChatMessage[]` | ✅ | Conversation history. Must contain at least one user message. The **last** user message is used as the agent task. |
+| `stream` | `boolean` | — | When `true`, returns a Server-Sent Events stream. Default `false`. |
+| `allowWrite` | `boolean` | — | Manna extension: enable `write_file` and `scaffold_project` tools. Default `false`. |
+| `temperature`, `max_tokens`, … | — | — | Accepted but ignored — Manna controls generation via model profiles. |
+
+**Write permission**
+
+Write tools are enabled if either:
+- `allowWrite: true` is set in the request body, **or**
+- The last user message starts with the `[WRITE]` prefix  
+  e.g. `"[WRITE] Scaffold a new React project in /tmp/app"` (the prefix is stripped before being sent to the agent).
+
+**Non-streaming response** `200 OK`
+
+```json
+{
+  "id": "chatcmpl-<uuid>",
+  "object": "chat.completion",
+  "created": 1700000000,
+  "model": "manna",
+  "choices": [
+    {
+      "index": 0,
+      "message": { "role": "assistant", "content": "<agent answer>" },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": { "prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0 }
+}
+```
+
+> `usage` values are always `0` — Manna does not track token counts natively.
+
+**Streaming response** (`stream: true`) — Server-Sent Events
+
+```
+data: {"id":"chatcmpl-<uuid>","object":"chat.completion.chunk","created":1700000000,"model":"manna","choices":[{"index":0,"delta":{"role":"assistant","content":"<full answer>"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-<uuid>","object":"chat.completion.chunk","created":1700000000,"model":"manna","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}
+
+data: [DONE]
+```
+
+The agent response is buffered in full before being sent as a single SSE chunk.
+
+**Error responses**
+
+| Status | When |
+|---|---|
+| `400` | Body is invalid, no user message present, or last user message has empty content |
+| `429` | Rate limit exceeded — `Retry-After` header contains seconds to wait |
+| `500` | Unhandled error inside the agent loop |
+
+**Relevant env vars**
+
+| Variable | Default | Effect |
+|---|---|---|
+| `OPENAI_COMPAT_RATE_LIMIT` | `60` | Max requests / minute for `/v1/chat/completions` per client IP |
+| `AGENTS_MAX_STEPS` | `5` | Maximum agent loop iterations |
+
+**curl examples**
+
+```bash
+# Non-streaming
+curl -X POST http://localhost:3001/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "manna",
+    "messages": [{"role": "user", "content": "List files in the current directory"}]
+  }'
+
+# Streaming
+curl -X POST http://localhost:3001/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "manna-reasoning",
+    "stream": true,
+    "messages": [{"role": "user", "content": "Explain how the agent loop works"}]
+  }'
+
+# With write tools enabled via prefix
+curl -X POST http://localhost:3001/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "manna",
+    "messages": [{"role": "user", "content": "[WRITE] Create a file hello.txt with content Hello"}]
+  }'
+```
+```
+
+---
+
 ## Why specialized endpoints?
 
 `POST /run` is powerful but heavyweight:
@@ -400,9 +658,6 @@ The following endpoints are **planned / proposed** — they are not implemented 
 | `POST /docs-chat` | Question about Manna documentation → fast answer | Single LLM call with docs pre-loaded as context; uses `AGENT_MODEL_FAST` for sub-second responses |
 | `POST /summarize-file` | File path → structured summary | Wraps `read_file` tool + single LLM summarization call |
 | `POST /query-database` | Natural language → SQL → results + explanation | Wraps `mysql_query` tool; returns `{ sql, rows, explanation }` |
-| `POST /analyze-image` | Image path + optional prompt → description | Wraps `image_classify` tool; uses `TOOL_VISION_MODEL` |
-| `POST /transcribe` | Audio file path → transcript text | Wraps `speech_to_text` tool; uses `TOOL_STT_MODEL` |
-| `POST /read-pdf` | PDF path → extracted text + summary | Wraps `read_pdf` tool; returns `{ text, pages, summary }` |
 
 This list will grow as use cases become frequent enough to justify a dedicated endpoint. The pattern is intentionally extensible.
 
@@ -414,7 +669,7 @@ Follow these steps to add a new direct endpoint (the same pattern used by `/auto
 
 1. **Define the contract** — write a Zod schema for the request body and a TypeScript interface for the response. Think carefully about what the caller needs to send and what they need back.
 
-2. **Add the route** — implement the handler in `apps/api/ide-endpoints.ts` (for IDE/tool-facing endpoints) or a new file for a different domain. Use the existing handlers as a template: `withTimeout`, `enforceRateLimit`, Zod validation.
+2. **Add the route** — implement the handler in `apps/api/ide-endpoints.ts` (for IDE/tool-facing endpoints), `apps/api/upload-endpoints.ts` (for file-upload endpoints), or a new file for a different domain. Use the existing handlers as a template: `withTimeout`, `enforceRateLimit`, Zod validation (for JSON endpoints), or `multer` middleware (for upload endpoints).
 
 3. **Register the route** — call the registration function from `apps/api/index.ts`. Follow the `registerIdeRoutes(app)` pattern.
 
