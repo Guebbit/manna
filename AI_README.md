@@ -550,6 +550,7 @@ After any of the above triggers, the AI must:
 - Verify that no cross-references in this file are stale (env var names, file paths, tool names).
 - Confirm that the **Invariants and safety constraints** section still accurately reflects the code.
 - Ensure the **Structured output contract** section matches the current Zod schema in `packages/agent/schemas.ts`.
+- **Run `npm run complete:check`** before finishing. This runs the full build, test, lint, and formatting pipeline. Fix all errors and warnings that arise — do not leave known failures for the user to resolve.
 
 ---
 
@@ -579,7 +580,20 @@ When writing code in this repository, the AI **must** follow these conventions:
    - Path safety helpers (`resolveSafePath`, `resolveInsideRoot`) live in `packages/shared/path-safety.ts`.
    - Do **not** duplicate these helpers in individual tool files — import from `packages/shared/`.
 
-4. **Use Mermaid diagrams for visual representations:**
+4. **Naming conventions** (enforced by `@typescript-eslint/naming-convention` in `eslint.config.ts`):
+   - **Interfaces** — `PascalCase` with an **`I` prefix**: `ITool`, `IProcessor`, `IFinding`.
+   - **Enums** — `PascalCase` with an **`E` prefix**: `EProfile`, `ELogLevel`, `EWriteMode`.
+   - **Enum members** — `PascalCase` or `UPPER_CASE`: `Fast`, `Reasoning`, `MAX_RETRIES`.
+   - **Type aliases** — `PascalCase` (no prefix): `ModelProfile`, `EndpointName`.
+   - **Classes** — `PascalCase` (no prefix): `Agent`.
+   - **Functions** — `camelCase`: `getLogger`, `createAgent`, `resolveSafePath`.
+   - **Variables** — `camelCase` or `UPPER_CASE` (for module-level constants): `context`, `MAX_STEPS`.
+   - **Parameters** — `camelCase` (leading underscore allowed for unused params): `task`, `_unused`.
+   - **Class properties** — `camelCase` or `UPPER_CASE` (leading underscore allowed for private fields).
+   - **Object literal properties** — no format enforced (external API compat).
+   - **Imports** — no format enforced (third-party module names vary).
+
+5. **Use Mermaid diagrams for visual representations:**
    - When writing or updating documentation (in `docs/`, `AI_README.md`, or `CHANGELOG.md`), include **Mermaid diagrams** (```` ```mermaid ````) for any flow, architecture, sequence, or relationship that benefits from a visual representation.
    - Prefer `flowchart TD` (top-down) or `flowchart LR` (left-right) for pipelines and data flows.
    - Use `sequenceDiagram` for request/response interaction flows.
