@@ -509,6 +509,16 @@ This section defines the **mandatory documentation and configuration actions** t
 1. Add a row to the **IDE direct endpoints** table (or create a new section if it is an agent-loop endpoint).
 2. Update the **Execution graph** if the endpoint enters the agent loop.
 3. Note any new env vars required; add them to the **Key Environment Variables** table.
+4. **Update `openapi.yaml`** — add the new path, its request/response schemas, and any new reusable components. Validate that the file remains valid OpenAPI 3.1.
+5. **Update `CHANGELOG.md`** — add a line under `[Unreleased] > Added` (or `Changed` / `Removed` as appropriate) describing the new endpoint, its purpose, and its request/response shape.
+
+---
+
+### Trigger: An existing HTTP endpoint is modified or removed
+
+1. Update the relevant sections in this file (endpoint tables, execution graph if applicable).
+2. **Update `openapi.yaml`** — modify or remove the corresponding path entry and any schemas that are no longer valid.
+3. **Update `CHANGELOG.md`** — describe what changed and why under the appropriate section (`Changed` or `Removed`).
 
 ---
 
