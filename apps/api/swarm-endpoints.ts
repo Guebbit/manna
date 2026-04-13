@@ -13,7 +13,7 @@
 
 import type { Express, Request, Response } from "express";
 import { on, off } from "../../packages/events/bus";
-import type { AgentEvent } from "../../packages/events/bus";
+import type { IAgentEvent } from "../../packages/events/bus";
 import { getLogger } from "../../packages/logger/logger";
 import { createSwarmOrchestrator, VALID_PROFILES } from "./agents";
 import type { ModelProfile } from "../../packages/agent/model-router";
@@ -181,7 +181,7 @@ export function registerSwarmRoutes(app: Express): void {
     };
 
     /* ── Event bridge (swarm + agent events) ──────────────────────── */
-    const handler = (event: AgentEvent): void => {
+    const handler = (event: IAgentEvent): void => {
       try {
         switch (event.type) {
           case "swarm:decomposed": {

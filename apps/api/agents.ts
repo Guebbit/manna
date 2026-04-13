@@ -13,7 +13,7 @@
 import { Agent } from "../../packages/agent/agent";
 import type { ModelProfile } from "../../packages/agent/model-router";
 import { SwarmOrchestrator } from "../../packages/swarm/orchestrator";
-import type { Processor } from "../../packages/processors/types";
+import type { IProcessor } from "../../packages/processors/types";
 import {
   readFileTool,
   writeFileTool,
@@ -75,10 +75,10 @@ const allToolDescriptionMap = new Map<string, string>(
  * Shared by both single-agent and swarm paths so the same middleware
  * applies regardless of execution mode.
  *
- * @returns An array of active {@link Processor} instances.
+ * @returns An array of active {@link IProcessor} instances.
  */
-function buildProcessors(): Processor[] {
-  const procs: Processor[] = [];
+function buildProcessors(): IProcessor[] {
+  const procs: IProcessor[] = [];
 
   if (process.env.AGENT_VERIFICATION_ENABLED === "true") {
     procs.push(verificationProcessor);

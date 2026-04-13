@@ -17,8 +17,8 @@
  */
 
 import { Agent } from "../agent/agent";
-import type { Tool } from "../tools";
-import type { Processor } from "../processors/types";
+import type { ITool } from "../tools";
+import type { IProcessor } from "../processors/types";
 import { generate } from "../llm/ollama";
 import { emit } from "../events/bus";
 import { getLogger } from "../logger/logger";
@@ -65,8 +65,8 @@ export class SwarmOrchestrator {
    * @param processors - Processors attached to every worker agent.
    */
   constructor(
-    private readonly tools: Tool[],
-    private readonly processors: Processor[] = [],
+    private readonly tools: ITool[],
+    private readonly processors: IProcessor[] = [],
   ) {}
 
   /**

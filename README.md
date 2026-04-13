@@ -40,16 +40,16 @@ Planned expansions include:
 ```text
 ai-assistant/
 ├── apps/
-│   └── api/          ← Express API entry point (`POST /run`)
+│   └── api/              ← Express API entry point (`POST /run`)
 ├── packages/
-│   ├── agent/        ← Agent loop
-│   ├── events/       ← Event bus
-│   ├── llm/          ← Ollama wrapper ("lim" in your note likely means this)
-│   ├── memory/       ← In-memory short-term memory
-│   └── tools/        ← Tool interface + built-in tools
-├── infra/
-│   └── podman/       ← Ollama compose stack
-└── data/             ← Runtime data (gitignored)
+│   ├── agent/            ← Agent loop
+│   ├── events/           ← Event bus
+│   ├── llm/              ← Ollama wrapper ("lim" in your note likely means this)
+│   ├── memory/           ← In-memory short-term memory
+│   └── tools/            ← Tool interface + built-in tools
+├── docker-compose.yml    ← Ollama + Open WebUI + Qdrant compose stack
+├── .env.example          ← Compose env template
+└── data/                 ← Runtime data (gitignored)
 ```
 
 ## Quick start
@@ -63,7 +63,6 @@ npm install
 ### 2) Start Ollama
 
 ```bash
-cd infra/podman
 cp .env.example .env
 # fill LINUX_USERNAME
 
@@ -172,7 +171,7 @@ Used by Node app (shell environment, `.env` loader, container env, etc.):
 
 ### Infra compose variables
 
-`infra/podman/.env` is only for the compose stack (Ollama + model-loader), mainly:
+`.env` (at the repo root) is only for the compose stack (Ollama + Open WebUI + Qdrant), mainly:
 
 - `LINUX_USERNAME`
 
@@ -189,25 +188,25 @@ The memory package now uses a hybrid approach:
 Runtime requirements:
 
 1. Start Qdrant:
-   ```bash
-   docker run -d \
-     --name qdrant \
-     -p 6333:6333 \
-     -v $(pwd)/data/qdrant:/qdrant/storage \
-     qdrant/qdrant
-   ```
+    ```bash
+    docker run -d \
+      --name qdrant \
+      -p 6333:6333 \
+      -v $(pwd)/data/qdrant:/qdrant/storage \
+      qdrant/qdrant
+    ```
 2. Configure env vars (optional if defaults are fine):
-   ```bash
-   export QDRANT_URL="http://localhost:6333"
-   export QDRANT_COLLECTION="agent_memory"
-   export OLLAMA_EMBED_MODEL="nomic-embed-text"
-   ```
+    ```bash
+    export QDRANT_URL="http://localhost:6333"
+    export QDRANT_COLLECTION="agent_memory"
+    export OLLAMA_EMBED_MODEL="nomic-embed-text"
+    ```
 
 If Qdrant is unavailable, the app continues with local in-memory recent memory only.
 
 ## Why compose has no database
 
-Correct: `infra/podman/docker-compose.yml` does **not** include MySQL.
+Correct: `docker-compose.yml` does **not** include MySQL.
 
 Reason: MySQL is optional and only needed if you want `mysql_query` to hit a real DB.
 You can either:
@@ -227,7 +226,7 @@ npm run dev
 
 > ⚠ **This integration is temporary.** The OpenAI-compatibility layer (`apps/api/openai-compat.ts`) exists only as a stopgap so that Open WebUI can be used as a quick frontend while the dedicated Manna custom frontend is in development. It will be removed once the custom frontend ships.
 
-Manna exposes OpenAI-compatible endpoints (`GET /v1/models` and `POST /v1/chat/completions`) so that **Open WebUI** — or any other OpenAI-compatible client — can use Manna as its backend.  When you route Open WebUI through Manna, your chats go through the full agentic loop: tools, memory, and model routing are all active.
+Manna exposes OpenAI-compatible endpoints (`GET /v1/models` and `POST /v1/chat/completions`) so that **Open WebUI** — or any other OpenAI-compatible client — can use Manna as its backend. When you route Open WebUI through Manna, your chats go through the full agentic loop: tools, memory, and model routing are all active.
 
 ### Setup
 
@@ -240,16 +239,16 @@ Manna exposes OpenAI-compatible endpoints (`GET /v1/models` and `POST /v1/chat/c
 
 ### Available models
 
-| Model name | Manna profile | Description |
-|---|---|---|
-| `manna` / `manna-agent` | auto | Router selects the best profile for each task |
-| `manna-fast` | `fast` | Optimised for speed |
-| `manna-reasoning` | `reasoning` | Optimised for multi-step reasoning |
-| `manna-code` | `code` | Optimised for coding tasks |
+| Model name              | Manna profile | Description                                   |
+| ----------------------- | ------------- | --------------------------------------------- |
+| `manna` / `manna-agent` | auto          | Router selects the best profile for each task |
+| `manna-fast`            | `fast`        | Optimised for speed                           |
+| `manna-reasoning`       | `reasoning`   | Optimised for multi-step reasoning            |
+| `manna-code`            | `code`        | Optimised for coding tasks                    |
 
 ### Write tools
 
-By default, write tools (`write_file`, `scaffold_project`) are disabled.  To enable them for a message, prefix the message with `[WRITE]`:
+By default, write tools (`write_file`, `scaffold_project`) are disabled. To enable them for a message, prefix the message with `[WRITE]`:
 
 ```
 [WRITE] Create a file hello.txt with content "Hello, world!"

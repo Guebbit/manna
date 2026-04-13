@@ -9,6 +9,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Fixed
+
+- **`openapi.yaml` — `/upload/read-pdf` section placement**: Moved `/upload/read-pdf` from under the misplaced `# ── Library endpoints ──` comment to sit with the other upload endpoints (after `/upload/speech-to-text`), where it belongs.
+- **`openapi.yaml` — `RunRequest.allowWrite` description**: Updated to mention all three tools unlocked by `allowWrite: true` — `write_file`, `scaffold_project`, and `document_ingest` (the third was previously omitted).
+- **`openapi.yaml` — `/health` response schema**: Added missing `timestamp` field (`type: string, format: date-time`) to match the actual implementation which returns `{ status: "ok", timestamp: new Date().toISOString() }`.
+- **`openapi.yaml` — `/upload/image-classify` model description**: Replaced the hardcoded and inaccurate `llava:13b` default with a generic reference to the `TOOL_VISION_MODEL` environment variable, consistent with `AI_README.md`.
+
 ### Added
 - **Swarm orchestration** (`packages/swarm/`): Multi-agent task decomposition and execution. Complex tasks are broken into subtasks by an LLM decomposer, each delegated to a specialised `Agent` with its own model profile, then synthesised into a final answer.
   - `packages/swarm/types.ts` — `ISubtask`, `IDecomposition`, `ISubtaskResult`, `ISwarmResult`, `ISwarmConfig`
@@ -19,7 +26,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
   - `POST /run/swarm/stream` — run a swarm and stream lifecycle events as SSE
 - New env vars: `SWARM_DECOMPOSER_MODEL`, `SWARM_SYNTHESIS_MODEL`
 - New event types: `swarm:start`, `swarm:decomposed`, `swarm:subtask_start`, `swarm:subtask_done`, `swarm:subtask_error`, `swarm:done`
-- Phase 1A — `packages/diagnostics/``: New persistent diagnostic logs package with `IDiagnosticEntry` type, `writeDiagnosticLog()` writer (timestamped Markdown files), and `cleanupOldLogs()` pruner. Controlled by `DIAGNOSTIC_LOG_ENABLED`, `DIAGNOSTIC_LOG_DIR`, `DIAGNOSTIC_LOG_MAX_FILES` env vars.
+- **Informational endpoints** (`apps/api/info-endpoints.ts`): three new lightweight `GET` endpoints that require no LLM call:
+  - `GET /info/modes` — lists all Manna agent routing profiles (modes) with their resolved Ollama models, controlling env vars, and descriptions.
+  - `GET /info/models` — proxies Ollama's `GET /api/tags` and returns all locally available models with size, digest, and detail metadata.
+  - `GET /help` — structured JSON overview of every REST API endpoint (method, path, summary, parameters) — the `--help` equivalent for the HTTP API.
+- **Phase 1A — `packages/diagnostics/`**: New persistent diagnostic logs package with `IDiagnosticEntry` type, `writeDiagnosticLog()` writer (timestamped Markdown files), and `cleanupOldLogs()` pruner. Controlled by `DIAGNOSTIC_LOG_ENABLED`, `DIAGNOSTIC_LOG_DIR`, `DIAGNOSTIC_LOG_MAX_FILES` env vars.
 - **Phase 1B — Budget-ceiling model router**: `routeModel()` now accepts `contextLength` and `cumulativeDurationMs`; `routeWithRules()` applies budget-aware heuristics (context > 80 % ceiling → `reasoning`; duration > 70 % ceiling → `fast`). New env vars: `AGENT_BUDGET_MAX_DURATION_MS` (default 60 000) and `AGENT_BUDGET_MAX_CONTEXT_CHARS` (default 50 000).
 - **Phase 2A — Verification gate processor** (`packages/processors/verification.ts`): optional post-tool-choice LLM check; emits `tool:verification_failed`; controlled by `AGENT_VERIFICATION_ENABLED` / `AGENT_VERIFICATION_MODEL`.
 - **Phase 2B — Self-debugging on max steps**: when the agent loop exhausts its steps, a fast LLM call generates a structured summary (what was tried, where it got stuck, suggestions). The summary is persisted via `addMemory()` and written to a diagnostic Markdown file. `agent:max_steps` payload now includes `{ task, summary, diagnosticFile }`.
@@ -29,7 +40,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ### Changed
 - `apps/api/agents.ts`: extracted `buildProcessors()` helper; added `createSwarmOrchestrator()` factory; imports `SwarmOrchestrator` and `Processor` types.
-- `apps/api/index.ts`: registers swarm routes via `registerSwarmRoutes(app)`.
+- `apps/api/index.ts`: registers swarm routes via `registerSwarmRoutes(app)` and info routes via `registerInfoRoutes(app)`.
 - `apps/api/agents.ts`: now imports and registers verification and tool-reranker processors; includes all new document reader tools in `readOnlyTools`; adds `document_ingest` to `writeTools`.
 - `packages/agent/agent.ts`: accumulates `IDiagnosticEntry[]` during the loop; passes budget state to `routeModel()`; writes diagnostic log on both success (when entries exist) and max-steps exhaustion.
 - `packages/tools/index.ts`: exports all new tool instances.
@@ -37,6 +48,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - `AI_README.md`: updated event bus table, tool registry, directory map, execution graph, processors section, env vars table, invariants, endpoint table, and common modification patterns.
 
 ### Visual documentation overhaul
+
 - **Visual documentation overhaul** — Mermaid diagrams added to every documentation page for ADHD-friendly visual navigation
 - **TL;DR callout boxes** — every doc page now opens with a one-liner summary in a highlighted `::: tip` box
 - **VitePress Mermaid support** — `vitepress-plugin-mermaid` and `mermaid` added as dev dependencies
@@ -50,6 +62,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - **Mermaid diagrams added** to `docs/theory/RAG.md`, `docs/theory/VECTOR_DATABASES.md`, and `docs/library-ingestion.md` — all ASCII-only diagrams replaced with Mermaid equivalents
 
 ### Fixed
+
 - Dead link in `model-selection.md` pointing to `../infra/modelfile-example.md` (now uses VitePress clean URL)
 
 ---
@@ -57,6 +70,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [0.14.0-alpha] — OpenAI-Compatible API Endpoints
 
 ### Added
+
 - `GET /v1/models` and `POST /v1/chat/completions` for Open WebUI integration
 - Streaming (SSE) and non-streaming response support
 - Write mode via `[WRITE]` message prefix or `allowWrite` body field
@@ -67,6 +81,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [0.13.0-alpha] — File Upload Support
 
 ### Added
+
 - `POST /upload/image-classify` — classify images via multipart upload
 - `POST /upload/speech-to-text` — transcribe audio via multipart upload
 - `POST /upload/read-pdf` — extract PDF text via multipart upload
@@ -77,6 +92,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [0.12.0-alpha] — Generate Diagram Tool
 
 ### Added
+
 - `generate_diagram` tool — produces Mermaid diagrams rendered via `@mermaid-js/mermaid-cli`
 
 ---
@@ -84,6 +100,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [0.11.0-alpha] — SOLID Refactor & JSDoc
 
 ### Changed
+
 - Extracted shared env/path helpers across packages
 - Added comprehensive JSDoc to tools, processors, evals, memory, API files
 
@@ -92,6 +109,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [0.10.0-alpha] — Endpoint Map Documentation
 
 ### Added
+
 - `docs/endpoint-map.md` — authoritative reference for every HTTP endpoint
 
 ---
@@ -99,6 +117,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [0.9.0-alpha] — Per-Profile & Per-Tool Runtime Options
 
 ### Added
+
 - Env vars for temperature, top_p, top_k, num_ctx, repeat_penalty per agent profile
 - Env vars for tool-specific models (vision, STT, IDE, diagram)
 
@@ -107,6 +126,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [0.8.0-alpha] — AI_README & Model Routing
 
 ### Added
+
 - `AI_README.md` — machine-oriented codebase reference for AI agents
 - Frontend can now override model routing profile per request
 - Default router model set to `phi4-mini`
@@ -116,9 +136,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [0.7.0-alpha] — Manna Rebrand & Documentation Expansion
 
 ### Changed
+
 - Rebranded project to "Manna — Personal AI Agent Platform"
 
 ### Added
+
 - Scenarios (learn-by-doing drills) and theory pages
 
 ---
@@ -126,6 +148,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [0.6.0-alpha] — IDE Direct Endpoints
 
 ### Added
+
 - `POST /autocomplete` — cursor-time code completion with caching
 - `POST /lint-conventions` — deterministic + LLM lint findings
 - `POST /page-review` — whole-file categorized engineering review
@@ -135,6 +158,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [0.5.0-alpha] — Structured Logging
 
 ### Added
+
 - `winston`-based structured logging with env-driven configuration
 
 ---
@@ -142,6 +166,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [0.4.0-alpha] — VitePress Documentation Site
 
 ### Added
+
 - VitePress docs site under `/docs`
 
 ---
@@ -149,6 +174,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [0.3.0-alpha] — Qdrant Hybrid Memory
 
 ### Changed
+
 - Replaced pure in-memory ring buffer with Qdrant vector DB + local buffer hybrid
 - Graceful fallback to local-only when Qdrant is unavailable
 
@@ -157,6 +183,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [0.2.0-alpha] — Browser Fetch Tool
 
 ### Added
+
 - `browser_fetch` tool using Playwright + Chromium (headless)
 
 ---
@@ -164,6 +191,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [0.1.0-alpha] — Initial Release
 
 ### Added
+
 - Agentic loop with up to 5 steps per task
 - Tool-based architecture: `read_file`, `shell`, `mysql_query`, `browser_fetch`, `image_classify`, `semantic_search`, `speech_to_text`, `read_pdf`, `code_autocomplete`, `write_file`, `scaffold_project`
 - Per-step model routing (rules or model-based)
