@@ -22,6 +22,7 @@
  */
 
 import { generateWithMetadata } from "../llm/ollama";
+import { generate } from "../llm/ollama";
 import { addMemory, getMemory } from "../memory/memory";
 import { emit } from "../events/bus";
 import type { Tool } from "../tools";
@@ -35,12 +36,42 @@ import type {
   ProcessInputStepArgs,
   ProcessOutputStepArgs,
 } from "../processors/types";
+import {
+  writeDiagnosticLog,
+  cleanupOldLogs,
+} from "../diagnostics";
+import type { IDiagnosticEntry } from "../diagnostics";
 
 /**
  * Maximum number of reasoning iterations before the agent gives up.
  * Configurable via the `AGENTS_MAX_STEPS` environment variable.
  */
 const MAX_STEPS = Number.parseInt(process.env.AGENTS_MAX_STEPS ?? "5", 10);
+
+/**
+ * Fast model used for the self-debug summary on max-steps exhaustion.
+ * Mirrors the value configured in the model router.
+ */
+const FAST_MODEL =
+  process.env.AGENT_MODEL_FAST ??
+  process.env.AGENT_MODEL_DEFAULT ??
+  process.env.OLLAMA_MODEL ??
+  "llama3";
+
+/**
+ * Directory where diagnostic Markdown files are written.
+ * Kept in sync with the writer's own default.
+ */
+const DIAGNOSTIC_LOG_DIR =
+  process.env.DIAGNOSTIC_LOG_DIR ?? "data/diagnostics";
+
+/**
+ * Auto-prune threshold for diagnostic log files.
+ */
+const DIAGNOSTIC_LOG_MAX_FILES = Number.parseInt(
+  process.env.DIAGNOSTIC_LOG_MAX_FILES ?? "100",
+  10,
+);
 
 const log = getLogger("agent");
 
@@ -95,6 +126,8 @@ export class Agent {
   async run(task: string, options?: { profile?: ModelProfile }): Promise<string> {
     const runStartedAt = Date.now();
     let context = "";
+    const diagnosticEntries: IDiagnosticEntry[] = [];
+
     log.info("agent_run_started", {
       task,
       taskLength: task.length,
@@ -151,6 +184,8 @@ export class Agent {
           context: inputArgs.context,
           step,
           forcedProfile: options?.profile,
+          contextLength: inputArgs.context.length,
+          cumulativeDurationMs: Date.now() - runStartedAt,
         });
         emit({
           type: "agent:model_routed",
@@ -206,6 +241,14 @@ export class Agent {
           responseLength: response.length,
           contextLength: context.length,
         });
+        diagnosticEntries.push({
+          timestamp: new Date().toISOString(),
+          step,
+          severity: "warn",
+          category: "json",
+          message: "Invalid JSON response from LLM — asking model to self-correct.",
+          metadata: { responseLength: response.length },
+        });
         continue;
       }
 
@@ -218,6 +261,7 @@ export class Agent {
 
       // ── Run output processors ────────────────────────────────────────
       let outputArgs: ProcessOutputStepArgs = {
+        task,
         stepNumber: step,
         text: response,
         thought: parsed.thought,
@@ -246,6 +290,14 @@ export class Agent {
           finalThoughtLength: parsed.thought.length,
         });
         emit({ type: "agent:done", payload: { thought: parsed.thought } });
+
+        /* Write diagnostic log even on success when entries were collected. */
+        if (diagnosticEntries.length > 0) {
+          const logPath = await writeDiagnosticLog(diagnosticEntries, task);
+          await cleanupOldLogs(DIAGNOSTIC_LOG_DIR, DIAGNOSTIC_LOG_MAX_FILES);
+          log.info("agent_diagnostic_log_written", { logPath });
+        }
+
         return parsed.thought;
       }
 
@@ -260,6 +312,14 @@ export class Agent {
         context +=
           `\nTool "${parsed.action}" does not exist. ` +
           `Available tools: ${this.tools.map((t) => t.name).join(", ")}.`;
+        diagnosticEntries.push({
+          timestamp: new Date().toISOString(),
+          step,
+          severity: "warn",
+          category: "tool",
+          message: `Unknown tool requested: "${parsed.action}".`,
+          metadata: { availableTools: this.tools.map((t) => t.name) },
+        });
         continue;
       }
 
@@ -293,6 +353,14 @@ export class Agent {
           type: "tool:error",
           payload: { tool: parsed.action, error: String(error) },
         });
+        diagnosticEntries.push({
+          timestamp: new Date().toISOString(),
+          step,
+          severity: "error",
+          category: "tool",
+          message: `Tool "${parsed.action}" failed: ${String(error)}`,
+          metadata: { tool: parsed.action },
+        });
         continue;
       }
 
@@ -310,8 +378,53 @@ export class Agent {
       durationMs: Date.now() - runStartedAt,
       task,
     });
-    emit({ type: "agent:max_steps", payload: { task } });
-    return "Max steps reached without a conclusive answer.";
+
+    /* ── Phase 2B: Self-debugging summary ─────────────────────────── */
+    let summary = "Max steps reached without a conclusive answer.";
+    let diagnosticFile = "";
+    try {
+      const debugPrompt =
+        `You are a debugging assistant.\n` +
+        `The agent loop exhausted its steps without completing the task.\n\n` +
+        `Task:\n${task}\n\n` +
+        `Context (what happened):\n${context}\n\n` +
+        `Summarise concisely:\n` +
+        `1. What was tried.\n` +
+        `2. Where it got stuck.\n` +
+        `3. Suggestions for what to try next.`;
+      const debugResult = await generate(debugPrompt, {
+        model: FAST_MODEL,
+        stream: false,
+      });
+      summary = debugResult.trim() || summary;
+    } catch (debugErr) {
+      log.warn("agent_self_debug_failed", { error: String(debugErr) });
+    }
+
+    /* Persist the dead-end so future runs can avoid repeating it. */
+    try {
+      await addMemory(`Task: ${task} → [MAX_STEPS] ${summary}`);
+    } catch (memErr) {
+      log.warn("agent_memory_add_failed", { error: String(memErr) });
+    }
+
+    /* Write the full diagnostic log with the AI commentary. */
+    try {
+      diagnosticFile = await writeDiagnosticLog(
+        diagnosticEntries,
+        task,
+        summary,
+      );
+      await cleanupOldLogs(DIAGNOSTIC_LOG_DIR, DIAGNOSTIC_LOG_MAX_FILES);
+    } catch (logErr) {
+      log.warn("agent_diagnostic_log_failed", { error: String(logErr) });
+    }
+
+    emit({
+      type: "agent:max_steps",
+      payload: { task, summary, diagnosticFile },
+    });
+    return summary;
   }
 
   /**

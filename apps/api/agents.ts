@@ -24,7 +24,15 @@ import {
   readPdfTool,
   codeAutocompleteTool,
   generateDiagramTool,
+  readDocxTool,
+  readCsvTool,
+  readHtmlTool,
+  readJsonTool,
+  readMarkdownTool,
+  documentIngestTool,
 } from "../../packages/tools/index";
+import { verificationProcessor } from "../../packages/processors/verification";
+import { createToolRerankerProcessor } from "../../packages/processors/tool-reranker";
 
 /* ── Tool sets ───────────────────────────────────────────────────────── */
 
@@ -40,18 +48,51 @@ const readOnlyTools = [
   readPdfTool,
   codeAutocompleteTool,
   generateDiagramTool,
+  readDocxTool,
+  readCsvTool,
+  readHtmlTool,
+  readJsonTool,
+  readMarkdownTool,
 ];
 
-/** Tools that mutate the filesystem — only enabled when `allowWrite` is `true`. */
-const writeTools = [writeFileTool, scaffoldProjectTool];
+/** Tools that mutate the filesystem or data stores — only enabled when `allowWrite` is `true`. */
+const writeTools = [writeFileTool, scaffoldProjectTool, documentIngestTool];
+
+/* ── Tool description map for the reranker ───────────────────────────── */
+
+const allToolDescriptionMap = new Map<string, string>(
+  [...readOnlyTools, ...writeTools].map((t) => [t.name, t.description]),
+);
+
+/* ── Processor registration ──────────────────────────────────────────── */
+
+/**
+ * Attach optional processors to an agent based on environment variables.
+ *
+ * @param agent - The `Agent` instance to configure.
+ * @returns The same `agent` for fluent chaining.
+ */
+function attachProcessors(agent: Agent): Agent {
+  if (process.env.AGENT_VERIFICATION_ENABLED === "true") {
+    agent.addProcessor(verificationProcessor);
+  }
+
+  if (process.env.TOOL_RERANKER_ENABLED === "true") {
+    agent.addProcessor(createToolRerankerProcessor(allToolDescriptionMap));
+  }
+
+  return agent;
+}
 
 /* ── Agent instances (shared across requests) ────────────────────────── */
 
 /** Agent with read-only tool access (default). */
-export const readOnlyAgent = new Agent(readOnlyTools);
+export const readOnlyAgent = attachProcessors(new Agent(readOnlyTools));
 
 /** Agent with both read and write tool access. */
-export const writeEnabledAgent = new Agent([...readOnlyTools, ...writeTools]);
+export const writeEnabledAgent = attachProcessors(
+  new Agent([...readOnlyTools, ...writeTools]),
+);
 
 /** Recognised model profile names for request validation. */
 export const VALID_PROFILES = new Set<ModelProfile>(["fast", "reasoning", "code", "default"]);

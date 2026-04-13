@@ -19,6 +19,40 @@
 import { generate } from "../llm/ollama";
 import { envFloat, envInt } from "../shared";
 
+/* ── Budget environment variables ────────────────────────────────────── */
+
+/**
+ * Maximum allowed wall-clock duration (ms) for a single agent run.
+ * When cumulative duration exceeds 70 % of this value the router
+ * downgrades to the `fast` profile to finish quickly.
+ */
+const BUDGET_MAX_DURATION_MS = envInt(
+  process.env.AGENT_BUDGET_MAX_DURATION_MS,
+  60_000,
+);
+
+/**
+ * Maximum allowed context string length (chars) for a single agent run.
+ * When context length exceeds 80 % of this value the router upgrades to
+ * the `reasoning` profile which uses a larger `num_ctx`.
+ */
+const BUDGET_MAX_CONTEXT_CHARS = envInt(
+  process.env.AGENT_BUDGET_MAX_CONTEXT_CHARS,
+  50_000,
+);
+
+/**
+ * Context length fraction at which the router upgrades to the `reasoning`
+ * profile (which has a larger `num_ctx`).
+ */
+const BUDGET_CONTEXT_THRESHOLD = 0.8;
+
+/**
+ * Elapsed-duration fraction at which the router downgrades to the `fast`
+ * profile so the run can finish quickly within the allowed wall-clock time.
+ */
+const BUDGET_DURATION_THRESHOLD = 0.7;
+
 /* ── Public types ────────────────────────────────────────────────────── */
 
 /** Supported model profiles — each maps to a distinct Ollama model. */
@@ -62,6 +96,18 @@ interface RouteInput {
    * This is how the `/run` endpoint's `profile` query-param works.
    */
   forcedProfile?: ModelProfile;
+
+  /**
+   * Current context length in characters, used by budget-aware routing
+   * to upgrade to a larger-context profile when approaching the ceiling.
+   */
+  contextLength?: number;
+
+  /**
+   * Wall-clock milliseconds elapsed since the agent run started, used
+   * by budget-aware routing to downgrade to `fast` when time is short.
+   */
+  cumulativeDurationMs?: number;
 }
 
 /* ── Resolved model names from environment ───────────────────────────── */
@@ -158,14 +204,46 @@ function resolveOptions(profile: ModelProfile): Record<string, unknown> {
 /**
  * Select a model profile using simple keyword matching on the task + context.
  *
- * The heuristic checks for code-related keywords first, then reasoning
+ * Budget-aware heuristics take precedence over keyword heuristics:
+ * - When context length exceeds 80 % of `AGENT_BUDGET_MAX_CONTEXT_CHARS`,
+ *   the `reasoning` profile (larger `num_ctx`) is selected.
+ * - When cumulative duration exceeds 70 % of `AGENT_BUDGET_MAX_DURATION_MS`,
+ *   the `fast` profile is selected to finish quickly.
+ *
+ * The heuristic then checks for code-related keywords first, then reasoning
  * signals, and defaults to the `fast` profile when nothing matches.
  * This is cheap (no LLM call) and deterministic.
  *
- * @param input - The current routing input (task, context, step).
- * @returns A `ModelRouteDecision` based on keyword heuristics.
+ * @param input - The current routing input (task, context, step, budgets).
+ * @returns A `ModelRouteDecision` based on budget and keyword heuristics.
  */
 function routeWithRules(input: RouteInput): ModelRouteDecision {
+  /* ── Budget-aware heuristics (highest priority) ───────────────────── */
+
+  const contextLen = input.contextLength ?? input.context.length;
+  if (contextLen > BUDGET_MAX_CONTEXT_CHARS * BUDGET_CONTEXT_THRESHOLD) {
+    return {
+      profile: "reasoning",
+      model: resolveModel("reasoning"),
+      reason: "budget:context_near_ceiling",
+      options: resolveOptions("reasoning"),
+    };
+  }
+
+  if (
+    input.cumulativeDurationMs !== undefined &&
+    input.cumulativeDurationMs > BUDGET_MAX_DURATION_MS * BUDGET_DURATION_THRESHOLD
+  ) {
+    return {
+      profile: "fast",
+      model: resolveModel("fast"),
+      reason: "budget:duration_near_ceiling",
+      options: resolveOptions("fast"),
+    };
+  }
+
+  /* ── Keyword heuristics ───────────────────────────────────────────── */
+
   const text = `${input.task}\n${input.context}`.toLowerCase();
 
   /* Keywords that indicate the task is code-centric. */
@@ -261,11 +339,17 @@ function parseProfile(raw: string): ModelProfile | null {
  * and `reason` keys.  If the response is unparseable or the profile
  * is invalid, the caller should catch the error and fall back.
  *
- * @param input - The current routing input (task, context, step).
+ * @param input - The current routing input (task, context, step, budgets).
  * @returns A `ModelRouteDecision` based on the LLM's classification.
  * @throws {Error} When the LLM response cannot be parsed or contains an invalid profile.
  */
 async function routeWithModel(input: RouteInput): Promise<ModelRouteDecision> {
+  const budgetInfo =
+    `Context length: ${input.contextLength ?? input.context.length} chars ` +
+    `(max ${BUDGET_MAX_CONTEXT_CHARS}). ` +
+    `Elapsed: ${input.cumulativeDurationMs ?? 0} ms ` +
+    `(max ${BUDGET_MAX_DURATION_MS} ms).`;
+
   const routerPrompt =
     `You are a model router.\n` +
     `Select exactly one profile: fast, reasoning, code, default.\n` +
@@ -274,6 +358,9 @@ async function routeWithModel(input: RouteInput): Promise<ModelRouteDecision> {
     `- Use reasoning for hard logic, architecture, multi-step analysis.\n` +
     `- Use fast for simple Q&A.\n` +
     `- Use default only when uncertain.\n` +
+    `Budget state: ${budgetInfo}\n` +
+    `- If context is close to ceiling, prefer reasoning (larger context window).\n` +
+    `- If elapsed time is close to max, prefer fast to finish quickly.\n` +
     `Respond ONLY with JSON: {"profile":"fast|reasoning|code|default","reason":"short reason"}\n\n` +
     `Task:\n${input.task}\n\n` +
     `Context:\n${input.context.slice(-2000)}`;

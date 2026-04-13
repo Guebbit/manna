@@ -44,6 +44,9 @@ export interface ProcessInputStepArgs {
  * or return `void` / `undefined` to leave everything unchanged.
  */
 export interface ProcessOutputStepArgs {
+  /** The original task the agent was asked to perform. */
+  task: string;
+
   /** Current step index (zero-based). */
   stepNumber: number;
 

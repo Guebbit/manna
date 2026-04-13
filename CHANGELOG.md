@@ -10,6 +10,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [Unreleased]
 
 ### Added
+- **Phase 1A — `packages/diagnostics/`**: New persistent diagnostic logs package with `IDiagnosticEntry` type, `writeDiagnosticLog()` writer (timestamped Markdown files), and `cleanupOldLogs()` pruner. Controlled by `DIAGNOSTIC_LOG_ENABLED`, `DIAGNOSTIC_LOG_DIR`, `DIAGNOSTIC_LOG_MAX_FILES` env vars.
+- **Phase 1B — Budget-ceiling model router**: `routeModel()` now accepts `contextLength` and `cumulativeDurationMs`; `routeWithRules()` applies budget-aware heuristics (context > 80 % ceiling → `reasoning`; duration > 70 % ceiling → `fast`). New env vars: `AGENT_BUDGET_MAX_DURATION_MS` (default 60 000) and `AGENT_BUDGET_MAX_CONTEXT_CHARS` (default 50 000).
+- **Phase 2A — Verification gate processor** (`packages/processors/verification.ts`): optional post-tool-choice LLM check; emits `tool:verification_failed`; controlled by `AGENT_VERIFICATION_ENABLED` / `AGENT_VERIFICATION_MODEL`.
+- **Phase 2B — Self-debugging on max steps**: when the agent loop exhausts its steps, a fast LLM call generates a structured summary (what was tried, where it got stuck, suggestions). The summary is persisted via `addMemory()` and written to a diagnostic Markdown file. `agent:max_steps` payload now includes `{ task, summary, diagnosticFile }`.
+- **Phase 3A — Document ingestion pipeline**: five new read-only reader tools (`read_docx`, `read_csv`, `read_html`, `read_json`, `read_markdown`) and one write tool (`document_ingest`) that chunks, embeds via Ollama, and upserts into Qdrant. New `chunkText()` utility in `packages/shared/chunker.ts`.
+- **Phase 3B — SSE streaming endpoint** (`apps/api/stream-endpoints.ts`): `POST /run/stream` streams agent lifecycle events as Server-Sent Events (step, tool, route, done, error, max_steps). The original `POST /run` is unchanged.
+- **Phase 4A — Tool reranker processor** (`packages/processors/tool-reranker.ts`): embeds tool descriptions once, then per-step selects the top-N most relevant tools by cosine similarity. Controlled by `TOOL_RERANKER_ENABLED` / `TOOL_RERANKER_TOP_N`.
+
+### Changed
+- `apps/api/agents.ts`: now imports and registers verification and tool-reranker processors; includes all new document reader tools in `readOnlyTools`; adds `document_ingest` to `writeTools`.
+- `packages/agent/agent.ts`: accumulates `IDiagnosticEntry[]` during the loop; passes budget state to `routeModel()`; writes diagnostic log on both success (when entries exist) and max-steps exhaustion.
+- `packages/tools/index.ts`: exports all new tool instances.
+- `packages/shared/index.ts`: exports `chunkText`, `IChunk`, `IChunkOptions`.
+- `AI_README.md`: updated event bus table, tool registry, directory map, execution graph, processors section, env vars table, invariants, endpoint table, and common modification patterns.
+
+### Visual documentation overhaul
 - **Visual documentation overhaul** — Mermaid diagrams added to every documentation page for ADHD-friendly visual navigation
 - **TL;DR callout boxes** — every doc page now opens with a one-liner summary in a highlighted `::: tip` box
 - **VitePress Mermaid support** — `vitepress-plugin-mermaid` and `mermaid` added as dev dependencies

@@ -23,6 +23,8 @@ Thumbs.db
 # Data directory contents (keep the folder, ignore actual data files)
 data/*
 !data/.gitkeep
+!data/diagnostics/
+!data/diagnostics/.gitkeep
 
 .idea
 docs/.vitepress/cache/

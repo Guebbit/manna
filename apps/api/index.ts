@@ -21,6 +21,7 @@ import { getLogger } from "../../packages/logger/logger";
 import { registerIdeRoutes } from "./ide-endpoints";
 import { registerUploadRoutes } from "./upload-endpoints";
 import { registerOpenAiRoutes } from "./openai-compat";
+import { registerStreamRoutes } from "./stream-endpoints";
 import { createAgent, VALID_PROFILES } from "./agents";
 
 const log = getLogger("api");
@@ -45,6 +46,9 @@ registerUploadRoutes(app);
  * TODO: Remove once the custom Manna frontend ships — this is a temporary
  *       Open WebUI bridge. See apps/api/openai-compat.ts for details. */
 registerOpenAiRoutes(app);
+
+/* Register SSE streaming endpoint (POST /run/stream). */
+registerStreamRoutes(app);
 
 /**
  * POST /run — submit a task to the agent reasoning loop.
