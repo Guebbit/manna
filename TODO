@@ -28,3 +28,15 @@ Add an opt-in abstraction that allows routing specific profiles to a cloud API i
   - Router integration: either force "cloud" per-request via profile param, or let the
     rules/model router escalate to cloud for tasks that exceed local model capability.
   - Keep it 100 % optional — no API key means the system behaves exactly as before.
+
+DEFERRED: Context overflow pause (Phase 2C)
+When context exceeds AGENT_BUDGET_MAX_CONTEXT_CHARS, pause the loop and return a structured
+"context_overflow" status with a condensed summary, allowing the client to decide whether to
+continue with reduced context or rephrase the task. Requires a /run API contract update
+(status field, resumeContext support). Deferred to avoid breaking the current simple
+request/response contract.
+
+DEFERRED: MCP bridge integration (Phase 4B)
+Add MCP (Model Context Protocol) server support so Manna can consume tools from the growing
+MCP ecosystem (GitHub, Slack, databases, etc.) without building each integration from scratch.
+See AnythingLLM's server/utils/MCP/ for a reference implementation.

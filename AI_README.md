@@ -90,45 +90,60 @@ flowchart TD
     Run --> EmitStart["emit('agent:start')"]
 
     subgraph LOOP["LOOP (max MAX_STEPS, default 5)"]
-        ProcInput["processInputStep processors"]
+        ProcInput["processInputStep processors\n(e.g. tool-reranker filters tools)"]
         BuildPrompt["buildPrompt(task, context, memory)"]
-        RouteModel["routeModel(task, context, step, forcedProfile?)"]
+        RouteModel["routeModel(task, context, step, contextLength, cumulativeDurationMs)"]
         RouteModel --> Forced{"forcedProfile set?"}
         Forced -->|Yes| ReturnImm["return it immediately (no LLM cost)"]
-        Forced -->|No| Mode{"router mode?"}
+        Forced -->|No| BudgetCheck{"budget heuristics?"}
+        BudgetCheck -->|"context > 80% ceiling"| ReasoningProfile["use reasoning (larger ctx)"]
+        BudgetCheck -->|"duration > 70% ceiling"| FastProfile["use fast (finish quickly)"]
+        BudgetCheck -->|No budget trigger| Mode{"router mode?"}
         Mode -->|rules| Keywords["keyword + heuristic match"]
-        Mode -->|model| RouterLLM["calls ROUTER_MODEL with JSON prompt"]
+        Mode -->|model| RouterLLM["calls ROUTER_MODEL with JSON prompt + budget state"]
 
         Generate["generateWithMetadata(prompt, { model })"]
         Parse["parse response → agentStepSchema (Zod)"]
-        Parse -->|"parse failure"| Correct["append correction to context, continue"]
+        Parse -->|"parse failure"| Correct["append correction to context\nrecord json diagnostic entry\ncontinue"]
         Correct --> ProcInput
-        ProcOutput["processOutputStep processors"]
+        ProcOutput["processOutputStep processors\n(e.g. verification gate)"]
+        Verify{"AGENT_VERIFICATION_ENABLED?"}
+        Verify -->|"true + action≠none"| VerifyLLM["lightweight LLM check: valid tool choice?"]
+        VerifyLLM -->|"valid=false"| AppendIssue["append issue to thought\nemit tool:verification_failed"]
+        VerifyLLM -->|"valid=true"| ActionCheck
 
         ActionCheck{"action?"}
         ActionCheck -->|"'none'"| AddMem["addMemory(...)"]
         AddMem --> EmitDone["emit('agent:done')"]
-        EmitDone --> ReturnAnswer["return thought ← final answer"]
+        EmitDone --> DiagLog["writeDiagnosticLog if entries > 0"]
+        DiagLog --> ReturnAnswer["return thought ← final answer"]
 
-        ActionCheck -->|"unknown"| AppendErr["append error to context, continue"]
+        ActionCheck -->|"unknown"| AppendErr["append error to context\nrecord tool diagnostic\ncontinue"]
         AppendErr --> ProcInput
 
         ActionCheck -->|"tool name"| ToolExec["tool.execute(input)"]
         ToolExec -->|success| ToolOk["append result to context, emit('tool:result')"]
-        ToolExec -->|failure| ToolFail["append error to context, emit('tool:error')"]
+        ToolExec -->|failure| ToolFail["append error to context\nrecord tool diagnostic\nemit('tool:error')"]
         ToolOk --> ProcInput
         ToolFail --> ProcInput
 
         ProcInput --> BuildPrompt --> RouteModel
         ReturnImm --> Generate
+        ReasoningProfile --> Generate
+        FastProfile --> Generate
         Keywords --> Generate
         RouterLLM --> Generate
-        Generate --> Parse --> ProcOutput --> ActionCheck
+        Generate --> Parse --> ProcOutput --> Verify --> ActionCheck
+        AppendIssue --> ActionCheck
     end
 
     EmitStart --> LOOP
     GetMem --> LOOP
-    LOOP -->|"loop exhausted"| MaxSteps["emit('agent:max_steps'), return fallback string"]
+    LOOP -->|"loop exhausted"| SelfDebug["generate self-debug summary (FAST_MODEL)"]
+    SelfDebug --> SaveMem["addMemory MAX_STEPS summary"]
+    SaveMem --> WriteDiag["writeDiagnosticLog with AI commentary"]
+    WriteDiag --> MaxSteps["emit('agent:max_steps', {task, summary, diagnosticFile})"]
+    MaxSteps --> ReturnSummary["return AI-generated summary"]
 ```
 
 ---
@@ -185,7 +200,7 @@ interface Tool {
 }
 ```
 
-Tools registered per request in `apps/api/index.ts`:
+Tools registered per request in `apps/api/agents.ts`:
 
 | Tool name | File | Write? | Notes |
 |---|---|---|---|
@@ -201,8 +216,14 @@ Tools registered per request in `apps/api/index.ts`:
 | `code_autocomplete` | `code.autocomplete.ts` | no | IDE-style completion via `TOOL_IDE_MODEL` (default `starcoder2`) |
 | `generate_diagram` | `diagram.generate.ts` | no | Generates Mermaid diagrams from descriptions; renders to SVG/PNG via mmdc |
 | `scaffold_project` | `project.scaffold.ts` | **yes** | Copies boilerplate from `BOILERPLATE_ROOT` |
+| `read_docx` | `docx.read.ts` | no | Extracts text from `.docx` via ZIP/XML parsing; sandboxed to project root |
+| `read_csv` | `csv.read.ts` | no | Parses CSV/TSV; returns `{ text, headers, rowCount }` |
+| `read_html` | `html.read.ts` | no | Strips HTML tags; returns `{ text, title? }` |
+| `read_json` | `json.read.ts` | no | Reads and parses a JSON file; returns `{ data: unknown }` |
+| `read_markdown` | `markdown.read.ts` | no | Reads a Markdown file; returns `{ text }` |
+| `document_ingest` | `document.ingest.ts` | **yes** | Detects format, chunks, embeds, and upserts into Qdrant |
 
-Write tools (`write_file`, `scaffold_project`) are only registered when the request body contains `"allowWrite": true`.
+Write tools (`write_file`, `scaffold_project`, `document_ingest`) are only registered when the request body contains `"allowWrite": true`.
 
 ---
 
@@ -242,10 +263,11 @@ Canonical event types emitted during a run:
 | `agent:model_routed` | model profile chosen for this step |
 | `agent:step` | LLM response parsed successfully |
 | `agent:done` | action === "none", final answer ready |
-| `agent:max_steps` | loop exhausted without "none" |
+| `agent:max_steps` | loop exhausted without "none"; payload now includes `{ task, summary, diagnosticFile }` — `summary` is an AI-generated debug analysis, `diagnosticFile` is the Markdown log path |
 | `agent:error` | LLM call threw |
 | `tool:result` | tool executed successfully |
 | `tool:error` | tool threw |
+| `tool:verification_failed` | verification processor detected an invalid tool choice; payload: `{ step, tool, issue }` |
 
 The API subscribes to `"*"` and logs all events via `winston`.
 
@@ -265,6 +287,33 @@ interface Processor {
 ```
 
 Processors run **in registration order**. A processor may return a modified args object to influence the agent, or return `void` to leave it unchanged.
+
+### Built-in processors
+
+#### Verification gate (`packages/processors/verification.ts`)
+
+Implements `processOutputStep`. Fires when `action !== "none"` and `AGENT_VERIFICATION_ENABLED === 'true'`.
+
+After the agent picks a tool, makes a lightweight LLM call (using `AGENT_VERIFICATION_MODEL`, defaulting to `AGENT_MODEL_FAST`) asking:
+> _"Did this tool choice correctly address the task? Reply JSON: {valid: boolean, issue?: string}"_
+
+If `valid === false`, appends the `issue` to the agent's thought so it can self-correct on the next step, and emits `tool:verification_failed`.
+
+| Env var | Default | Effect |
+|---|---|---|
+| `AGENT_VERIFICATION_ENABLED` | `false` | Enable post-tool verification |
+| `AGENT_VERIFICATION_MODEL` | `AGENT_MODEL_FAST` | Model for verification call |
+
+#### Tool reranker (`packages/processors/tool-reranker.ts`)
+
+Implements `processInputStep`. Active when `TOOL_RERANKER_ENABLED === 'true'`.
+
+On first invocation embeds all tool descriptions via Ollama and caches the vectors. Per step, embeds the task, computes cosine similarity against cached tool embeddings, and filters `args.tools` to the top-N names. Fails open (returns unchanged args on error).
+
+| Env var | Default | Effect |
+|---|---|---|
+| `TOOL_RERANKER_ENABLED` | `false` | Enable tool reranking |
+| `TOOL_RERANKER_TOP_N` | `10` | Max tools per step |
 
 ---
 
@@ -350,6 +399,28 @@ These endpoints implement the OpenAI REST API shape, allowing **Open WebUI** (an
 
 ---
 
+## SSE streaming endpoint
+
+File: `apps/api/stream-endpoints.ts`  
+Registered in `apps/api/index.ts` via `registerStreamRoutes(app)`.
+
+`POST /run/stream` — same request body as `POST /run` but streams agent lifecycle events as Server-Sent Events.
+
+Headers: `Content-Type: text/event-stream`, `Cache-Control: no-cache`, `Connection: keep-alive`.
+
+| SSE event | Trigger | Data shape |
+|---|---|---|
+| `step` | `agent:step` | `{ step, action, thought }` (thought truncated at 300 chars) |
+| `tool` | `tool:result` or `tool:error` | `{ tool, result? }` or `{ tool, error }` |
+| `route` | `agent:model_routed` | `{ profile, model, reason }` |
+| `done` | `agent:done` | `{ result }` |
+| `error` | `agent:error` | `{ error }` |
+| `max_steps` | `agent:max_steps` | `{ task, summary }` |
+
+The stream closes automatically when the agent run completes (done / error / max_steps).
+
+---
+
 ## Key environment variables
 
 | Variable | Default | Effect |
@@ -364,11 +435,20 @@ These endpoints implement the OpenAI REST API shape, allowing **Open WebUI** (an
 | `AGENT_MODEL_CODE` | `OLLAMA_MODEL` | Model for code tasks |
 | `AGENT_MODEL_DEFAULT` | `OLLAMA_MODEL` | Final fallback profile |
 | `AGENTS_MAX_STEPS` | `5` | Maximum loop iterations per run |
+| `AGENT_BUDGET_MAX_DURATION_MS` | `60000` | Max wall-clock time per run (ms); router downgrades to `fast` at 70% |
+| `AGENT_BUDGET_MAX_CONTEXT_CHARS` | `50000` | Max context length (chars); router upgrades to `reasoning` at 80% |
+| `AGENT_VERIFICATION_ENABLED` | `false` | Enable post-tool verification gate processor |
+| `AGENT_VERIFICATION_MODEL` | `AGENT_MODEL_FAST` | Model for the verification LLM call |
 | `TOOL_VISION_MODEL` | `llava-llama3` | Vision model for `image_classify` |
 | `TOOL_STT_MODEL` | `whisper` | Speech-to-text model |
 | `TOOL_IDE_MODEL` | `starcoder2` | Completion model for IDE endpoints |
 | `TOOL_DIAGRAM_MODEL` | `AGENT_MODEL_CODE` | Model used to generate Mermaid diagram markup |
+| `TOOL_RERANKER_ENABLED` | `false` | Enable tool reranker processor |
+| `TOOL_RERANKER_TOP_N` | `10` | Max tools passed to agent per step when reranker is on |
 | `DIAGRAM_OUTPUT_DIR` | `data/diagrams` | Output directory for rendered diagrams |
+| `DIAGNOSTIC_LOG_ENABLED` | `true` | Toggle diagnostic Markdown file output |
+| `DIAGNOSTIC_LOG_DIR` | `data/diagnostics` | Output folder for diagnostic logs |
+| `DIAGNOSTIC_LOG_MAX_FILES` | `100` | Auto-prune threshold for diagnostic log files |
 | `PORT` | `3001` | Express server port |
 | `OPENAI_COMPAT_RATE_LIMIT` | `60` | Max `/v1/chat/completions` requests per minute per client IP |
 | `MYSQL_HOST/PORT/USER/PASSWORD/DATABASE` | various | MySQL connection for `mysql_query` |
@@ -389,17 +469,23 @@ These endpoints implement the OpenAI REST API shape, allowing **Open WebUI** (an
 ├── apps/
 │   └── api/
 │       ├── index.ts          — Express entry; wires all packages; POST /run, GET /health
-│       ├── agents.ts         — shared agent instances (readOnlyAgent, writeEnabledAgent) + createAgent()
+│       ├── agents.ts         — shared agent instances (readOnlyAgent, writeEnabledAgent) + createAgent() + processor registration
+│       ├── stream-endpoints.ts — registerStreamRoutes(); POST /run/stream (SSE)
 │       ├── ide-endpoints.ts  — registerIdeRoutes(); /autocomplete, /lint-conventions, /page-review
 │       ├── upload-endpoints.ts — registerUploadRoutes(); /upload/image-classify, /upload/speech-to-text, /upload/read-pdf
 │       └── openai-compat.ts  — registerOpenAiRoutes(); GET /v1/models, POST /v1/chat/completions
 ├── packages/
 │   ├── agent/
-│   │   ├── agent.ts          — Agent class; core loop; buildPrompt(); MAX_STEPS
-│   │   ├── model-router.ts   — routeModel(); profile resolution; rules vs model mode
+│   │   ├── agent.ts          — Agent class; core loop; buildPrompt(); MAX_STEPS; diagnostic accumulation; self-debug on max_steps
+│   │   ├── model-router.ts   — routeModel(); profile resolution; rules vs model mode; budget-aware heuristics
 │   │   └── schemas.ts        — agentStepSchema (Zod); AgentStep type
+│   ├── diagnostics/
+│   │   ├── types.ts          — IDiagnosticEntry interface
+│   │   ├── writer.ts         — writeDiagnosticLog(); Markdown report writer
+│   │   ├── cleanup.ts        — cleanupOldLogs(); prunes oldest files beyond max
+│   │   └── index.ts          — re-exports all diagnostics types and functions
 │   ├── events/
-│   │   └── bus.ts            — emit(); on(); synchronous typed event bus
+│   │   └── bus.ts            — emit(); on(); off(); synchronous typed event bus
 │   ├── llm/
 │   │   └── ollama.ts         — generate(); generateWithMetadata(); Ollama REST wrapper
 │   ├── memory/
@@ -420,11 +506,24 @@ These endpoints implement the OpenAI REST API shape, allowing **Open WebUI** (an
 │   │   ├── pdf.read.ts       — read_pdf
 │   │   ├── code.autocomplete.ts — code_autocomplete
 │   │   ├── diagram.generate.ts  — generate_diagram
-│   │   └── project.scaffold.ts  — scaffold_project
+│   │   ├── project.scaffold.ts  — scaffold_project
+│   │   ├── docx.read.ts      — read_docx (read-only)
+│   │   ├── csv.read.ts       — read_csv (read-only)
+│   │   ├── html.read.ts      — read_html (read-only)
+│   │   ├── json.read.ts      — read_json (read-only)
+│   │   ├── markdown.read.ts  — read_markdown (read-only)
+│   │   └── document.ingest.ts — document_ingest (write; chunks + embeds + upserts to Qdrant)
 │   ├── processors/
 │   │   ├── types.ts          — Processor interface; ProcessInputStepArgs; ProcessOutputStepArgs
 │   │   ├── processor-builder.ts — helper
+│   │   ├── verification.ts   — verificationProcessor; post-tool verification gate
+│   │   ├── tool-reranker.ts  — createToolRerankerProcessor(); embedding-based top-N tool selection
 │   │   └── index.ts
+│   ├── shared/
+│   │   ├── env.ts            — envFloat(); envInt() helpers
+│   │   ├── path-safety.ts    — resolveSafePath(); resolveInsideRoot()
+│   │   ├── chunker.ts        — chunkText(); IChunk; IChunkOptions
+│   │   └── index.ts          — re-exports all shared utilities
 │   ├── evals/
 │   │   ├── types.ts          — eval harness types
 │   │   ├── scorer-builder.ts
@@ -439,6 +538,7 @@ These endpoints implement the OpenAI REST API shape, allowing **Open WebUI** (an
 ├── data/                     — runtime data; gitignored
 │   ├── boilerplates/         — template sources for scaffold_project
 │   ├── diagrams/             — output of generate_diagram (SVG/PNG + .mmd sources)
+│   ├── diagnostics/          — timestamped Markdown diagnostic logs (one per incident)
 │   ├── generated-projects/   — output of write_file / scaffold_project
 │   └── qdrant/               — Qdrant storage volume
 └── docs/                     — VitePress documentation site
@@ -453,9 +553,14 @@ These endpoints implement the OpenAI REST API shape, allowing **Open WebUI** (an
 - `mysql_query` tool: only `SELECT` statements are accepted; any mutating SQL is rejected before reaching the database.
 - `read_file` tool: paths are resolved relative to the project root; path traversal outside the root is blocked.
 - `write_file` / `scaffold_project`: only accessible when the HTTP request body sets `"allowWrite": true`; these tools are not registered at all in the default agent instance.
+- `document_ingest`: only accessible when `allowWrite: true`; paths sandboxed to project root via `resolveSafePath`.
+- Reader tools (`read_docx`, `read_csv`, `read_html`, `read_json`, `read_markdown`): paths are sandboxed to the project root.
 - LLM response parsing: invalid JSON or schema mismatch causes a self-correction prompt to be appended to context; it does not crash the loop.
 - Unknown tool names: the agent appends an error listing valid tools and retries; no crash.
 - Qdrant unavailability: silently degraded to ring-buffer-only memory; no crash.
+- Diagnostic logs: written only to `DIAGNOSTIC_LOG_DIR` (default `data/diagnostics`); output path validated via `resolveInsideRoot`.
+- Verification processor: disabled by default (`AGENT_VERIFICATION_ENABLED=false`); opt-in only. Fails open — a verification call error does not block the agent.
+- Tool reranker: disabled by default (`TOOL_RERANKER_ENABLED=false`); opt-in only. Fails open — a reranking error returns the original tool list.
 
 ---
 
@@ -479,6 +584,10 @@ These endpoints implement the OpenAI REST API shape, allowing **Open WebUI** (an
 | Intercept/modify steps | Implement `Processor` in `packages/processors/`, register via `agent.addProcessor()` |
 | Change memory strategy | `packages/memory/memory.ts` |
 | Add an eval scorer | `packages/evals/scorers/` |
+| Add a diagnostic category | `packages/diagnostics/types.ts` — extend `IDiagnosticEntry.category` documentation |
+| Change budget thresholds | `AGENT_BUDGET_MAX_DURATION_MS` / `AGENT_BUDGET_MAX_CONTEXT_CHARS` env vars |
+| Enable verification | Set `AGENT_VERIFICATION_ENABLED=true`; optionally set `AGENT_VERIFICATION_MODEL` |
+| Enable tool reranking | Set `TOOL_RERANKER_ENABLED=true`; optionally set `TOOL_RERANKER_TOP_N` |
 
 ---
 
