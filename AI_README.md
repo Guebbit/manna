@@ -69,7 +69,7 @@
 A **local-first agentic loop** that wraps Ollama-hosted LLMs and exposes them via a small Express HTTP API.
 It is NOT a chatbot frontend. It is a **tool-using agent server**.
 
-Three operational surfaces:
+Four operational surfaces:
 1. `POST /run` — triggers the full agentic loop (reason → pick tool → execute → repeat).
 2. `POST /autocomplete`, `POST /lint-conventions`, `POST /page-review` — direct IDE endpoints, **bypass** the agent loop entirely.
 3. `GET /v1/models`, `POST /v1/chat/completions` — OpenAI-compatible endpoints; route Open WebUI (or any OpenAI client) through Manna's full agentic loop.
