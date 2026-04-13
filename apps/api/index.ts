@@ -19,6 +19,7 @@ import type { ModelProfile } from "../../packages/agent/model-router";
 import { on } from "../../packages/events/bus";
 import { getLogger } from "../../packages/logger/logger";
 import { registerIdeRoutes } from "./ide-endpoints";
+import { registerUploadRoutes } from "./upload-endpoints";
 import { registerOpenAiRoutes } from "./openai-compat";
 import { createAgent, VALID_PROFILES } from "./agents";
 
@@ -36,6 +37,9 @@ app.use(express.json());
 
 /* Register IDE-specific direct-LLM endpoints. */
 registerIdeRoutes(app);
+
+/* Register file-upload endpoints (image, audio, PDF). */
+registerUploadRoutes(app);
 
 /* Register OpenAI-compatible endpoints (/v1/models, /v1/chat/completions).
  * TODO: Remove once the custom Manna frontend ships — this is a temporary

@@ -172,10 +172,10 @@ Tools registered per request in `apps/api/index.ts`:
 | `shell` | `shell.ts` | no | Allowlist-enforced; rejects unsafe commands |
 | `mysql_query` | `mysql.query.ts` | no | SELECT-only; rejects non-SELECT SQL |
 | `browser_fetch` | `browser.ts` | no | Playwright Chromium; truncates content to 5000 chars |
-| `image_classify` | `image.classify.ts` | no | Sends image to `TOOL_VISION_MODEL` (default `llava-llama3`) |
+| `image_classify` | `image.classify.ts` | no | Sends image to `TOOL_VISION_MODEL` (default `llava-llama3`); accepts `path` (disk) or `data` (base64) |
 | `semantic_search` | `semantic.search.ts` | no | Embeds query via Ollama; scores files via cosine similarity |
-| `speech_to_text` | `speech.to.text.ts` | no | Calls `TOOL_STT_MODEL` (default `whisper`) |
-| `read_pdf` | `pdf.read.ts` | no | Returns `{ text, pages }` |
+| `speech_to_text` | `speech.to.text.ts` | no | Calls `TOOL_STT_MODEL` (default `whisper`); accepts `path` (disk) or `data` (base64) |
+| `read_pdf` | `pdf.read.ts` | no | Returns `{ text, pages }`; accepts `path` (disk) or `data` (base64) |
 | `code_autocomplete` | `code.autocomplete.ts` | no | IDE-style completion via `TOOL_IDE_MODEL` (default `starcoder2`) |
 | `generate_diagram` | `diagram.generate.ts` | no | Generates Mermaid diagrams from descriptions; renders to SVG/PNG via mmdc |
 | `scaffold_project` | `project.scaffold.ts` | **yes** | Copies boilerplate from `BOILERPLATE_ROOT` |
@@ -277,6 +277,23 @@ These are **not** agent-loop routes. They respond with a single LLM call.
 
 ---
 
+## Upload endpoints
+
+File: `apps/api/upload-endpoints.ts`
+Registered in `apps/api/index.ts` via `registerUploadRoutes(app)`.
+
+These are **not** agent-loop routes. They accept `multipart/form-data` file uploads and call the corresponding tool with inline base64 data.
+
+| Endpoint | Form fields | Purpose |
+|---|---|---|
+| `POST /upload/image-classify` | `file` (required), `prompt?`, `model?` | Classify/describe an uploaded image via `TOOL_VISION_MODEL` |
+| `POST /upload/speech-to-text` | `file` (required), `model?`, `language?`, `prompt?` | Transcribe an uploaded audio file via `TOOL_STT_MODEL` |
+| `POST /upload/read-pdf` | `file` (required) | Extract text from an uploaded PDF |
+
+Max upload size: 50 MB. Uses `multer` with in-memory storage.
+
+---
+
 ## OpenAI-compatibility endpoints ⚠ TEMPORARY
 
 > **This section describes a temporary Open WebUI bridge.**
@@ -352,6 +369,7 @@ These endpoints implement the OpenAI REST API shape, allowing **Open WebUI** (an
 │       ├── index.ts          — Express entry; wires all packages; POST /run, GET /health
 │       ├── agents.ts         — shared agent instances (readOnlyAgent, writeEnabledAgent) + createAgent()
 │       ├── ide-endpoints.ts  — registerIdeRoutes(); /autocomplete, /lint-conventions, /page-review
+│       ├── upload-endpoints.ts — registerUploadRoutes(); /upload/image-classify, /upload/speech-to-text, /upload/read-pdf
 │       └── openai-compat.ts  — registerOpenAiRoutes(); GET /v1/models, POST /v1/chat/completions
 ├── packages/
 │   ├── agent/
