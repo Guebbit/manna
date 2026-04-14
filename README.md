@@ -214,6 +214,47 @@ You can either:
 - point to an external/local MySQL instance via `MYSQL_*`, or
 - add a MySQL service to compose if you want everything in one stack.
 
+## Testing
+
+Manna has three test tiers, all based on **Vitest**.
+
+### Unit & integration tests (fast, no external services)
+
+```bash
+# Run once
+npm test
+
+# Watch mode
+npm run test:watch
+
+# With coverage report (HTML + LCOV)
+npm run test:coverage
+```
+
+These tests cover:
+- Core logic: chunker, path-safety, env helpers, event bus
+- Agent schemas (Zod validation)
+- Model router (rules-based routing, forced profiles, budget heuristics)
+- Memory context window optimisation
+- Tool builder (schema validation, execute delegation)
+- Swarm decomposer (normalisation, fallbacks, cap)
+- Agent loop integration (happy path, tool calls, invalid JSON self-correction,
+  unknown tools, tool failures, max-steps + self-debug)
+- Swarm orchestrator integration (decompose → execute → synthesise,
+  dependency ordering, circular-dep recovery, synthesis failure fallback)
+
+### Eval tests (slow, requires live Ollama)
+
+```bash
+# Prerequisites: Ollama running at OLLAMA_BASE_URL (default: http://localhost:11434)
+npm run test:eval
+```
+
+Eval tests are in `tests/evals/` with the `.eval.ts` extension and are
+excluded from CI. See [`tests/evals/README.md`](tests/evals/README.md) for details.
+
+---
+
 ## Development
 
 ```bash

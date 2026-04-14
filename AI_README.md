@@ -621,6 +621,23 @@ SSE events for `/run/swarm/stream`:
 │       └── logger.ts         — getLogger(name); winston wrapper
 ├── docker-compose.yml        — compose stack for Ollama + Qdrant + PostgreSQL
 ├── .env.example              — compose env template
+├── vitest.config.ts          — Vitest config for unit + integration tests (`npm test`)
+├── vitest.eval.config.ts     — Vitest config for slow eval tests (`npm run test:eval`)
+├── tests/
+│   ├── unit/                 — Unit tests (pure functions, no network)
+│   │   ├── agent/            — model-router.test.ts, schemas.test.ts
+│   │   ├── events/           — bus.test.ts
+│   │   ├── memory/           — memory.test.ts (optimizeContextWindow)
+│   │   ├── shared/           — chunker.test.ts, env.test.ts, path-safety.test.ts
+│   │   ├── swarm/            — decomposer.test.ts
+│   │   └── tools/            — tool-builder.test.ts
+│   ├── integration/          — Integration tests (mocked HTTP via global fetch stub)
+│   │   ├── agent.test.ts     — full agent loop: happy path, retries, max steps, processors
+│   │   └── swarm-orchestrator.test.ts — swarm decompose → execute → synthesise
+│   └── evals/                — Slow eval tests (opt-in; requires live Ollama)
+│       ├── README.md         — how to run eval tests + prerequisites
+│       ├── agent-loop.eval.ts — single-agent end-to-end flow
+│       └── swarm.eval.ts     — swarm end-to-end flow
 ├── data/                     — runtime data; gitignored
 │   ├── boilerplates/         — template sources for scaffold_project
 │   ├── diagrams/             — output of generate_diagram (SVG/PNG + .mmd sources)
@@ -777,6 +794,34 @@ After any of the above triggers, the AI must:
 - Confirm that the **Invariants and safety constraints** section still accurately reflects the code.
 - Ensure the **Structured output contract** section matches the current Zod schema in `packages/agent/schemas.ts`.
 - **Run `npm run complete:check`** before finishing. This runs the full build, test, lint, and formatting pipeline. Fix all errors and warnings that arise — do not leave known failures for the user to resolve.
+
+---
+
+## Test architecture
+
+| Tier | Command | What runs | External services required |
+|------|---------|-----------|---------------------------|
+| Unit | `npm test` | `tests/unit/**/*.test.ts` | None |
+| Integration | `npm test` | `tests/integration/**/*.test.ts` | None (HTTP mocked via `vi.stubGlobal('fetch', ...)`) |
+| Eval (slow) | `npm run test:eval` | `tests/evals/**/*.eval.ts` | Ollama (required), Qdrant + PostgreSQL (optional) |
+| Coverage | `npm run test:coverage` | Unit + integration | None |
+
+### Key design choices
+
+- Integration tests mock `fetch` globally (not at the module level) to bypass module resolution
+  issues and intercept all HTTP calls (Ollama `/api/generate`, Qdrant, embeddings) in one place.
+- Unit tests for pure functions import the module directly — no mocking required.
+- The `decomposer.test.ts` suite mocks `packages/llm/ollama.js` at module level using `vi.mock()`
+  because `decomposeTask` is a thin wrapper around a single `generate()` call; this is a clean fit
+  for module-level mocking.
+- Eval tests use the `.eval.ts` extension and a separate `vitest.eval.config.ts` so they are never
+  accidentally run in CI.
+
+### Adding new tests
+
+- Pure functions and isolated modules → `tests/unit/<package>/`
+- Modules with HTTP dependencies → `tests/integration/` using the global `fetch` mock pattern
+- End-to-end flows needing real LLM → `tests/evals/` with `.eval.ts` extension
 
 ---
 
