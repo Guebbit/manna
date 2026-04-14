@@ -51,6 +51,19 @@ const SYNTHESIS_MODEL =
  * const orchestrator = new SwarmOrchestrator(readOnlyTools, [verificationProcessor]);
  * const result = await orchestrator.run("Build a React app with auth and tests");
  * ```
+ *
+ * @deprecated Use {@link LangGraphSwarmOrchestrator} from `packages/orchestrator/graph` instead.
+ * This class is retained for reference and staged migration only.
+ * It will be removed in the next cleanup PR once all production callers have
+ * been verified against the LangGraph-based orchestrator.
+ *
+ * Migration path:
+ * 1. Replace `import { SwarmOrchestrator } from '../swarm/orchestrator'`
+ *    with `import { LangGraphSwarmOrchestrator } from '../orchestrator/graph'`.
+ * 2. Swap `new SwarmOrchestrator(tools, processors)` for
+ *    `new LangGraphSwarmOrchestrator(tools, processors)`.
+ * 3. The `run(task, config): Promise<ISwarmResult>` signature is identical —
+ *    no other changes are needed.
  */
 export class SwarmOrchestrator {
     /**

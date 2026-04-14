@@ -11,7 +11,7 @@
 
 import { Agent } from "../../packages/agent/agent";
 import type { ModelProfile } from "../../packages/agent/model-router";
-import { SwarmOrchestrator } from "../../packages/swarm/orchestrator";
+import { LangGraphSwarmOrchestrator } from "../../packages/orchestrator/graph";
 import type { IProcessor } from "../../packages/processors/types";
 import {
   readFileTool,
@@ -129,14 +129,21 @@ export function createAgent(allowWrite: boolean): Agent {
 /* ── Swarm factory ───────────────────────────────────────────────────── */
 
 /**
- * Create a {@link SwarmOrchestrator} with the appropriate tool set and processors.
+ * Create a {@link LangGraphSwarmOrchestrator} with the appropriate tool set
+ * and processors.
+ *
+ * The returned orchestrator is backed by a LangGraph state machine that
+ * supports cyclic review→retry workflows.  It exposes the same
+ * `run(task, config): Promise<ISwarmResult>` interface as the legacy
+ * `SwarmOrchestrator`, so all existing API route modules and callers are
+ * fully backward-compatible.
  *
  * @param allowWrite - Whether write tools should be available to worker agents.
- * @returns A configured `SwarmOrchestrator` instance.
+ * @returns A configured `LangGraphSwarmOrchestrator` instance.
  */
-export function createSwarmOrchestrator(allowWrite: boolean): SwarmOrchestrator {
+export function createSwarmOrchestrator(allowWrite: boolean): LangGraphSwarmOrchestrator {
   const tools = allowWrite
     ? [...readOnlyTools, ...writeTools]
     : readOnlyTools;
-  return new SwarmOrchestrator(tools, buildProcessors());
+  return new LangGraphSwarmOrchestrator(tools, buildProcessors());
 }

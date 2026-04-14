@@ -419,32 +419,31 @@ The stream closes automatically when the agent run completes (done / error / max
 
 ## Swarm orchestration
 
-File: `packages/swarm/`  
+Files: `packages/orchestrator/` (active), `packages/swarm/` (legacy — deprecated)  
 Endpoints: `apps/api/swarm-endpoints.ts`  
 Registered in `apps/api/index.ts` via `registerSwarmRoutes(app)`.
 
-The swarm decomposes a complex task into subtasks, delegates each to a specialised agent, and synthesises a final answer.
+The swarm decomposes a complex task into subtasks, delegates each to a specialised agent, and synthesises a final answer.  
+Orchestration is now powered by **LangGraph.js** (`@langchain/langgraph`) — an explicit state machine with cyclic review→retry support.
 
 ```mermaid
 flowchart TD
     POST["POST /run/swarm { task, allowWrite?, profile?, maxSubtasks? }"]
-    POST --> Orchestrator["SwarmOrchestrator.run()"]
-    Orchestrator --> Decompose["decomposeTask() — LLM call"]
-    Decompose --> Subtasks["ISubtask[] with profiles + dependencies"]
-    Subtasks --> TopoSort["Topological execution order"]
-    TopoSort --> Loop["For each ready subtask"]
+    POST --> Orchestrator["LangGraphSwarmOrchestrator.run()"]
 
-    subgraph SUBTASK["Per-subtask execution"]
-        CreateAgent["new Agent(tools)"]
-        Enrich["Build enriched prompt (description + dependency context)"]
-        RunAgent["agent.run(enrichedTask, { profile })"]
-        Collect["Collect ISubtaskResult"]
+    subgraph GRAPH["LangGraph StateGraph"]
+        Decompose["decompose node\ndecomposeTask() — LLM call"]
+        Execute["execute_subtasks node\nAgent.run() per subtask (topo order)"]
+        Review{"review node\nAll subtasks passed?\nretryCount < MAX?"}
+        Synthesize["synthesize node\nSynthesis LLM call — merge results"]
     end
 
-    Loop --> SUBTASK
-    SUBTASK --> Loop
-    Loop -->|"all done"| Synthesise["Synthesis LLM call — merge subtask answers"]
-    Synthesise --> Result["ISwarmResult { answer, subtaskResults, totalDurationMs }"]
+    Orchestrator --> Decompose
+    Decompose --> Execute
+    Execute --> Review
+    Review -->|"✅ pass"| Synthesize
+    Review -->|"❌ retry (re-run failed only)"| Execute
+    Synthesize --> Result["ISwarmResult { answer, subtaskResults, totalDurationMs }"]
 ```
 
 | Endpoint                 | Purpose                                |
@@ -515,6 +514,7 @@ SSE events for `/run/swarm/stream`:
 | `MANNA_DB_ENABLED`                       | `true`                    | Set `false` to disable DB persistence (agent/swarm still run normally)                                                                                |
 | `SWARM_DECOMPOSER_MODEL`                 | `AGENT_MODEL_REASONING`   | Model used for task decomposition in the swarm                                                                                                        |
 | `SWARM_SYNTHESIS_MODEL`                  | `AGENT_MODEL_REASONING`   | Model used for final answer synthesis in the swarm                                                                                                    |
+| `SWARM_MAX_REVIEW_RETRIES`               | `1`                       | Max review→retry cycles in the LangGraph orchestrator before forcing synthesis with partial results                                                   |
 | `PORT`                                   | `3001`                    | Express server port                                                                                                                                   |
 | `CORS_ORIGIN`                            | `*`                       | Allowed CORS origin(s) for the Express API. Set to a specific origin in production (e.g. `https://manna.example.com`). Defaults to `*` (all origins). |
 | `MYSQL_HOST/PORT/USER/PASSWORD/DATABASE` | various                   | MySQL connection for `mysql_query`                                                                                                                    |
@@ -547,10 +547,15 @@ SSE events for `/run/swarm/stream`:
 │   │   ├── agent.ts          — Agent class; core loop; buildPrompt(); MAX_STEPS; per-run maxSteps override; diagnostic accumulation; self-debug on max_steps
 │   │   ├── model-router.ts   — routeModel(); profile resolution; rules vs model mode; budget-aware heuristics
 │   │   └── schemas.ts        — agentStepSchema (Zod); AgentStep type
-│   ├── swarm/
+│   ├── orchestrator/         — ★ ACTIVE — LangGraph-based swarm orchestrator (replaces swarm/orchestrator.ts)
+│   │   ├── state.ts          — swarmStateAnnotation (LangGraph Annotation.Root); ISwarmGraphState
+│   │   ├── nodes.ts          — createDecomposeNode(); createExecuteSubtasksNode(); createReviewNode(); createSynthesizeNode(); reviewRouter()
+│   │   ├── graph.ts          — buildSwarmGraph(); LangGraphSwarmOrchestrator class
+│   │   └── index.ts          — re-exports all orchestrator symbols
+│   ├── swarm/                — ⚠ DEPRECATED — legacy custom orchestrator; retained for staged removal
 │   │   ├── types.ts          — ISubtask, IDecomposition, ISubtaskResult, ISwarmResult, ISwarmConfig
-│   │   ├── decomposer.ts     — decomposeTask(); LLM-based task decomposition
-│   │   ├── orchestrator.ts   — SwarmOrchestrator class; dependency-aware execution + synthesis
+│   │   ├── decomposer.ts     — decomposeTask(); LLM-based task decomposition (still used by orchestrator)
+│   │   ├── orchestrator.ts   — SwarmOrchestrator class; @deprecated — use LangGraphSwarmOrchestrator
 │   │   └── index.ts          — re-exports all swarm types and classes
 │   ├── diagnostics/
 │   │   ├── types.ts          — IDiagnosticEntry interface
@@ -623,7 +628,9 @@ SSE events for `/run/swarm/stream`:
 │   ├── generated-projects/   — output of write_file / scaffold_project
 │   └── qdrant/               — Qdrant storage volume
 └── docs/                     — VitePress documentation site
-    └── endpoint-map.md       — Full API endpoint taxonomy and map (human-readable)
+    ├── endpoint-map.md       — Full API endpoint taxonomy and map (human-readable)
+    └── packages/
+        └── orchestrator.md   — LangGraph swarm orchestrator — graph topology, nodes, state, retry, migration
 ```
 
 ---
@@ -671,6 +678,8 @@ SSE events for `/run/swarm/stream`:
 | Run DB migrations           | `tsx packages/persistence/migrate.ts` or call `runMigrations()` on startup              |
 | Add a diagnostic category   | `packages/diagnostics/types.ts` — extend `IDiagnosticEntry.category` documentation      |
 | Change budget thresholds    | `AGENT_BUDGET_MAX_DURATION_MS` / `AGENT_BUDGET_MAX_CONTEXT_CHARS` env vars              |
+| Add a swarm graph node      | `packages/orchestrator/nodes.ts` (add factory) + `packages/orchestrator/graph.ts` (wire edge) |
+| Change review/retry logic   | `createReviewNode()` in `packages/orchestrator/nodes.ts`; adjust `SWARM_MAX_REVIEW_RETRIES` env var |
 | Enable verification         | Set `AGENT_VERIFICATION_ENABLED=true`; optionally set `AGENT_VERIFICATION_MODEL`        |
 | Enable tool reranking       | Set `TOOL_RERANKER_ENABLED=true`; optionally set `TOOL_RERANKER_TOP_N`                  |
 
