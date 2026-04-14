@@ -834,11 +834,12 @@ Specialized endpoints cut straight to the point:
 → single LLM call (TOOL_IDE_MODEL, low temperature)
 → structured JSON response
 
-````
+```
 
 **The design rule**: when a use case is **frequent enough** and has a **well-defined input/output contract** (the caller knows exactly what fields to send and what fields to expect back), carve it out into its own endpoint.
 
 Benefits:
+
 - **Lower latency** — no routing overhead, single LLM call, optional caching.
 - **Predictable schema** — frontend code can be strongly typed against a stable response shape.
 - **Easier integration** — WebStorm plugin, web dashboard, CLI, and mobile apps each call the most appropriate endpoint directly without constructing natural-language prompts.
@@ -861,17 +862,17 @@ Lists all available Manna agent routing profiles (modes), the Ollama model each 
 
 ```json
 {
-  "count": 4,
-  "modes": [
-    {
-      "profile": "fast",
-      "model": "llama3.1:8b-instruct-q8_0",
-      "envVar": "AGENT_MODEL_FAST",
-      "description": "Low-latency model for simple, quick tasks. Fully GPU-resident for sub-second response."
-    }
-  ]
+    "count": 4,
+    "modes": [
+        {
+            "profile": "fast",
+            "model": "llama3.1:8b-instruct-q8_0",
+            "envVar": "AGENT_MODEL_FAST",
+            "description": "Low-latency model for simple, quick tasks. Fully GPU-resident for sub-second response."
+        }
+    ]
 }
-````
+```
 
 **curl example**
 
