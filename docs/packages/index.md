@@ -34,6 +34,17 @@ Makes decisions in a loop. For each step: builds a prompt, routes to a model, as
 
 ---
 
+### `orchestrator` -- LangGraph Swarm
+
+Coordinates multiple `Agent` instances to solve a complex task via a LangGraph state machine.
+Supports cyclic review→retry workflows. Replaces the legacy `SwarmOrchestrator`.
+
+**Role**: multi-agent swarm orchestration  
+**Key method**: `orchestrator.run(task, config) -> Promise<ISwarmResult>`  
+[Full docs ->](/packages/orchestrator)
+
+---
+
 ### `llm` -- Model Connection
 
 Thin HTTP wrapper around Ollama. Sends prompts, gets text responses.
@@ -116,6 +127,7 @@ sequenceDiagram
 ## Package pages
 
 - [agent -- The Brain](/packages/agent)
+- [orchestrator -- LangGraph Swarm](/packages/orchestrator)
 - [llm -- Model Connection](/packages/llm)
 - [memory -- Short-term Storage](/packages/memory)
 - [events -- Notifications](/packages/events)

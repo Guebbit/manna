@@ -9,6 +9,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Added
+
+- **LangGraph swarm orchestrator** (`packages/orchestrator/`): Replaced the custom imperative `SwarmOrchestrator` with a declarative LangGraph `StateGraph`-based orchestrator. The new graph runs: `decompose → execute_subtasks → review → (retry loop?) → synthesize → END`.
+    - `packages/orchestrator/state.ts` — `swarmStateAnnotation` (LangGraph `Annotation.Root`) defining the full typed run state.
+    - `packages/orchestrator/nodes.ts` — node factory functions: `createDecomposeNode`, `createExecuteSubtasksNode`, `createReviewNode`, `createSynthesizeNode`, and `reviewRouter` conditional edge.
+    - `packages/orchestrator/graph.ts` — `buildSwarmGraph(tools, processors)` graph builder and `LangGraphSwarmOrchestrator` class (drop-in replacement for the legacy class).
+    - `packages/orchestrator/index.ts` — re-exports all public symbols.
+    - `apps/api/agents.ts` — `createSwarmOrchestrator()` now returns `LangGraphSwarmOrchestrator`; no API or endpoint changes.
+    - `packages/swarm/orchestrator.ts` — `SwarmOrchestrator` marked `@deprecated` with migration notes; retained for staged removal in a follow-up PR.
+    - New env var: `SWARM_MAX_REVIEW_RETRIES` (default `1`) — max review→retry cycles before forcing synthesis.
+    - Mermaid graph diagram added to `docs/packages/orchestrator.md`.
+    - `@langchain/langgraph@1.2.8` and `@langchain/core@1.1.39` added as runtime dependencies.
+- **`docs/packages/orchestrator.md`**: Full documentation page for the new LangGraph orchestrator — graph topology diagram, node descriptions, state shape, retry behaviour, usage examples, migration guide, and instructions for adding new nodes.
+
+### Changed
+
+- **`apps/api/agents.ts`**: `createSwarmOrchestrator()` return type changed from `SwarmOrchestrator` to `LangGraphSwarmOrchestrator`. The `run(task, config): Promise<ISwarmResult>` interface is identical — all callers remain backward-compatible.
+- **`docs/packages/index.md`** and **`docs/.vitepress/config.mts`**: Added `orchestrator` package to the documentation navigation.
+
+### Deprecated
+
+- **`packages/swarm/orchestrator.ts`** — `SwarmOrchestrator` is deprecated. Use `LangGraphSwarmOrchestrator` from `packages/orchestrator/graph.ts`. Will be removed in a follow-up cleanup PR.
+
 ### Fixed
 
 - **`packages/memory/memory.ts` — `ensureCollection()` type error**: The `ensureCollectionPromise` assignment now correctly resolves to `Promise<void>` by chaining `.then(() => undefined)` after the Qdrant client call, eliminating a TypeScript type mismatch (`Promise<boolean | CollectionInfo>` is not assignable to `Promise<void>`).
