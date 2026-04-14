@@ -469,9 +469,7 @@ export class Agent {
             toolCalls,
             diagnosticEntries,
             status: 'max_steps'
-        }).catch((error: unknown) =>
-            log.warn('agent_persist_failed', { error: String(error) })
-        );
+        }).catch((error: unknown) => log.warn('agent_persist_failed', { error: String(error) }));
 
         emit({
             type: 'agent:max_steps',

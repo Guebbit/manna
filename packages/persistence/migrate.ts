@@ -87,10 +87,9 @@ export async function runMigrations(): Promise<void> {
             await client.query('BEGIN');
             try {
                 await client.query(sql);
-                await client.query(
-                    'INSERT INTO schema_migrations (filename) VALUES ($1)',
-                    [filename]
-                );
+                await client.query('INSERT INTO schema_migrations (filename) VALUES ($1)', [
+                    filename
+                ]);
                 await client.query('COMMIT');
                 log.info('persistence_migrate_applied', { filename });
             } catch (error: unknown) {

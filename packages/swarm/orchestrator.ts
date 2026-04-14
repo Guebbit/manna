@@ -137,9 +137,7 @@ export class SwarmOrchestrator {
             endTime: new Date(),
             totalDurationMs,
             status: 'completed'
-        }).catch((error: unknown) =>
-            log.warn('swarm_persist_failed', { error: String(error) })
-        );
+        }).catch((error: unknown) => log.warn('swarm_persist_failed', { error: String(error) }));
 
         emit({ type: 'swarm:done', payload: { answer, totalDurationMs } });
 

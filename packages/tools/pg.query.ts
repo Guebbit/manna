@@ -19,7 +19,7 @@
  */
 
 import pg from 'pg';
-import { createDbTool, validateSqlInput } from './base-db-tool';
+import { createDbTool as createDatabaseTool, validateSqlInput } from './base-db-tool';
 
 /**
  * Tool instance for executing read-only PostgreSQL queries.
@@ -32,7 +32,7 @@ import { createDbTool, validateSqlInput } from './base-db-tool';
  * Note: PostgreSQL uses numbered placeholders (`$1`, `$2`, …) rather than
  * the `?` style used by MySQL.
  */
-export const pgQueryTool = createDbTool({
+export const pgQueryTool = createDatabaseTool({
     name: 'pg_query',
     description:
         'Execute a read-only SELECT query against PostgreSQL. ' +

@@ -307,11 +307,12 @@ export async function fetchRecentRuns(
         whereClause = `WHERE status = $${parameters.length}`;
     }
 
-    const query =
-        `SELECT * FROM ${table} ${whereClause} ORDER BY created_at DESC LIMIT $1`;
+    const query = `SELECT * FROM ${table} ${whereClause} ORDER BY created_at DESC LIMIT $1`;
 
     /* `withClient` return type is `T | null`; cast to access `.rows` safely
      * since the `pg` module resolution follows the same pattern as pg.query.ts. */
-    const result = await withClient((client) => client.query(query, parameters)) as { rows: IAgentRunRecord[] | ISwarmRunRecord[] } | null;
+    const result = (await withClient((client) => client.query(query, parameters))) as {
+        rows: IAgentRunRecord[] | ISwarmRunRecord[];
+    } | null;
     return result?.rows ?? [];
 }

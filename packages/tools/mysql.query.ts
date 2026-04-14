@@ -21,7 +21,7 @@
 
 import mysql from 'mysql2/promise';
 import type { ExecuteValues } from 'mysql2';
-import { createDbTool, validateSqlInput } from './base-db-tool';
+import { createDbTool as createDatabaseTool, validateSqlInput } from './base-db-tool';
 
 /**
  * Tool instance for executing read-only MySQL queries.
@@ -31,7 +31,7 @@ import { createDbTool, validateSqlInput } from './base-db-tool';
  * { "sql": "SELECT id, name FROM users WHERE active = ?", "params": [true] }
  * ```
  */
-export const mysqlQueryTool = createDbTool({
+export const mysqlQueryTool = createDatabaseTool({
     name: 'mysql_query',
     description:
         'Execute a read-only SELECT query against MySQL. ' +
