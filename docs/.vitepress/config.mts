@@ -56,21 +56,32 @@ export default withMermaid(
                         { text: 'llm — Model Connection', link: '/packages/llm' },
                         { text: 'memory — Short-term Storage', link: '/packages/memory' },
                         { text: 'events — Notifications', link: '/packages/events' },
-                        { text: 'tools — Toolbox', link: '/packages/tools/' },
-                        { text: 'tools/read_file', link: '/packages/tools/read-file' },
-                        { text: 'tools/shell', link: '/packages/tools/shell' },
-                        { text: 'tools/mysql_query', link: '/packages/tools/mysql-query' },
-                        { text: 'tools/browser_fetch', link: '/packages/tools/browser-fetch' },
-                        { text: 'tools/image_classify', link: '/packages/tools/image-classify' },
-                        { text: 'tools/semantic_search', link: '/packages/tools/semantic-search' },
-                        { text: 'tools/speech_to_text', link: '/packages/tools/speech-to-text' },
-                        { text: 'tools/read_pdf', link: '/packages/tools/read-pdf' },
                         {
-                            text: 'tools/code_autocomplete',
-                            link: '/packages/tools/code-autocomplete'
-                        },
-                        { text: 'tools/write_file', link: '/packages/tools/write-file' },
-                        { text: 'tools/scaffold_project', link: '/packages/tools/scaffold-project' }
+                            text: 'tools — Toolbox',
+                            items: [
+                                { text: 'Overview', link: '/packages/tools/' },
+                                { text: 'read_file', link: '/packages/tools/read-file' },
+                                { text: 'shell', link: '/packages/tools/shell' },
+                                { text: 'mysql_query', link: '/packages/tools/mysql-query' },
+                                { text: 'browser_fetch', link: '/packages/tools/browser-fetch' },
+                                { text: 'image_classify', link: '/packages/tools/image-classify' },
+                                {
+                                    text: 'semantic_search',
+                                    link: '/packages/tools/semantic-search'
+                                },
+                                { text: 'speech_to_text', link: '/packages/tools/speech-to-text' },
+                                { text: 'read_pdf', link: '/packages/tools/read-pdf' },
+                                {
+                                    text: 'code_autocomplete',
+                                    link: '/packages/tools/code-autocomplete'
+                                },
+                                { text: 'write_file', link: '/packages/tools/write-file' },
+                                {
+                                    text: 'scaffold_project',
+                                    link: '/packages/tools/scaffold-project'
+                                }
+                            ]
+                        }
                     ]
                 }
             ],
