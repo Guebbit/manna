@@ -10,6 +10,7 @@ import { SwarmOrchestrator } from '../../packages/swarm/orchestrator.js';
 
 describe('[eval] SwarmOrchestrator — end-to-end', () => {
     it('decomposes and synthesises a simple two-part task', async () => {
+        /* tools=[], processors=[] */
         const orchestrator = new SwarmOrchestrator([], []);
         const result = await orchestrator.run(
             'List two capital cities in Europe and one in Asia.',

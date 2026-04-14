@@ -58,8 +58,9 @@ function decompositionResponse(
 const embeddingOk = { embedding: [0.1, 0.2, 0.3, 0.4] };
 const qdrantOk = { vectors: { size: 4 }, status: 'green' };
 
-const mockFetch = vi.fn(async (url: string) => {
-    if (typeof url === 'string' && url.includes('/api/generate')) {
+const mockFetch = vi.fn(async (url: RequestInfo | URL) => {
+    const urlStr = url.toString();
+    if (urlStr.includes('/api/generate')) {
         const body = fetchQueue.shift();
         if (body === undefined) throw new Error('fetchQueue exhausted');
         if (body === FETCH_FAIL) {
@@ -68,7 +69,7 @@ const mockFetch = vi.fn(async (url: string) => {
         }
         return { ok: true, status: 200, text: async () => JSON.stringify(body), json: async () => body };
     }
-    if (typeof url === 'string' && url.includes('/api/embeddings')) {
+    if (urlStr.includes('/api/embeddings')) {
         return { ok: true, status: 200, text: async () => '{}', json: async () => embeddingOk };
     }
     return { ok: true, status: 200, text: async () => JSON.stringify(qdrantOk), json: async () => qdrantOk };
