@@ -24,8 +24,8 @@ The agent uses this when you want to explore or inspect a PostgreSQL database â€
 
 ```json
 {
-  "sql": "SELECT * FROM orders WHERE customer_id = $1 LIMIT 20",
-  "params": [42]
+    "sql": "SELECT * FROM orders WHERE customer_id = $1 LIMIT 20",
+    "params": [42]
 }
 ```
 
@@ -59,13 +59,13 @@ Only statements starting with `SELECT` are accepted. Any attempt to run `INSERT`
 
 Configure the database connection:
 
-| Variable       | Default      | Description              |
-| -------------- | ------------ | ------------------------ |
-| `PG_HOST`      | `localhost`  | Database server hostname |
-| `PG_PORT`      | `5432`       | Database server port     |
-| `PG_USER`      | `postgres`   | Database user            |
-| `PG_PASSWORD`  | _(empty)_    | Database password        |
-| `PG_DATABASE`  | _(empty)_    | Default database to use  |
+| Variable      | Default     | Description              |
+| ------------- | ----------- | ------------------------ |
+| `PG_HOST`     | `localhost` | Database server hostname |
+| `PG_PORT`     | `5432`      | Database server port     |
+| `PG_USER`     | `postgres`  | Database user            |
+| `PG_PASSWORD` | _(empty)_   | Database password        |
+| `PG_DATABASE` | _(empty)_   | Default database to use  |
 
 ## How the agent uses it (step-by-step)
 
@@ -80,9 +80,9 @@ flowchart TD
 
 ## Good test prompts
 
-| What you type                                    | What the agent will query                            |
-| ------------------------------------------------ | ---------------------------------------------------- |
-| `Show me 3 rows from table users.`               | `SELECT * FROM users LIMIT 3`                        |
-| `Count rows in table orders.`                    | `SELECT COUNT(*) FROM orders`                        |
+| What you type                                      | What the agent will query                                                                     |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `Show me 3 rows from table users.`                 | `SELECT * FROM users LIMIT 3`                                                                 |
+| `Count rows in table orders.`                      | `SELECT COUNT(*) FROM orders`                                                                 |
 | `What are the column names in the products table?` | `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'products'` |
-| `Which product has the highest price?`           | `SELECT * FROM products ORDER BY price DESC LIMIT 1` |
+| `Which product has the highest price?`             | `SELECT * FROM products ORDER BY price DESC LIMIT 1`                                          |

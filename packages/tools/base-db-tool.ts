@@ -152,11 +152,9 @@ export function validateSqlInput(raw: Record<string, unknown>): {
 
     /* Safety: only allow SELECT statements to prevent mutations. */
     if (!/^\s*select\b/i.test(raw.sql)) {
-        throw new Error(
-            'Only SELECT queries are permitted. Received: ' + raw.sql.slice(0, 80)
-        );
+        throw new Error('Only SELECT queries are permitted. Received: ' + raw.sql.slice(0, 80));
     }
 
-    const params = Array.isArray(raw.params) ? raw.params : [];
-    return { sql: raw.sql, params };
+    const parameters = Array.isArray(raw.params) ? raw.params : [];
+    return { sql: raw.sql, params: parameters };
 }

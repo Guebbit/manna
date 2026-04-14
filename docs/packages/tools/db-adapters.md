@@ -28,11 +28,11 @@ ITool  (packages/tools/types.ts)
 
 ## Available tools
 
-| Tool | Engine | Operation | Env-var prefix |
-|---|---|---|---|
-| [`mysql_query`](./mysql-query) | MySQL | `SELECT` | `MYSQL_*` |
-| [`pg_query`](./pg-query) | PostgreSQL | `SELECT` | `PG_*` |
-| [`mongo_query`](./mongo-query) | MongoDB | `find` / `aggregate` | `MONGO_*` |
+| Tool                           | Engine     | Operation            | Env-var prefix |
+| ------------------------------ | ---------- | -------------------- | -------------- |
+| [`mysql_query`](./mysql-query) | MySQL      | `SELECT`             | `MYSQL_*`      |
+| [`pg_query`](./pg-query)       | PostgreSQL | `SELECT`             | `PG_*`         |
+| [`mongo_query`](./mongo-query) | MongoDB    | `find` / `aggregate` | `MONGO_*`      |
 
 ## How `createDbTool` works
 
@@ -40,25 +40,25 @@ ITool  (packages/tools/types.ts)
 import { createDbTool } from './base-db-tool';
 
 export const myTool = createDbTool({
-  name: 'mydb_query',
-  description: 'Run read-only queries against MyDB. Input: { query: string }',
+    name: 'mydb_query',
+    description: 'Run read-only queries against MyDB. Input: { query: string }',
 
-  validateInput(raw) {
-    // Throw a descriptive Error if input is invalid.
-    if (typeof raw.query !== 'string' || !raw.query.trim()) {
-      throw new Error('"query" must be a non-empty string');
-    }
-    return raw as { query: string };
-  },
+    validateInput(raw) {
+        // Throw a descriptive Error if input is invalid.
+        if (typeof raw.query !== 'string' || !raw.query.trim()) {
+            throw new Error('"query" must be a non-empty string');
+        }
+        return raw as { query: string };
+    },
 
-  async run({ query }) {
-    const client = await openConnection();
-    try {
-      return await client.execute(query);
-    } finally {
-      await client.close(); // always runs, even on error
+    async run({ query }) {
+        const client = await openConnection();
+        try {
+            return await client.execute(query);
+        } finally {
+            await client.close(); // always runs, even on error
+        }
     }
-  },
 });
 ```
 
@@ -70,8 +70,8 @@ Follow these eight steps:
 
 1. **Install the driver** — `npm install <driver-package>` (and `@types/<driver>` if needed).
 2. **Create `packages/tools/<engine>.query.ts`** implementing `createDbTool`:
-   - `validateInput` — guard required fields and reject forbidden operations.
-   - `run` — open connection → execute → close in `finally`.
+    - `validateInput` — guard required fields and reject forbidden operations.
+    - `run` — open connection → execute → close in `finally`.
 3. **Read config from env vars** — use a dedicated prefix (e.g. `ORACLE_*`).
 4. **Export** from `packages/tools/index.ts`.
 5. **Register conditionally** in `apps/api/agents.ts` — only when env vars are set.

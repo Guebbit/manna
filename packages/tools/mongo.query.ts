@@ -15,7 +15,7 @@
  */
 
 import { MongoClient, type Document } from 'mongodb';
-import { createDbTool } from './base-db-tool';
+import { createDbTool as createDatabaseTool } from './base-db-tool';
 
 /** Validated input shape for the MongoDB query tool. */
 interface IMongoQueryInput extends Record<string, unknown> {
@@ -63,7 +63,7 @@ const MAX_FIND_LIMIT = 1_000;
  * }
  * ```
  */
-export const mongoQueryTool = createDbTool<IMongoQueryInput>({
+export const mongoQueryTool = createDatabaseTool<IMongoQueryInput>({
     name: 'mongo_query',
     description:
         'Execute a read-only find or aggregate operation against MongoDB. ' +
@@ -119,18 +119,21 @@ export const mongoQueryTool = createDbTool<IMongoQueryInput>({
      */
     async run({ collection, operation, query, limit }) {
         const uri = process.env.MONGO_URI ?? 'mongodb://localhost:27017';
-        const dbName = process.env.MONGO_DATABASE ?? '';
+        const databaseName = process.env.MONGO_DATABASE ?? '';
 
         const client = new MongoClient(uri);
         await client.connect();
 
         try {
-            const db = client.db(dbName || undefined);
-            const col = db.collection(collection);
+            const database = client.db(databaseName || undefined);
+            const col = database.collection(collection);
 
             if (operation === 'find') {
                 const filter = (query as Record<string, unknown> | undefined) ?? {};
-                return await col.find(filter).limit(limit ?? 100).toArray();
+                return await col
+                    .find(filter)
+                    .limit(limit ?? 100)
+                    .toArray();
             }
 
             /* aggregate */

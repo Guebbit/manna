@@ -20,10 +20,10 @@ The agent uses this to explore MongoDB collections — filtering documents, coun
 
 ```json
 {
-  "collection": "users",
-  "operation": "find",
-  "query": { "active": true },
-  "limit": 10
+    "collection": "users",
+    "operation": "find",
+    "query": { "active": true },
+    "limit": 10
 }
 ```
 
@@ -33,14 +33,14 @@ The agent uses this to explore MongoDB collections — filtering documents, coun
 
 ```json
 {
-  "collection": "orders",
-  "operation": "aggregate",
-  "query": [
-    { "$match": { "status": "completed" } },
-    { "$group": { "_id": "$customerId", "total": { "$sum": "$amount" } } },
-    { "$sort": { "total": -1 } },
-    { "$limit": 10 }
-  ]
+    "collection": "orders",
+    "operation": "aggregate",
+    "query": [
+        { "$match": { "status": "completed" } },
+        { "$group": { "_id": "$customerId", "total": { "$sum": "$amount" } } },
+        { "$sort": { "total": -1 } },
+        { "$limit": 10 }
+    ]
 }
 ```
 
@@ -48,12 +48,12 @@ The agent uses this to explore MongoDB collections — filtering documents, coun
 
 ## Input
 
-| Field        | Type                    | Required | Description                                             |
-| ------------ | ----------------------- | -------- | ------------------------------------------------------- |
-| `collection` | `string`                | ✅        | Target collection name                                  |
-| `operation`  | `"find"` \| `"aggregate"` | ✅      | Type of operation                                       |
-| `query`      | `object` or `array`     | ❌        | Filter (find) or pipeline (aggregate). Defaults to `{}` / `[]` |
-| `limit`      | `number`                | ❌        | Max documents to return for `find` (default 100, max 1 000) |
+| Field        | Type                      | Required | Description                                                    |
+| ------------ | ------------------------- | -------- | -------------------------------------------------------------- |
+| `collection` | `string`                  | ✅       | Target collection name                                         |
+| `operation`  | `"find"` \| `"aggregate"` | ✅       | Type of operation                                              |
+| `query`      | `object` or `array`       | ❌       | Filter (find) or pipeline (aggregate). Defaults to `{}` / `[]` |
+| `limit`      | `number`                  | ❌       | Max documents to return for `find` (default 100, max 1 000)    |
 
 ## Output
 
@@ -62,7 +62,7 @@ An array of matching documents.
 ```json
 [
     { "_id": "663a1b2c...", "name": "Alice", "active": true },
-    { "_id": "663a1b2d...", "name": "Bob",   "active": true }
+    { "_id": "663a1b2d...", "name": "Bob", "active": true }
 ]
 ```
 
@@ -73,10 +73,10 @@ An array of matching documents.
 
 ## Environment variables
 
-| Variable         | Default                         | Description                    |
-| ---------------- | ------------------------------- | ------------------------------ |
-| `MONGO_URI`      | `mongodb://localhost:27017`     | MongoDB connection string      |
-| `MONGO_DATABASE` | _(empty — uses server default)_ | Database name                  |
+| Variable         | Default                         | Description               |
+| ---------------- | ------------------------------- | ------------------------- |
+| `MONGO_URI`      | `mongodb://localhost:27017`     | MongoDB connection string |
+| `MONGO_DATABASE` | _(empty — uses server default)_ | Database name             |
 
 ## How the agent uses it (step-by-step)
 
@@ -91,9 +91,9 @@ flowchart TD
 
 ## Good test prompts
 
-| What you type                                         | What the agent will call                                                                 |
-| ----------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `Show me 5 active users.`                             | `find` on `users` with `{ active: true }`, limit 5                                      |
-| `Count orders per status.`                            | `aggregate` on `orders` with `$group` by `status`                                       |
-| `Find the 3 highest-value orders.`                    | `find` on `orders` with `$sort` by `amount` descending, limit 3                        |
-| `What is the average order value per customer?`       | `aggregate` with `$group` + `$avg`                                                      |
+| What you type                                   | What the agent will call                                        |
+| ----------------------------------------------- | --------------------------------------------------------------- |
+| `Show me 5 active users.`                       | `find` on `users` with `{ active: true }`, limit 5              |
+| `Count orders per status.`                      | `aggregate` on `orders` with `$group` by `status`               |
+| `Find the 3 highest-value orders.`              | `find` on `orders` with `$sort` by `amount` descending, limit 3 |
+| `What is the average order value per customer?` | `aggregate` with `$group` + `$avg`                              |
