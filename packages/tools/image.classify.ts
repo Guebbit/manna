@@ -7,16 +7,16 @@
  *
  * When both `path` and `data` are provided, `data` takes precedence.
  *
- * Uses the shared `resolveSafePath` helper to prevent path traversal.
+ * Uses the shared `safeReadFile` helper to prevent path traversal.
  * Uses the shared `envFloat` / `envInt` helpers for option parsing.
  *
  * @module tools/image.classify
  */
 
-import fs from 'fs/promises';
+import { z } from 'zod';
 import { generate } from '../llm/ollama';
-import type { ITool } from './types';
-import { resolveSafePath, envFloat, envInt } from '../shared';
+import { envFloat, envInt, safeReadFile } from '../shared';
+import { createTool } from './tool-builder';
 
 /** Default vision model, configurable via environment variable. */
 const DEFAULT_VISION_MODEL = process.env.TOOL_VISION_MODEL ?? 'llava-llama3';
@@ -34,12 +34,27 @@ const DEFAULT_VISION_MODEL = process.env.TOOL_VISION_MODEL ?? 'llava-llama3';
  * { "data": "<base64-encoded image>", "prompt": "What is this?", "model": "llava:13b" }
  * ```
  */
-export const imageClassifyTool: ITool = {
-    name: 'image_classify',
+export const imageClassifyTool = createTool({
+    id: 'image_classify',
     description:
         'Classify/describe an image with a vision model. ' +
         'Input: { path?: string, data?: string (base64), prompt?: string, model?: string }. ' +
         'Provide either path (file on disk) or data (base64-encoded image).',
+    inputSchema: z
+        .object({
+            path: z.string().trim().min(1).optional(),
+            data: z.string().trim().min(1).optional(),
+            prompt: z.string().trim().min(1).optional(),
+            model: z.string().trim().min(1).optional()
+        })
+        .refine((input) => Boolean(input.path || input.data), {
+            message: 'Either "path" (file on disk) or "data" (base64 string) must be provided'
+        }),
+    outputSchema: z.object({
+        model: z.string().trim().min(1),
+        path: z.string().optional(),
+        response: z.string()
+    }),
 
     /**
      * Read the image (from disk or inline base64) and ask the vision model.
@@ -57,9 +72,8 @@ export const imageClassifyTool: ITool = {
 
         if (typeof data === 'string' && data.trim() !== '') {
             base64Image = data;
-        } else if (typeof imagePath === 'string' && imagePath.trim() !== '') {
-            const safePath = resolveSafePath(imagePath);
-            const buffer = await fs.readFile(safePath);
+        } else if (imagePath) {
+            const buffer = await safeReadFile(imagePath);
             base64Image = buffer.toString('base64');
         } else {
             throw new Error(
@@ -92,4 +106,4 @@ export const imageClassifyTool: ITool = {
             response: response.trim()
         };
     }
-};
+});

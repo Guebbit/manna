@@ -20,6 +20,7 @@
 import { z } from 'zod';
 import { logger } from '../logger/logger';
 import { OLLAMA_BASE_URL } from '../llm/config';
+import { resolveModel } from '../shared';
 import type { IExtractionResult } from './types';
 
 /* ── Configuration ──────────────────────────────────────────────────── */
@@ -30,8 +31,12 @@ import type { IExtractionResult } from './types';
  * Defaults to `AGENT_MODEL_FAST` so the user doesn't have to pull an
  * extra model; override with `GRAPH_NER_MODEL` for a dedicated model.
  */
-const NER_MODEL =
-    process.env.GRAPH_NER_MODEL ?? process.env.AGENT_MODEL_FAST ?? 'llama3.1:8b-instruct-q8_0';
+const NER_MODEL = resolveModel('fast', {
+    preferredModel: process.env.GRAPH_NER_MODEL,
+    includeAgentDefault: false,
+    includeOllamaFallback: false,
+    hardDefault: 'llama3.1:8b-instruct-q8_0'
+});
 
 /* ── Zod schemas for the LLM response ──────────────────────────────── */
 

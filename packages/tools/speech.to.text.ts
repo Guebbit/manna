@@ -3,7 +3,7 @@
  * OpenAI-compatible `/v1/audio/transcriptions` endpoint.
  *
  * Accepts an audio file from disk (`path`) **or** as inline base64
- * data (`data`).  Uses the shared `resolveSafePath` helper to prevent
+ * data (`data`).  Uses the shared `safeReadFile` helper to prevent
  * directory traversal when reading from disk.
  *
  * When both `path` and `data` are provided, `data` takes precedence.
@@ -11,10 +11,10 @@
  * @module tools/speech.to.text
  */
 
-import fs from 'fs/promises';
 import path from 'path';
-import type { ITool } from './types';
-import { resolveSafePath } from '../shared';
+import { z } from 'zod';
+import { safeReadFile } from '../shared';
+import { createTool } from './tool-builder';
 
 /** Ollama base URL for the transcription endpoint. */
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434';
@@ -35,12 +35,29 @@ const DEFAULT_STT_MODEL = process.env.TOOL_STT_MODEL ?? 'whisper';
  * { "data": "<base64>", "filename": "meeting.wav", "model": "whisper", "language": "en" }
  * ```
  */
-export const speechToTextTool: ITool = {
-    name: 'speech_to_text',
+export const speechToTextTool = createTool({
+    id: 'speech_to_text',
     description:
         'Transcribe an audio file using Ollama OpenAI-compatible transcription endpoint. ' +
         'Input: { path?: string, data?: string (base64), filename?: string, model?: string, language?: string, prompt?: string }. ' +
         'Provide either path (file on disk) or data (base64-encoded audio).',
+    inputSchema: z
+        .object({
+            path: z.string().trim().min(1).optional(),
+            data: z.string().trim().min(1).optional(),
+            filename: z.string().optional(),
+            model: z.string().optional(),
+            language: z.string().optional(),
+            prompt: z.string().optional()
+        })
+        .refine((input) => Boolean(input.path || input.data), {
+            message: 'Either "path" (file on disk) or "data" (base64 string) must be provided'
+        }),
+    outputSchema: z.object({
+        model: z.string().trim().min(1),
+        path: z.string().optional(),
+        text: z.string()
+    }),
 
     /**
      * Read the audio file (from disk or inline base64) and send it to Ollama for transcription.
@@ -63,10 +80,10 @@ export const speechToTextTool: ITool = {
             audioData = Buffer.from(data, 'base64');
             resolvedFilename =
                 typeof filename === 'string' && filename.trim() ? filename : 'audio.wav';
-        } else if (typeof audioPath === 'string' && audioPath.trim() !== '') {
-            const safePath = resolveSafePath(audioPath);
-            audioData = await fs.readFile(safePath);
-            resolvedFilename = path.basename(safePath);
+        } else if (audioPath) {
+            const audioBuffer = await safeReadFile(audioPath);
+            audioData = audioBuffer;
+            resolvedFilename = path.basename(audioPath);
         } else {
             throw new Error(
                 'Either "path" (file on disk) or "data" (base64 string) must be provided'
@@ -109,4 +126,4 @@ export const speechToTextTool: ITool = {
             text: parsed.text ?? ''
         };
     }
-};
+});

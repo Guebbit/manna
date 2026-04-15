@@ -14,7 +14,7 @@
 
 import { generate } from '../llm/ollama';
 import { logger } from '../logger/logger';
-import { stripCodeFences } from '../shared';
+import { resolveModel, stripCodeFences } from '../shared';
 import type { IDecomposition, ISubtask } from './types';
 
 /* ── Environment ─────────────────────────────────────────────────────── */
@@ -23,12 +23,9 @@ import type { IDecomposition, ISubtask } from './types';
  * Model used for task decomposition.
  * Defaults to the reasoning model (best at structured analysis).
  */
-const DECOMPOSER_MODEL =
-    process.env.SWARM_DECOMPOSER_MODEL ??
-    process.env.AGENT_MODEL_REASONING ??
-    process.env.AGENT_MODEL_DEFAULT ??
-    process.env.OLLAMA_MODEL ??
-    'llama3';
+const DECOMPOSER_MODEL = resolveModel('reasoning', {
+    preferredModel: process.env.SWARM_DECOMPOSER_MODEL
+});
 
 /**
  * Maximum subtasks the decomposer is allowed to emit.

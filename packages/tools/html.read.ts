@@ -7,8 +7,7 @@
  * @module tools/html.read
  */
 
-import fs from 'fs/promises';
-import { resolveSafePath } from '../shared';
+import { safeReadFile } from '../shared';
 import { createTool } from './tool-builder';
 import { z } from 'zod';
 
@@ -95,8 +94,7 @@ export const readHtmlTool = createTool({
      * @returns `{ text, title? }`.
      */
     async execute({ path: htmlPath }) {
-        const safePath = resolveSafePath(htmlPath);
-        let raw = await fs.readFile(safePath, 'utf-8');
+        let raw = await safeReadFile(htmlPath, 'utf-8');
         /* Truncate very large inputs to avoid catastrophic backtracking. */
         if (raw.length > MAX_HTML_INPUT_CHARS) {
             raw = raw.slice(0, MAX_HTML_INPUT_CHARS);

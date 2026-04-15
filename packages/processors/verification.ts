@@ -24,19 +24,16 @@
 import { generate } from '../llm/ollama';
 import { emit } from '../events/bus';
 import { logger } from '../logger/logger';
-import { stripCodeFences } from '../shared';
+import { resolveModel, stripCodeFences } from '../shared';
 import { createProcessor } from './processor-builder';
 
 /** Enabled only when explicitly opted in. */
 const ENABLED = process.env.AGENT_VERIFICATION_ENABLED === 'true';
 
 /** Model used for the verification call — defaults to the fast model. */
-const VERIFICATION_MODEL =
-    process.env.AGENT_VERIFICATION_MODEL ??
-    process.env.AGENT_MODEL_FAST ??
-    process.env.AGENT_MODEL_DEFAULT ??
-    process.env.OLLAMA_MODEL ??
-    'llama3';
+const VERIFICATION_MODEL = resolveModel('fast', {
+    preferredModel: process.env.AGENT_VERIFICATION_MODEL
+});
 
 /**
  * Verification gate `Processor`.

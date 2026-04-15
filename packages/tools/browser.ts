@@ -12,7 +12,8 @@
  */
 
 import { chromium } from 'playwright';
-import type { ITool } from './types';
+import { z } from 'zod';
+import { createTool } from './tool-builder';
 
 /** Maximum number of visible-text characters returned to the agent. */
 const MAX_CONTENT_CHARS = 5_000;
@@ -23,9 +24,16 @@ const MAX_CONTENT_CHARS = 5_000;
  * Input: `{ url: string }`
  * Output: `{ title: string, content: string }`
  */
-export const browserTool: ITool = {
-    name: 'browser_fetch',
+export const browserTool = createTool({
+    id: 'browser_fetch',
     description: 'Fetch the title and visible text of a web page. ' + 'Input: { url: string }',
+    inputSchema: z.object({
+        url: z.string().trim().min(1, '"url" must be a non-empty string')
+    }),
+    outputSchema: z.object({
+        title: z.string(),
+        content: z.string()
+    }),
 
     /**
      * Navigate to `url`, extract the page title and visible text.
@@ -36,10 +44,6 @@ export const browserTool: ITool = {
      * @throws {Error} When the URL is invalid, uses an unsupported protocol, or the page times out.
      */
     async execute({ url }) {
-        if (typeof url !== 'string' || url.trim() === '') {
-            throw new Error('"url" must be a non-empty string');
-        }
-
         /* Validate URL format and restrict to http/https. */
         let parsed: URL;
         try {
@@ -72,4 +76,4 @@ export const browserTool: ITool = {
             await browser.close();
         }
     }
-};
+});

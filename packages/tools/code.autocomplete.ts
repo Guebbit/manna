@@ -9,12 +9,17 @@
  */
 
 import { generate } from '../llm/ollama';
-import type { ITool } from './types';
-import { envFloat, envInt } from '../shared';
+import { z } from 'zod';
+import { envFloat, envInt, resolveModel } from '../shared';
+import { createTool } from './tool-builder';
 
 /** Default IDE completion model, configurable via environment variable. */
-const DEFAULT_IDE_MODEL =
-    process.env.TOOL_IDE_MODEL ?? process.env.AGENT_MODEL_CODE ?? 'starcoder2';
+const DEFAULT_IDE_MODEL = resolveModel('code', {
+    preferredModel: process.env.TOOL_IDE_MODEL,
+    includeAgentDefault: false,
+    includeOllamaFallback: false,
+    hardDefault: 'starcoder2'
+});
 
 /**
  * Tool instance for generating code completions from prefix/suffix context.
@@ -24,11 +29,22 @@ const DEFAULT_IDE_MODEL =
  * { "prefix": "function add(", "suffix": "}", "language": "typescript", "model": "starcoder2" }
  * ```
  */
-export const codeAutocompleteTool: ITool = {
-    name: 'code_autocomplete',
+export const codeAutocompleteTool = createTool({
+    id: 'code_autocomplete',
     description:
         'Generate code completion suggestions from prefix/suffix context. ' +
         'Input: { prefix: string, suffix?: string, language?: string, model?: string }',
+    inputSchema: z.object({
+        prefix: z.string().trim().min(1, '"prefix" must be a non-empty string'),
+        suffix: z.string().optional(),
+        language: z.string().optional(),
+        model: z.string().optional()
+    }),
+    outputSchema: z.object({
+        model: z.string(),
+        language: z.string(),
+        completion: z.string()
+    }),
 
     /**
      * Generate a code continuation given the text before and after the cursor.
@@ -42,10 +58,6 @@ export const codeAutocompleteTool: ITool = {
      * @throws {Error} When `prefix` is missing or empty.
      */
     async execute({ prefix, suffix, language, model }) {
-        if (typeof prefix !== 'string' || prefix.trim() === '') {
-            throw new Error('"prefix" must be a non-empty string');
-        }
-
         const usedModel = typeof model === 'string' && model.trim() ? model : DEFAULT_IDE_MODEL;
         const usedLanguage =
             typeof language === 'string' && language.trim() ? language.trim() : 'plaintext';
@@ -75,4 +87,4 @@ export const codeAutocompleteTool: ITool = {
             completion: completion.trim()
         };
     }
-};
+});

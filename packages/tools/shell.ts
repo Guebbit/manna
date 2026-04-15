@@ -10,7 +10,8 @@
 
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import type { ITool } from './types';
+import { z } from 'zod';
+import { createTool } from './tool-builder';
 
 const execAsync = promisify(exec);
 
@@ -49,11 +50,19 @@ const DEFAULT_TIMEOUT_MS = 10_000;
  * { "command": "ls -la", "timeout": 5000 }
  * ```
  */
-export const shellTool: ITool = {
-    name: 'shell',
+export const shellTool = createTool({
+    id: 'shell',
     description:
         'Run a whitelisted shell command. ' +
         `Input: { command: string, timeout?: number (ms, default ${DEFAULT_TIMEOUT_MS}) }`,
+    inputSchema: z.object({
+        command: z.string().trim().min(1, '"command" must be a non-empty string'),
+        timeout: z.number().positive().optional()
+    }),
+    outputSchema: z.object({
+        stdout: z.string(),
+        stderr: z.string()
+    }),
 
     /**
      * Execute the given shell command and return its stdout/stderr.
@@ -65,10 +74,6 @@ export const shellTool: ITool = {
      * @throws {Error} When the command base name is not in the allow-list.
      */
     async execute({ command, timeout }) {
-        if (typeof command !== 'string' || command.trim() === '') {
-            throw new Error('"command" must be a non-empty string');
-        }
-
         /* Extract the base command name (first token) and validate. */
         const baseCommand = command.trim().split(/\s+/)[0];
         if (!ALLOWED_COMMANDS.has(baseCommand)) {
@@ -87,4 +92,4 @@ export const shellTool: ITool = {
 
         return { stdout: stdout.trim(), stderr: stderr.trim() };
     }
-};
+});

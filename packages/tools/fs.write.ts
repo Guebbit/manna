@@ -15,8 +15,9 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import type { ITool } from './types';
+import { z } from 'zod';
 import { resolveInsideRoot } from '../shared';
+import { createTool } from './tool-builder';
 
 /** Absolute path to the designated output directory for generated files. */
 const PROJECT_OUTPUT_ROOT = path.resolve(
@@ -39,11 +40,22 @@ type WriteMode = 'create' | 'overwrite' | 'append';
  * }
  * ```
  */
-export const writeFileTool: ITool = {
-    name: 'write_file',
+export const writeFileTool = createTool({
+    id: 'write_file',
     description:
         'Write UTF-8 file content under the generated-projects root only. ' +
         'Input: { path: string, content: string, mode?: "create" | "overwrite" | "append" }',
+    inputSchema: z.object({
+        path: z.string().trim().min(1, '"path" must be a non-empty string'),
+        content: z.string(),
+        mode: z.enum(['create', 'overwrite', 'append']).optional()
+    }),
+    outputSchema: z.object({
+        path: z.string(),
+        mode: z.enum(['create', 'overwrite', 'append']),
+        bytesWritten: z.number().int().nonnegative(),
+        outputRoot: z.string()
+    }),
 
     /**
      * Write the given content to a file under `PROJECT_OUTPUT_ROOT`.
@@ -56,13 +68,6 @@ export const writeFileTool: ITool = {
      * @throws {Error} When inputs are invalid, path escapes the root, or file exists in create mode.
      */
     async execute({ path: filePath, content, mode }) {
-        if (typeof filePath !== 'string' || filePath.trim() === '') {
-            throw new Error('"path" must be a non-empty string');
-        }
-        if (typeof content !== 'string') {
-            throw new Error('"content" must be a string');
-        }
-
         const writeMode: WriteMode =
             mode === 'overwrite' || mode === 'append' || mode === 'create' ? mode : 'create';
 
@@ -95,4 +100,4 @@ export const writeFileTool: ITool = {
             outputRoot: path.relative(process.cwd(), PROJECT_OUTPUT_ROOT)
         };
     }
-};
+});

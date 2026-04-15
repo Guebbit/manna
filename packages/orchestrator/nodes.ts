@@ -25,6 +25,7 @@ import type { IProcessor } from '../processors/types';
 import { generate } from '../llm/ollama';
 import { emit } from '../events/bus';
 import { logger } from '../logger/logger';
+import { resolveModel } from '../shared';
 import { decomposeTask } from '../swarm/decomposer';
 import type { ISubtask, ISubtaskResult } from '../swarm/types';
 import type { ISwarmGraphState } from './state';
@@ -35,12 +36,9 @@ import type { ISwarmGraphState } from './state';
  * Model used for the final synthesis step.
  * Defaults to the reasoning model for best summarisation quality.
  */
-const SYNTHESIS_MODEL =
-    process.env.SWARM_SYNTHESIS_MODEL ??
-    process.env.AGENT_MODEL_REASONING ??
-    process.env.AGENT_MODEL_DEFAULT ??
-    process.env.OLLAMA_MODEL ??
-    'llama3';
+const SYNTHESIS_MODEL = resolveModel('reasoning', {
+    preferredModel: process.env.SWARM_SYNTHESIS_MODEL
+});
 
 /**
  * Maximum number of review→retry cycles before forcing a synthesize.

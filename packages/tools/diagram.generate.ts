@@ -16,16 +16,16 @@ import { promisify } from 'util';
 import fs from 'fs/promises';
 import path from 'path';
 import { generate } from '../llm/ollama';
+import { resolveModel } from '../shared';
 import { createTool } from './tool-builder';
 
 const execFileAsync = promisify(execFile);
 
 /** Model used to generate Mermaid markup. Falls back through the standard chain. */
-const DIAGRAM_MODEL =
-    process.env.TOOL_DIAGRAM_MODEL ??
-    process.env.AGENT_MODEL_CODE ??
-    process.env.OLLAMA_MODEL ??
-    'llama3';
+const DIAGRAM_MODEL = resolveModel('code', {
+    preferredModel: process.env.TOOL_DIAGRAM_MODEL,
+    includeAgentDefault: false
+});
 
 /** Directory where rendered diagram files are written. */
 const OUTPUT_DIR =

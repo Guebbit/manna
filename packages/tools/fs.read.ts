@@ -3,14 +3,14 @@
  *
  * The path is resolved relative to the current working directory.
  * Directory traversal outside the project root is blocked by the
- * shared `resolveSafePath` helper.
+ * shared `safeReadFile` helper.
  *
  * @module tools/fs.read
  */
 
-import fs from 'fs/promises';
-import type { ITool } from './types';
-import { resolveSafePath } from '../shared';
+import { z } from 'zod';
+import { safeReadFile } from '../shared';
+import { createTool } from './tool-builder';
 
 /**
  * Tool instance for reading files from the local filesystem.
@@ -18,9 +18,13 @@ import { resolveSafePath } from '../shared';
  * Input: `{ path: string }` — relative or absolute path to the file.
  * Output: The file's UTF-8 text content as a string.
  */
-export const readFileTool: ITool = {
-    name: 'read_file',
+export const readFileTool = createTool({
+    id: 'read_file',
     description: 'Read a file from disk. Input: { path: string }',
+    inputSchema: z.object({
+        path: z.string().trim().min(1, '"path" must be a non-empty string')
+    }),
+    outputSchema: z.string(),
 
     /**
      * Read the file at the given path and return its content.
@@ -31,11 +35,6 @@ export const readFileTool: ITool = {
      * @throws {Error} When `path` is missing, empty, or escapes the project root.
      */
     async execute({ path: filePath }) {
-        if (typeof filePath !== 'string' || filePath.trim() === '') {
-            throw new Error('"path" must be a non-empty string');
-        }
-
-        const resolved = resolveSafePath(filePath);
-        return await fs.readFile(resolved, 'utf-8');
+        return await safeReadFile(filePath, 'utf-8');
     }
-};
+});

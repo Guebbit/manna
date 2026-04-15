@@ -7,8 +7,7 @@
  * @module tools/json.read
  */
 
-import fs from 'fs/promises';
-import { resolveSafePath } from '../shared';
+import { safeReadFile } from '../shared';
 import { createTool } from './tool-builder';
 import { z } from 'zod';
 
@@ -37,8 +36,7 @@ export const readJsonTool = createTool({
      * @throws {Error} When the file content is not valid JSON.
      */
     async execute({ path: jsonPath }) {
-        const safePath = resolveSafePath(jsonPath);
-        const raw = await fs.readFile(safePath, 'utf-8');
+        const raw = await safeReadFile(jsonPath, 'utf-8');
         const data: unknown = JSON.parse(raw);
         return { data };
     }

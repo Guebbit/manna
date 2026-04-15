@@ -17,7 +17,7 @@
  */
 
 import { generate } from '../llm/ollama';
-import { envFloat, envInt, stripCodeFences } from '../shared';
+import { envFloat, envInt, resolveModel, stripCodeFences } from '../shared';
 
 /* ── Budget environment variables ────────────────────────────────────── */
 
@@ -104,46 +104,11 @@ interface IRouteInput {
     cumulativeDurationMs?: number;
 }
 
-/* ── Resolved model names from environment ───────────────────────────── */
-
-/** Fallback model used when no profile-specific model is configured. */
-const DEFAULT_MODEL = process.env.AGENT_MODEL_DEFAULT ?? process.env.OLLAMA_MODEL ?? 'llama3';
-
-/** Low-latency model for simple / quick tasks. */
-const FAST_MODEL = process.env.AGENT_MODEL_FAST ?? DEFAULT_MODEL;
-
-/** Larger model optimised for multi-step reasoning. */
-const REASONING_MODEL = process.env.AGENT_MODEL_REASONING ?? DEFAULT_MODEL;
-
-/** Code-specialised model (Qwen-Coder, DeepSeek-Coder, etc.). */
-const CODE_MODEL = process.env.AGENT_MODEL_CODE ?? DEFAULT_MODEL;
-
 /** Small, fast model used by the *model* routing strategy to classify tasks. */
 const ROUTER_MODEL = process.env.AGENT_MODEL_ROUTER_MODEL ?? 'phi4-mini:latest';
 
 /** Active routing strategy: `"rules"` (default) or `"model"`. */
 const ROUTER_MODE = (process.env.AGENT_MODEL_ROUTER_MODE ?? 'rules').toLowerCase();
-
-/* ── Profile → model / options resolution ────────────────────────────── */
-
-/**
- * Map a profile name to its configured Ollama model string.
- *
- * @param profile - One of the four supported profiles.
- * @returns The model identifier to pass to Ollama.
- */
-function resolveModel(profile: ModelProfile): string {
-    switch (profile) {
-        case 'fast':
-            return FAST_MODEL;
-        case 'reasoning':
-            return REASONING_MODEL;
-        case 'code':
-            return CODE_MODEL;
-        default:
-            return DEFAULT_MODEL;
-    }
-}
 
 /**
  * Build profile-specific generation options (temperature, top_p, etc.).
