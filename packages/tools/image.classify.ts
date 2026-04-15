@@ -73,8 +73,7 @@ export const imageClassifyTool = createTool({
         if (typeof data === 'string' && data.trim() !== '') {
             base64Image = data;
         } else if (imagePath) {
-            const buffer = await safeReadFile(imagePath);
-            base64Image = buffer.toString('base64');
+            base64Image = (await safeReadFile(imagePath)).toString('base64');
         } else {
             throw new Error(
                 'Either "path" (file on disk) or "data" (base64 string) must be provided'

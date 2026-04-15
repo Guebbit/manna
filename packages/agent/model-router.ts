@@ -18,6 +18,7 @@
 
 import { generate } from '../llm/ollama';
 import { envFloat, envInt, resolveModel, stripCodeFences } from '../shared';
+import type { ModelProfile } from '../shared';
 
 /* ── Budget environment variables ────────────────────────────────────── */
 
@@ -50,7 +51,7 @@ const BUDGET_DURATION_THRESHOLD = 0.7;
 /* ── Public types ────────────────────────────────────────────────────── */
 
 /** Supported model profiles — each maps to a distinct Ollama model. */
-export type ModelProfile = 'fast' | 'reasoning' | 'code' | 'default';
+export type { ModelProfile } from '../shared';
 
 /** The decision returned by `routeModel`. */
 export interface IModelRouteDecision {

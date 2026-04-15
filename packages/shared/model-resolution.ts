@@ -55,7 +55,7 @@ export function resolveModel(profile: ModelProfile, options: IResolveModelOption
 
     const includeAgentDefault = options.includeAgentDefault !== false;
     const includeOllamaFallback = options.includeOllamaFallback !== false;
-    const hardDefault = options.hardDefault ?? 'llama3';
+    const hardDefault = options.hardDefault?.trim() || 'llama3';
 
     const defaultChain = [
         includeAgentDefault ? process.env.AGENT_MODEL_DEFAULT : undefined,
@@ -70,7 +70,11 @@ export function resolveModel(profile: ModelProfile, options: IResolveModelOption
         default: process.env.AGENT_MODEL_DEFAULT
     }[profile];
 
-    return [profileModel, ...defaultChain].find(
+    const resolved = [profileModel, ...defaultChain].find(
         (value) => typeof value === 'string' && value.trim()
-    )!;
+    );
+    if (!resolved) {
+        throw new Error(`Unable to resolve model for profile "${profile}"`);
+    }
+    return resolved;
 }

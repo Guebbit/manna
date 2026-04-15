@@ -57,7 +57,7 @@ export const readPdfTool = createTool({
 
         if (typeof data === 'string' && data.trim() !== '') {
             buffer = Buffer.from(data, 'base64');
-        } else if (pdfPath) {
+        } else if (typeof pdfPath === 'string' && pdfPath.trim() !== '') {
             buffer = await safeReadFile(pdfPath);
         } else {
             throw new Error(

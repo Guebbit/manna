@@ -81,8 +81,7 @@ export const speechToTextTool = createTool({
             resolvedFilename =
                 typeof filename === 'string' && filename.trim() ? filename : 'audio.wav';
         } else if (audioPath) {
-            const audioBuffer = await safeReadFile(audioPath);
-            audioData = audioBuffer;
+            audioData = await safeReadFile(audioPath);
             resolvedFilename = path.basename(audioPath);
         } else {
             throw new Error(
