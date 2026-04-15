@@ -122,7 +122,6 @@ export function registerSwarmRoutes(app: Express): void {
 
         const response: SwarmResponse = {
           answer: result.answer,
-          result: result.answer,
           subtaskResults: result.subtaskResults.map((r) => ({
             id: r.subtask.id,
             description: r.subtask.description,
@@ -267,7 +266,7 @@ export function registerSwarmRoutes(app: Express): void {
       .run(task, config)
       .then((result) => {
         writeEvent("done", {
-          result: result.answer,
+          answer: result.answer,
           totalDurationMs: result.totalDurationMs,
           subtaskCount: result.subtaskResults.length,
         });
