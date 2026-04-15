@@ -1,0 +1,15 @@
+{
+    "error": {
+        "task_required": "\"task\" (non-empty string) is required in the request body",
+        "invalid_profile": "\"profile\" must be one of: {{profiles}}",
+        "not_found": "Not Found",
+        "internal_server_error": "Internal Server Error",
+        "file_required": "\"file\" field is required (multipart/form-data)",
+        "unsupported_file_type": "Unsupported file type: {{mimetype}}",
+        "missing_env_vars": "Missing recommended environment variables: {{vars}}"
+    },
+    "info": {
+        "server_started": "Manna API server started",
+        "migrations_failed": "Database migrations failed — continuing without persistence"
+    }
+}

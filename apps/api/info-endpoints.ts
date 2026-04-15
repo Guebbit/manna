@@ -260,6 +260,7 @@ const HELP_CATALOGUE: IHelpEntry[] = [
  * - `GET /help`
  *
  * @param application - The Express app instance to register routes on.
+ * @returns Nothing.
  */
 export function registerInfoRoutes(application: express.Express): void {
   /* ── GET /info/modes ────────────────────────────────────────────── */

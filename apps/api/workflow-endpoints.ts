@@ -31,7 +31,7 @@ import type { Express, Request, Response } from 'express';
 import { on, off } from '../../packages/events/bus';
 import type { IAgentEvent } from '../../packages/events/bus';
 import { getLogger } from '../../packages/logger/logger';
-import { rejectResponse, successResponse } from '../../packages/shared';
+import { envInt, rejectResponse, successResponse, t } from '../../packages/shared';
 import { createAgent, VALID_PROFILES } from './agents';
 import type { ModelProfile } from '../../packages/agent/model-router';
 import type {
@@ -50,10 +50,7 @@ const SSE_PAYLOAD_MAX_LENGTH = 300;
  * Global step cap read once at startup (mirrors `agent.ts`'s own constant).
  * Used as the default per-step budget when `maxStepsPerStep` is omitted.
  */
-const DEFAULT_MAX_STEPS_PER_STEP = Number.parseInt(
-    process.env.AGENTS_MAX_STEPS ?? '5',
-    10,
-);
+const DEFAULT_MAX_STEPS_PER_STEP = envInt(process.env.AGENTS_MAX_STEPS, 5);
 
 /**
  * Hard upper bound on `maxStepsPerStep` to prevent accidental run-away
@@ -305,6 +302,7 @@ async function runWorkflow(
  * Express application.
  *
  * @param app - The Express application to attach routes to.
+ * @returns Nothing.
  */
 export function registerWorkflowRoutes(app: Express): void {
     /* ── POST /workflow ───────────────────────────────────────────────── */
@@ -349,7 +347,7 @@ export function registerWorkflowRoutes(app: Express): void {
             parsed.profile !== undefined &&
             !VALID_PROFILES.has(parsed.profile as ModelProfile)
         ) {
-            rejectResponse(res, 400, 'Bad Request', [`"profile" must be one of: ${[...VALID_PROFILES].join(', ')}`]);
+            rejectResponse(res, 400, 'Bad Request', [t('error.invalid_profile', { profiles: [...VALID_PROFILES].join(', ') })]);
             return;
         }
 
@@ -374,7 +372,7 @@ export function registerWorkflowRoutes(app: Express): void {
             })
             .catch((error: unknown) => {
                 log.error('workflow_request_failed', { error: String(error) });
-                rejectResponse(res, 500, 'Internal Server Error', [String(error)]);
+                rejectResponse(res, 500, t('error.internal_server_error'), [String(error)]);
             });
     });
 
@@ -421,7 +419,7 @@ export function registerWorkflowRoutes(app: Express): void {
             parsed.profile !== undefined &&
             !VALID_PROFILES.has(parsed.profile as ModelProfile)
         ) {
-            rejectResponse(res, 400, 'Bad Request', [`"profile" must be one of: ${[...VALID_PROFILES].join(', ')}`]);
+            rejectResponse(res, 400, 'Bad Request', [t('error.invalid_profile', { profiles: [...VALID_PROFILES].join(', ') })]);
             return;
         }
 

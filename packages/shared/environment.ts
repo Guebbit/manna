@@ -31,6 +31,7 @@ const RECOMMENDED_ENV_KEYS = ['OLLAMA_BASE_URL', 'OLLAMA_MODEL'] as const;
  * Does NOT throw — Manna starts regardless.
  *
  * @param logger - Logger instance.
+ * @returns Nothing.
  */
 export const validateRecommendedEnvironment = (logger: IEnvironmentValidationLogger): void => {
     const missing = RECOMMENDED_ENV_KEYS.filter((key) => {

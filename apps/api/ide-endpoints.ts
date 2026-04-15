@@ -19,7 +19,7 @@ import { z } from "zod";
 import ts from "typescript";
 import { generate } from "../../packages/llm/ollama";
 import { getLogger } from "../../packages/logger/logger";
-import { rejectResponse, successResponse } from "../../packages/shared";
+import { rejectResponse, successResponse, t } from "../../packages/shared";
 import type {
   AutocompleteRequest,
   AutocompleteResponse,
@@ -697,6 +697,7 @@ function sendRateLimitedResponse(
  * `/lint-conventions`, and `/page-review`.
  *
  * @param application - The Express app instance to register routes on.
+ * @returns Nothing.
  */
 export function registerIdeRoutes(application: express.Express): void {
   application.post("/autocomplete", (request, response) => {
@@ -782,7 +783,7 @@ export function registerIdeRoutes(application: express.Express): void {
           error: String(error),
           language,
         });
-        rejectResponse(response, 500, "Internal Server Error", [String(error)]);
+        rejectResponse(response, 500, t("error.internal_server_error"), [String(error)]);
       });
   });
 
@@ -896,7 +897,7 @@ export function registerIdeRoutes(application: express.Express): void {
         language,
         filePath,
       });
-      rejectResponse(response, 500, "Internal Server Error", [String(error)]);
+      rejectResponse(response, 500, t("error.internal_server_error"), [String(error)]);
     });
   });
 
@@ -976,7 +977,7 @@ export function registerIdeRoutes(application: express.Express): void {
           filePath,
           requestId,
         });
-        rejectResponse(response, 500, "Internal Server Error", [String(error)]);
+        rejectResponse(response, 500, t("error.internal_server_error"), [String(error)]);
       });
   });
 }
