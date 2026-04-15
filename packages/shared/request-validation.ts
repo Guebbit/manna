@@ -16,8 +16,8 @@ import { t } from './i18n';
  * Validate that `task` is a non-empty string.
  *
  * Returns the trimmed task string on success, or an error message
- * string on failure.  Callers can distinguish the two cases by
- * checking `result.valid`.
+ * string on failure.  Callers distinguish the two cases via
+ * `'error' in result`.
  *
  * @param task - The raw task value from the request body.
  * @returns An object with either the validated `task` or an `error`.
