@@ -7,6 +7,7 @@
 import crypto from 'node:crypto';
 import { rateLimit } from 'express-rate-limit';
 import type { NextFunction, Request, Response } from 'express';
+import { envInt } from '../../../packages/shared/env';
 
 /**
  * Parse a positive integer environment variable with safe fallback.
@@ -16,7 +17,7 @@ import type { NextFunction, Request, Response } from 'express';
  * @returns A positive integer.
  */
 function parsePositiveInt(rawValue: string | undefined, fallback: number): number {
-    const parsed = Number.parseInt(rawValue ?? String(fallback), 10);
+    const parsed = envInt(rawValue, fallback);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
@@ -45,6 +46,7 @@ export const rateLimiter = rateLimit({
  * @param request - Express request object.
  * @param response - Express response object.
  * @param next - Express next function.
+ * @returns Nothing.
  */
 export const requestIdMiddleware = (
     request: Request,

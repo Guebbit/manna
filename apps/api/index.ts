@@ -30,7 +30,15 @@ import { MulterError } from "multer";
 import type { ModelProfile } from "../../packages/agent/model-router";
 import { on } from "../../packages/events/bus";
 import { getLogger } from "../../packages/logger/logger";
-import { ExtendedError, rejectResponse, successResponse, validateRecommendedEnvironment } from "../../packages/shared";
+import {
+  envInt,
+  ExtendedError,
+  initI18n,
+  rejectResponse,
+  successResponse,
+  t,
+  validateRecommendedEnvironment
+} from "../../packages/shared";
 import { registerIdeRoutes } from "./ide-endpoints";
 import { registerUploadRoutes } from "./upload-endpoints";
 import { registerStreamRoutes } from "./stream-endpoints";
@@ -41,6 +49,7 @@ import { createAgent, VALID_PROFILES } from "./agents";
 import { runMigrations } from "../../packages/persistence/migrate";
 import { rateLimiter, requestIdMiddleware } from "./middlewares/security";
 import type { HealthResponse, RunRequest, RunResponse } from "../../api/models";
+import enTranslation from "../../packages/shared/locales/en.json";
 
 const log = getLogger("api");
 
@@ -104,13 +113,13 @@ app.post("/run", (req, res) => {
       res,
       400,
       "Bad Request",
-      ['"task" (non-empty string) is required in the request body'],
+      [t("error.task_required")],
     );
     return;
   }
 
   if (profile !== undefined && !VALID_PROFILES.has(profile as ModelProfile)) {
-    rejectResponse(res, 400, "Bad Request", [`"profile" must be one of: ${[...VALID_PROFILES].join(", ")}`]);
+    rejectResponse(res, 400, "Bad Request", [t("error.invalid_profile", { profiles: [...VALID_PROFILES].join(", ") })]);
     return;
   }
 
@@ -132,7 +141,7 @@ app.post("/run", (req, res) => {
     })
     .catch((error: unknown) => {
       log.error("run_request_failed", { error: String(error), requestId: req.requestId });
-      rejectResponse(res, 500, "Internal Server Error", [String(error)]);
+      rejectResponse(res, 500, t("error.internal_server_error"), [String(error)]);
     });
 });
 
@@ -152,7 +161,7 @@ app.get("/health", (_req, res) => {
  */
 app.use((request: Request, response: Response) => {
   log.warn("route_not_found", { method: request.method, path: request.path, requestId: request.requestId });
-  rejectResponse(response, 404, "Not Found");
+  rejectResponse(response, 404, t("error.not_found"));
 });
 
 /**
@@ -184,26 +193,32 @@ app.use((error: Error, request: Request, response: Response, _next: NextFunction
     stack: error.stack,
     name: error.name,
   });
-  rejectResponse(response, 500, "Internal Server Error", [error.message]);
+  rejectResponse(response, 500, t("error.internal_server_error"), [error.message]);
 });
 
 /* Default port for the Manna API server. */
-const PORT = Number.parseInt(process.env.PORT ?? "3001", 10);
+const PORT = envInt(process.env.PORT, 3001);
 
 /* Run DB migrations on startup (fail-open — a DB outage must not prevent the
  * API from starting). */
 runMigrations().catch((error: unknown) =>
-  log.warn("api_db_migration_failed", { error: String(error) })
+  log.warn(t("info.migrations_failed"), { error: String(error) })
 );
 
 validateRecommendedEnvironment(log);
 
-app.listen(PORT, () => {
-  log.info("api_started", { url: `http://localhost:${PORT}` });
-  log.info("ollama_configured", {
-    ollamaBaseUrl: process.env.OLLAMA_BASE_URL ?? "http://localhost:11434",
+initI18n({ en: { translation: enTranslation } })
+  .catch((error: unknown) => {
+    log.warn("i18n_init_failed", { error: String(error) });
+  })
+  .finally(() => {
+    app.listen(PORT, () => {
+      log.info(t("info.server_started"), { url: `http://localhost:${PORT}` });
+      log.info("ollama_configured", {
+        ollamaBaseUrl: process.env.OLLAMA_BASE_URL ?? "http://localhost:11434",
+      });
+    });
   });
-});
 
 /**
  * Last-resort process-level error handling.

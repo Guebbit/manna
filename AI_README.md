@@ -524,6 +524,8 @@ SSE events for `/run/swarm/stream`:
 | `GRAPH_NER_MODEL`                        | `AGENT_MODEL_FAST`        | Ollama model used for NER entity/relationship extraction (defaults to the fast profile model)                                                         |
 | `PORT`                                   | `3001`                    | Express server port                                                                                                                                   |
 | `CORS_ORIGIN`                            | `*`                       | Allowed CORS origin(s) for the Express API. Set to a specific origin in production (e.g. `https://manna.example.com`). Defaults to `*` (all origins). |
+| `MANNA_DEFAULT_LOCALE`                   | `en`                      | Active language for i18n                                                                                                                              |
+| `MANNA_FALLBACK_LOCALE`                  | `en`                      | Fallback language when key is missing                                                                                                                 |
 | `RATE_LIMIT_WINDOW_MS`                   | `900000`                  | Global API rate-limit window in milliseconds (default 15 minutes).                                                                                    |
 | `RATE_LIMIT_MAX`                         | `100`                     | Global API max requests per IP per rate-limit window.                                                                                                 |
 | `MYSQL_HOST/PORT/USER/PASSWORD/DATABASE` | various                   | MySQL connection for `mysql_query`                                                                                                                    |
@@ -531,6 +533,12 @@ SSE events for `/run/swarm/stream`:
 | `QDRANT_COLLECTION`                      | —                         | Qdrant collection name                                                                                                                                |
 | `BOILERPLATE_ROOT`                       | `data/boilerplates`       | Source directory for `scaffold_project`                                                                                                               |
 | `PROJECT_OUTPUT_ROOT`                    | `data/generated-projects` | Output directory for `write_file` / `scaffold_project`                                                                                                |
+| `SMTP_HOST`                              | _(empty)_                 | SMTP server; mail disabled when not set                                                                                                               |
+| `SMTP_PORT`                              | `587`                     | SMTP port                                                                                                                                             |
+| `SMTP_USER`                              | _(empty)_                 | SMTP auth username                                                                                                                                    |
+| `SMTP_PASS`                              | _(empty)_                 | SMTP auth password                                                                                                                                    |
+| `SMTP_SENDER`                            | _(empty)_                 | Default `From` address                                                                                                                                |
+| `SMTP_SECURE`                            | `false`                   | `true` = TLS on port 465                                                                                                                              |
 | `LOG_ENABLED`                            | `true`                    | Toggle logging                                                                                                                                        |
 | `LOG_LEVEL`                              | `info`                    | `error` / `warn` / `info` / `debug`                                                                                                                   |
 | `LOG_PRETTY`                             | `false`                   | `true` = human-readable; `false` = JSON lines                                                                                                         |
@@ -626,6 +634,10 @@ SSE events for `/run/swarm/stream`:
 │   │   ├── response.ts       — IResponseNeutral/IResponseSuccess/IResponseReject; successResponse(); rejectResponse()
 │   │   ├── errors.ts         — ExtendedError class (httpCode + isOperational + structured logging)
 │   │   ├── environment.ts    — validateRecommendedEnvironment(); startup warning for missing recommended env vars
+│   │   ├── i18n.ts           — initI18n(); t(); i18next wrapper
+│   │   ├── mailer.ts         — isMailEnabled(); sendMail(); Nodemailer wrapper
+│   │   ├── locales/
+│   │   │   └── en.json       — English translation strings
 │   │   └── index.ts          — re-exports all shared utilities
 │   ├── evals/
 │   │   ├── types.ts          — eval harness types
@@ -696,6 +708,8 @@ SSE events for `/run/swarm/stream`:
 - Tool reranker: disabled by default (`TOOL_RERANKER_ENABLED=false`); opt-in only. Fails open — a reranking error returns the original tool list.
 - PostgreSQL persistence: all `saveAgentRun` / `saveSwarmRun` / `saveEvalResult` calls are wrapped in `.catch()` in the agent/swarm; a DB outage only emits a warning log and never crashes the agent. Set `MANNA_DB_ENABLED=false` to disable entirely.
 - Global Express error handler catches `MulterError`, `ExtendedError`, and generic `Error`; all rejections flow through `rejectResponse` with a typed envelope.
+- Nodemailer (`sendMail`) is only active when `SMTP_HOST` is set; `isMailEnabled()` must be checked before calling `sendMail()`; a missing SMTP config never crashes the server.
+- i18next is initialized before `app.listen()`; `t()` falls back to the raw key string if not yet initialized, so it never returns `undefined`.
 
 ---
 
@@ -918,5 +932,9 @@ packages/
       ├── response.ts     — successResponse(); rejectResponse(); typed HTTP envelopes
       ├── errors.ts       — ExtendedError; HTTP-aware operational error class
       ├── environment.ts  — validateRecommendedEnvironment(); startup env warnings
+      ├── i18n.ts         — initI18n(); t(); i18next wrapper
+      ├── mailer.ts       — isMailEnabled(); sendMail(); Nodemailer wrapper
+      ├── locales/
+      │   └── en.json     — English translation strings
       └── index.ts        — re-exports all shared utilities
 ```

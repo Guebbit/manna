@@ -15,7 +15,7 @@ import type { Express, Request, Response } from "express";
 import { on, off } from "../../packages/events/bus";
 import type { IAgentEvent } from "../../packages/events/bus";
 import { getLogger } from "../../packages/logger/logger";
-import { rejectResponse, successResponse } from "../../packages/shared";
+import { rejectResponse, successResponse, t } from "../../packages/shared";
 import { createSwarmOrchestrator, VALID_PROFILES } from "./agents";
 import type { ModelProfile } from "../../packages/agent/model-router";
 import type { ISwarmConfig } from "../../packages/swarm/types";
@@ -51,13 +51,13 @@ function parseSwarmBody(body: Partial<SwarmRequest>): {
   const task = body.task;
 
   if (!task || typeof task !== "string" || task.trim() === "") {
-    return { error: '"task" (non-empty string) is required in the request body' };
+    return { error: t("error.task_required") };
   }
 
   const profile = body.profile;
   if (profile !== undefined && !VALID_PROFILES.has(profile as ModelProfile)) {
     return {
-      error: `"profile" must be one of: ${[...VALID_PROFILES].join(", ")}`,
+      error: t("error.invalid_profile", { profiles: [...VALID_PROFILES].join(", ") }),
     };
   }
 
@@ -79,6 +79,7 @@ function parseSwarmBody(body: Partial<SwarmRequest>): {
  * Register swarm-related HTTP routes on the given Express app.
  *
  * @param app - The Express application to attach routes to.
+ * @returns Nothing.
  */
 export function registerSwarmRoutes(app: Express): void {
   /**
@@ -148,7 +149,7 @@ export function registerSwarmRoutes(app: Express): void {
       })
       .catch((reason: unknown) => {
         log.error("swarm_request_failed", { error: String(reason), requestId: req.requestId });
-        rejectResponse(res, 500, "Internal Server Error", [String(reason)]);
+        rejectResponse(res, 500, t("error.internal_server_error"), [String(reason)]);
       });
   });
 

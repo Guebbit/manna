@@ -22,7 +22,7 @@ import type { Express, Request, Response } from "express";
 import { on, off } from "../../packages/events/bus";
 import type { IAgentEvent } from "../../packages/events/bus";
 import { getLogger } from "../../packages/logger/logger";
-import { rejectResponse } from "../../packages/shared";
+import { rejectResponse, t } from "../../packages/shared";
 import { createAgent, VALID_PROFILES } from "./agents";
 import type { ModelProfile } from "../../packages/agent/model-router";
 import type { RunRequest } from "../../api/models";
@@ -47,6 +47,7 @@ function sseFrame(eventType: string, data: unknown): string {
  * Register the `POST /run/stream` endpoint on the given Express app.
  *
  * @param app - The Express application to attach the route to.
+ * @returns Nothing.
  */
 export function registerStreamRoutes(app: Express): void {
   /**
@@ -65,13 +66,13 @@ export function registerStreamRoutes(app: Express): void {
         res,
         400,
         "Bad Request",
-        ['"task" (non-empty string) is required in the request body'],
+        [t("error.task_required")],
       );
       return;
     }
 
     if (profile !== undefined && !VALID_PROFILES.has(profile as ModelProfile)) {
-      rejectResponse(res, 400, "Bad Request", [`"profile" must be one of: ${[...VALID_PROFILES].join(", ")}`]);
+      rejectResponse(res, 400, "Bad Request", [t("error.invalid_profile", { profiles: [...VALID_PROFILES].join(", ") })]);
       return;
     }
 

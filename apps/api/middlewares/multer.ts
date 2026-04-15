@@ -5,6 +5,7 @@
  */
 
 import multer from "multer";
+import { t } from "../../../packages/shared";
 
 /**
  * Allowed MIME types for upload endpoints.
@@ -39,7 +40,11 @@ export const upload = multer({
   fileFilter: (_req, file, cb) => {
     if (!ALLOWED_MIME_TYPES.includes(file.mimetype as (typeof ALLOWED_MIME_TYPES)[number])) {
       const callback = cb as (error: Error, acceptFile: boolean) => void;
-      callback(new Error(`Unsupported file type: ${file.mimetype}`), false);
+      const message = t("error.unsupported_file_type", {
+        mimetype: file.mimetype,
+        defaultValue: `Unsupported file type: ${file.mimetype}`,
+      });
+      callback(new Error(message), false);
       return;
     }
 

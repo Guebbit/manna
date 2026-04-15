@@ -19,7 +19,7 @@
 import type express from "express";
 import { imageClassifyTool, speechToTextTool, readPdfTool } from "../../packages/tools/index";
 import { getLogger } from "../../packages/logger/logger";
-import { rejectResponse, successResponse } from "../../packages/shared";
+import { rejectResponse, successResponse, t } from "../../packages/shared";
 import { upload } from "./middlewares/multer";
 
 const log = getLogger("api-upload");
@@ -28,6 +28,7 @@ const log = getLogger("api-upload");
  * Register upload-based routes on the Express app.
  *
  * @param app - The Express application instance.
+ * @returns Nothing.
  */
 export function registerUploadRoutes(app: express.Express): void {
   /**
@@ -42,7 +43,7 @@ export function registerUploadRoutes(app: express.Express): void {
    */
   app.post("/upload/image-classify", upload.single("file"), (req, res) => {
     if (!req.file) {
-      rejectResponse(res, 400, "Bad Request", ['"file" field is required (multipart/form-data)']);
+      rejectResponse(res, 400, "Bad Request", [t("error.file_required")]);
       return;
     }
 
@@ -63,7 +64,7 @@ export function registerUploadRoutes(app: express.Express): void {
       })
       .catch((error: unknown) => {
         log.error("upload_image_classify_failed", { error: String(error), requestId: req.requestId });
-        rejectResponse(res, 500, "Internal Server Error", [String(error)]);
+        rejectResponse(res, 500, t("error.internal_server_error"), [String(error)]);
       });
   });
 
@@ -80,7 +81,7 @@ export function registerUploadRoutes(app: express.Express): void {
    */
   app.post("/upload/speech-to-text", upload.single("file"), (req, res) => {
     if (!req.file) {
-      rejectResponse(res, 400, "Bad Request", ['"file" field is required (multipart/form-data)']);
+      rejectResponse(res, 400, "Bad Request", [t("error.file_required")]);
       return;
     }
 
@@ -103,7 +104,7 @@ export function registerUploadRoutes(app: express.Express): void {
       })
       .catch((error: unknown) => {
         log.error("upload_speech_to_text_failed", { error: String(error), requestId: req.requestId });
-        rejectResponse(res, 500, "Internal Server Error", [String(error)]);
+        rejectResponse(res, 500, t("error.internal_server_error"), [String(error)]);
       });
   });
 
@@ -117,7 +118,7 @@ export function registerUploadRoutes(app: express.Express): void {
    */
   app.post("/upload/read-pdf", upload.single("file"), (req, res) => {
     if (!req.file) {
-      rejectResponse(res, 400, "Bad Request", ['"file" field is required (multipart/form-data)']);
+      rejectResponse(res, 400, "Bad Request", [t("error.file_required")]);
       return;
     }
 
@@ -136,7 +137,7 @@ export function registerUploadRoutes(app: express.Express): void {
       })
       .catch((error: unknown) => {
         log.error("upload_read_pdf_failed", { error: String(error), requestId: req.requestId });
-        rejectResponse(res, 500, "Internal Server Error", [String(error)]);
+        rejectResponse(res, 500, t("error.internal_server_error"), [String(error)]);
       });
   });
 
