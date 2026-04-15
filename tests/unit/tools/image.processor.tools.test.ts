@@ -7,6 +7,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { imageSketchTool } from '../../../packages/tools/image.sketch.js';
 import { imageColorizeTool } from '../../../packages/tools/image.colorize.js';
+import { IMAGE_PROCESSOR_URL } from '../../../packages/tools/image.processor.config.js';
 
 describe('image processor tools', () => {
     beforeEach(() => {
@@ -46,7 +47,7 @@ describe('image processor tools', () => {
         })) as Record<string, unknown>;
 
         expect(mockedFetch).toHaveBeenCalledTimes(1);
-        expect(mockedFetch.mock.calls[0]?.[0]).toBe('http://localhost:5000/sketch');
+        expect(mockedFetch.mock.calls[0]?.[0]).toBe(`${IMAGE_PROCESSOR_URL}/sketch`);
         expect(result).toEqual({ image: 'c2tldGNo', duration_ms: 321, model: 'mock-sketch-model' });
     });
 
@@ -70,7 +71,7 @@ describe('image processor tools', () => {
         })) as Record<string, unknown>;
 
         expect(mockedFetch).toHaveBeenCalledTimes(1);
-        expect(mockedFetch.mock.calls[0]?.[0]).toBe('http://localhost:5000/colorize');
+        expect(mockedFetch.mock.calls[0]?.[0]).toBe(`${IMAGE_PROCESSOR_URL}/colorize`);
         expect(result).toEqual({
             image: 'Y29sb3I=',
             duration_ms: 654,

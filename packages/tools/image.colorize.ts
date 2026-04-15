@@ -8,14 +8,8 @@
  */
 
 import { z } from 'zod';
-import { envInt } from '../shared';
 import { createTool } from './tool-builder';
-
-/** Base URL for the external image processor service. */
-const IMAGE_PROCESSOR_URL = process.env.IMAGE_PROCESSOR_URL ?? 'http://localhost:5000';
-
-/** HTTP timeout (ms) for image-processor requests. */
-const IMAGE_PROCESSOR_TIMEOUT_MS = envInt(process.env.IMAGE_PROCESSOR_TIMEOUT, 120_000);
+import { IMAGE_PROCESSOR_TIMEOUT_MS, IMAGE_PROCESSOR_URL } from './image.processor.config';
 
 /**
  * Schema for colorize tool input.
