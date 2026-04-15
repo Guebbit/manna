@@ -660,6 +660,8 @@ SSE events for `/run/swarm/stream`:
 │   │   ├── math.ts           — cosineSimilarity(); shared math utilities
 │   │   ├── sse.ts            — sseFrame(); setupSSEHeaders(); onSSEClose(); SSE helpers
 │   │   ├── request-validation.ts — validateTask(); validateProfile(); shared request validators
+│   │   ├── safe-read-file.ts — safeReadFile(); shared path-safe file-reading helper
+│   │   ├── model-resolution.ts — resolveModel(); shared profile-based model fallback resolver
 │   │   ├── locales/
 │   │   │   └── en.json       — English translation strings
 │   │   └── index.ts          — re-exports all shared utilities

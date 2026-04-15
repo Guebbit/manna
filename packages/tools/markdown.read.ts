@@ -7,8 +7,7 @@
  * @module tools/markdown.read
  */
 
-import fs from 'fs/promises';
-import { resolveSafePath } from '../shared';
+import { safeReadFile } from '../shared';
 import { createTool } from './tool-builder';
 import { z } from 'zod';
 
@@ -36,8 +35,7 @@ export const readMarkdownTool = createTool({
      * @returns `{ text }` — the file's content as a string.
      */
     async execute({ path: mdPath }) {
-        const safePath = resolveSafePath(mdPath);
-        const text = await fs.readFile(safePath, 'utf-8');
+        const text = await safeReadFile(mdPath, 'utf-8');
         return { text };
     }
 });

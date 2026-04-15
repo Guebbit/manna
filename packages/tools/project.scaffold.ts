@@ -13,8 +13,9 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import type { ITool } from './types';
+import { z } from 'zod';
 import { resolveInsideRoot } from '../shared';
+import { createTool } from './tool-builder';
 
 /** Root directory where boilerplate templates are stored. */
 const BOILERPLATE_ROOT = path.resolve(
@@ -56,11 +57,24 @@ async function exists(targetPath: string): Promise<boolean> {
  * }
  * ```
  */
-export const scaffoldProjectTool: ITool = {
-    name: 'scaffold_project',
+export const scaffoldProjectTool = createTool({
+    id: 'scaffold_project',
     description:
         'Scaffold a project by copying a boilerplate template into generated-projects root. ' +
         'Input: { template: string, projectName: string, overwrite?: boolean, metadataFile?: string }',
+    inputSchema: z.object({
+        template: z.string().trim().min(1, '"template" must be a non-empty string'),
+        projectName: z.string().trim().min(1, '"projectName" must be a non-empty string'),
+        overwrite: z.boolean().optional(),
+        metadataFile: z.string().optional()
+    }),
+    outputSchema: z.object({
+        template: z.string(),
+        projectPath: z.string(),
+        outputRoot: z.string(),
+        boilerplateRoot: z.string(),
+        metadata: z.unknown().nullable()
+    }),
 
     /**
      * Copy the boilerplate template directory to the output root.
@@ -74,13 +88,6 @@ export const scaffoldProjectTool: ITool = {
      * @throws {Error} When inputs are invalid, template is missing, or target exists without overwrite.
      */
     async execute({ template, projectName, overwrite, metadataFile }) {
-        if (typeof template !== 'string' || template.trim() === '') {
-            throw new Error('"template" must be a non-empty string');
-        }
-        if (typeof projectName !== 'string' || projectName.trim() === '') {
-            throw new Error('"projectName" must be a non-empty string');
-        }
-
         const templatePath = resolveInsideRoot(BOILERPLATE_ROOT, template);
         const targetPath = resolveInsideRoot(PROJECT_OUTPUT_ROOT, projectName);
         const allowOverwrite = overwrite === true;
@@ -140,4 +147,4 @@ export const scaffoldProjectTool: ITool = {
             metadata
         };
     }
-};
+});

@@ -8,8 +8,7 @@
  * @module tools/csv.read
  */
 
-import fs from 'fs/promises';
-import { resolveSafePath } from '../shared';
+import { safeReadFile } from '../shared';
 import { createTool } from './tool-builder';
 import { z } from 'zod';
 
@@ -72,8 +71,7 @@ export const readCsvTool = createTool({
      * @returns `{ text, headers, rowCount }`.
      */
     async execute({ path: csvPath, delimiter = ',' }) {
-        const safePath = resolveSafePath(csvPath);
-        const raw = await fs.readFile(safePath, 'utf-8');
+        const raw = await safeReadFile(csvPath, 'utf-8');
 
         const lines = raw.split(/\r?\n/).filter((l) => l.trim() !== '');
         if (lines.length === 0) {

@@ -12,8 +12,7 @@
  * @module tools/docx.read
  */
 
-import fs from 'fs/promises';
-import { resolveSafePath } from '../shared';
+import { safeReadFile } from '../shared';
 import { createTool } from './tool-builder';
 import { z } from 'zod';
 
@@ -122,8 +121,7 @@ export const readDocxTool = createTool({
      * @returns `{ text }` with the extracted plain text.
      */
     async execute({ path: docxPath }) {
-        const safePath = resolveSafePath(docxPath);
-        const buffer = await fs.readFile(safePath);
+        const buffer = await safeReadFile(docxPath);
         const xml = await extractZipEntry(buffer, 'word/document.xml');
         const text = stripXml(xml);
         return { text };

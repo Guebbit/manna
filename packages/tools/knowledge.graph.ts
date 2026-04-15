@@ -24,10 +24,9 @@ import { z } from 'zod';
 import { createTool } from './tool-builder';
 import { extractEntitiesAndRelationships } from '../graph/extractor';
 import { runCypher, isGraphAvailable, ensureConstraints } from '../graph/client';
-import { resolveSafePath } from '../shared/path-safety';
+import { safeReadFile } from '../shared';
 import { logger } from '../logger/logger';
 import type { IGraphEntity, IGraphRelationship, IKnowledgeGraphIngestResult } from '../graph/types';
-import fs from 'fs/promises';
 
 /* ── Neo4j Cypher helpers ───────────────────────────────────────────── */
 
@@ -124,8 +123,7 @@ export const knowledgeGraphTool = createTool({
         if (text && text.trim()) {
             content = text;
         } else if (filePath) {
-            const safePath = resolveSafePath(filePath);
-            content = await fs.readFile(safePath, 'utf8');
+            content = await safeReadFile(filePath, 'utf8');
         } else {
             logger.warn('knowledge_graph_no_input', { component: 'tools.knowledge_graph' });
             return { entitiesMerged: 0, relationshipsMerged: 0, persisted: false };

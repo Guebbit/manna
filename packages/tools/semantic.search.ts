@@ -5,14 +5,13 @@
  * endpoint, then ranks by cosine similarity.  Returns the top-K
  * most relevant documents with their scores and text snippets.
  *
- * Uses the shared `resolveSafePath` helper for file-based inputs.
+ * Uses the shared `safeReadFile` helper for file-based inputs.
  *
  * @module tools/semantic.search
  */
 
-import fs from 'fs/promises';
 import { z } from 'zod';
-import { resolveSafePath, cosineSimilarity } from '../shared';
+import { cosineSimilarity, safeReadFile } from '../shared';
 import { getEmbedding } from '../llm/embeddings';
 import { OLLAMA_EMBED_MODEL } from '../llm/config';
 import { createTool } from './tool-builder';
@@ -98,8 +97,7 @@ export const semanticSearchTool = createTool({
                 if (typeof filePath !== 'string' || filePath.trim() === '') {
                     continue;
                 }
-                const safePath = resolveSafePath(filePath);
-                const content = await fs.readFile(safePath, 'utf-8');
+                const content = await safeReadFile(filePath, 'utf-8');
                 docs.push({
                     source: `file:${filePath}`,
                     text: content.slice(0, MAX_DOC_CHARS)

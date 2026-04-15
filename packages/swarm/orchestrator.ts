@@ -25,6 +25,7 @@ import { logger } from '../logger/logger';
 import { decomposeTask } from './decomposer';
 import type { IDecomposition, ISubtask, ISubtaskResult, ISwarmConfig, ISwarmResult } from './types';
 import { saveSwarmRun } from '../persistence/db';
+import { resolveModel } from '../shared';
 
 /* ── Environment ─────────────────────────────────────────────────────── */
 
@@ -32,12 +33,9 @@ import { saveSwarmRun } from '../persistence/db';
  * Model used for the final synthesis step.
  * Defaults to the reasoning model for best summarisation quality.
  */
-const SYNTHESIS_MODEL =
-    process.env.SWARM_SYNTHESIS_MODEL ??
-    process.env.AGENT_MODEL_REASONING ??
-    process.env.AGENT_MODEL_DEFAULT ??
-    process.env.OLLAMA_MODEL ??
-    'llama3';
+const SYNTHESIS_MODEL = resolveModel('reasoning', {
+    preferredModel: process.env.SWARM_SYNTHESIS_MODEL
+});
 
 /* ── SwarmOrchestrator ───────────────────────────────────────────────── */
 

@@ -26,7 +26,7 @@ import { addMemory, getMemory } from '../memory/memory';
 import { emit } from '../events/bus';
 import type { ITool } from '../tools';
 import { logger } from '../logger/logger';
-import { stripCodeFences } from '../shared';
+import { resolveModel, stripCodeFences } from '../shared';
 import { routeModel } from './model-router';
 import type { ModelProfile } from './model-router';
 import { agentStepSchema } from './schemas';
@@ -51,11 +51,7 @@ const MAX_STEPS = Number.parseInt(process.env.AGENTS_MAX_STEPS ?? '5', 10);
  * Fast model used for the self-debug summary on max-steps exhaustion.
  * Mirrors the value configured in the model router.
  */
-const FAST_MODEL =
-    process.env.AGENT_MODEL_FAST ??
-    process.env.AGENT_MODEL_DEFAULT ??
-    process.env.OLLAMA_MODEL ??
-    'llama3';
+const FAST_MODEL = resolveModel('fast');
 
 /**
  * Directory where diagnostic Markdown files are written.
