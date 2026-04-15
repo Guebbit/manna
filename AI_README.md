@@ -960,8 +960,6 @@ packages/
       ├── environment.ts  — validateRecommendedEnvironment(); startup env warnings
       ├── i18n.ts         — initI18n(); t(); i18next wrapper
       ├── mailer.ts       — isMailEnabled(); sendMail(); Nodemailer wrapper
-      ├── safe-read-file.ts — safeReadFile(); shared path-safe file-reading helper
-      ├── model-resolution.ts — resolveModel(); shared profile-based model fallback resolver
       ├── locales/
       │   └── en.json     — English translation strings
       └── index.ts        — re-exports all shared utilities
