@@ -32,10 +32,10 @@ export const imageProcessorOutputSchema = z.object({
 });
 
 /** Strongly typed base input inferred from the shared input schema. */
-type ImageProcessorInput = z.infer<typeof imageProcessorInputSchema>;
+export type ImageProcessorInput = z.infer<typeof imageProcessorInputSchema>;
 
 /** Strongly typed base output inferred from the shared output schema. */
-type ImageProcessorOutput = z.infer<typeof imageProcessorOutputSchema>;
+export type ImageProcessorOutput = z.infer<typeof imageProcessorOutputSchema>;
 
 /**
  * Options accepted by `createImageProcessorTool`.
@@ -106,6 +106,7 @@ export async function requestImageProcessor<TOutput>(
                 `Image processor ${endpoint} request timed out after ${IMAGE_PROCESSOR_TIMEOUT_MS}ms`
             );
         }
+
         throw error;
     } finally {
         clearTimeout(timeoutHandle);
@@ -124,8 +125,10 @@ export function createImageProcessorTool<
     TInput extends Record<string, unknown> = ImageProcessorInput,
     TOutput extends Record<string, unknown> = ImageProcessorOutput
 >(options: ICreateImageProcessorToolOptions<TInput, TOutput>) {
-    const inputSchema = (options.inputSchema ?? imageProcessorInputSchema) as z.ZodType<TInput>;
-    const outputSchema = (options.outputSchema ?? imageProcessorOutputSchema) as z.ZodType<TOutput>;
+    const inputSchema =
+        options.inputSchema ?? (imageProcessorInputSchema as unknown as z.ZodType<TInput>);
+    const outputSchema =
+        options.outputSchema ?? (imageProcessorOutputSchema as unknown as z.ZodType<TOutput>);
 
     return createTool<TInput, TOutput>({
         id: options.id,

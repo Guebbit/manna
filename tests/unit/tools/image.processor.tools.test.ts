@@ -118,6 +118,7 @@ describe('image processor tools', () => {
             style: 'watercolor'
         })) as Record<string, unknown>;
 
+        expect(mockedFetch).toHaveBeenCalledTimes(1);
         expect(result).toEqual({
             image: 'Y3VzdG9t',
             duration_ms: 111,

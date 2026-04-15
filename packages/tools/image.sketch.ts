@@ -14,7 +14,7 @@ import { createImageProcessorTool } from './image.processor.shared';
  */
 export const imageSketchTool = createImageProcessorTool({
     id: 'image_sketch',
+    endpoint: '/sketch',
     description:
-        'Generate a sketch/line-art version of an image. Input: { image: string (base64), prompt?: string, negative_prompt?: string }. Output: { image: string (base64), duration_ms: number, model: string }.',
-    endpoint: '/sketch'
+        'Generate a sketch/line-art version of an image. Input: { image: string (base64), prompt?: string, negative_prompt?: string }. Output: { image: string (base64), duration_ms: number, model: string }.'
 });

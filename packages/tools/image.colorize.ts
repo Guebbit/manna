@@ -14,7 +14,7 @@ import { createImageProcessorTool } from './image.processor.shared';
  */
 export const imageColorizeTool = createImageProcessorTool({
     id: 'image_colorize',
+    endpoint: '/colorize',
     description:
-        'Colorize a grayscale or sketch image. Input: { image: string (base64), prompt?: string, negative_prompt?: string }. Output: { image: string (base64), duration_ms: number, model: string }.',
-    endpoint: '/colorize'
+        'Colorize a grayscale or sketch image. Input: { image: string (base64), prompt?: string, negative_prompt?: string }. Output: { image: string (base64), duration_ms: number, model: string }.'
 });
