@@ -383,14 +383,15 @@ async function routeWithModel(input: IRouteInput): Promise<IModelRouteDecision> 
  * @returns A `ModelRouteDecision` describing the chosen model.
  */
 export async function routeModel(input: IRouteInput): Promise<IModelRouteDecision> {
-    /* Forced profile — bypass all routing; assume tools may be needed. */
+    /* Forced profile — bypass profile selection but still detect tool need via rules. */
     if (input.forcedProfile) {
+        const { requiresTools } = routeWithRules(input);
         return {
             profile: input.forcedProfile,
             model: resolveModel(input.forcedProfile),
             reason: 'forced_by_caller',
             options: resolveOptions(input.forcedProfile),
-            requiresTools: true
+            requiresTools
         };
     }
 

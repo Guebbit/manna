@@ -40,7 +40,7 @@ describe('routeModel — rules mode', () => {
         vi.resetModules();
     });
 
-    it('uses forced profile and bypasses all routing', async () => {
+    it('uses forced profile and bypasses profile routing but still detects tool need', async () => {
         const { routeModel } = await import('../../../packages/agent/model-router.js');
         const result = await routeModel({
             task: 'anything',
@@ -50,6 +50,34 @@ describe('routeModel — rules mode', () => {
         });
         expect(result.profile).toBe('code');
         expect(result.reason).toBe('forced_by_caller');
+        /* "anything" has no tool-signal keywords and step === 0 → requiresTools must be false */
+        expect(result.requiresTools).toBe(false);
+    });
+
+    it('forced profile with conversational task yields requiresTools false', async () => {
+        const { routeModel } = await import('../../../packages/agent/model-router.js');
+        const result = await routeModel({
+            task: 'hello, how are you?',
+            context: '',
+            step: 0,
+            forcedProfile: 'default'
+        });
+        expect(result.profile).toBe('default');
+        expect(result.reason).toBe('forced_by_caller');
+        expect(result.requiresTools).toBe(false);
+    });
+
+    it('forced profile with tool-signal task yields requiresTools true', async () => {
+        const { routeModel } = await import('../../../packages/agent/model-router.js');
+        const result = await routeModel({
+            task: 'read the config.json file',
+            context: '',
+            step: 0,
+            forcedProfile: 'default'
+        });
+        expect(result.profile).toBe('default');
+        expect(result.reason).toBe('forced_by_caller');
+        expect(result.requiresTools).toBe(true);
     });
 
     it('routes to code profile for a task containing "typescript"', async () => {
