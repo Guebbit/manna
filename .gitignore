@@ -30,6 +30,8 @@ Thumbs.db
 # Data directory contents (keep the folder, ignore actual data files)
 data/*
 !data/.gitkeep
+data/mcp-servers.json
+!data/mcp-servers.json.example
 !data/diagnostics/
 !data/diagnostics/.gitkeep
 # Diagnostic log files written by the agent (test or production runs)

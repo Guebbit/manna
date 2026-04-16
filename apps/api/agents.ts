@@ -11,6 +11,7 @@
 
 import { Agent } from "../../packages/agent/agent";
 import type { ModelProfile } from "../../packages/agent/model-router";
+import { loadMCPTools } from "../../packages/mcp";
 import { LangGraphSwarmOrchestrator } from "../../packages/orchestrator/graph";
 import type { IProcessor } from "../../packages/processors/types";
 import {
@@ -37,13 +38,14 @@ import {
   knowledgeGraphTool,
   queryKnowledgeGraphTool,
 } from "../../packages/tools/index";
+import { getLogger } from "../../packages/logger/logger";
 import { verificationProcessor } from "../../packages/processors/verification";
 import { createToolRerankerProcessor } from "../../packages/processors/tool-reranker";
 
 /* ── Tool sets ───────────────────────────────────────────────────────── */
 
 /** Tools that only read data — always available. */
-const readOnlyTools = [
+const nativeReadOnlyTools = [
   readFileTool,
   shellTool,
   mysqlQueryTool,
@@ -65,11 +67,20 @@ const readOnlyTools = [
 ];
 
 /** Tools that mutate the filesystem or data stores — only enabled when `allowWrite` is `true`. */
-const writeTools = [writeFileTool, scaffoldProjectTool, documentIngestTool, knowledgeGraphTool];
+const nativeWriteTools = [writeFileTool, scaffoldProjectTool, documentIngestTool, knowledgeGraphTool];
+
+/** Runtime read-only tool set (native + MCP, once loaded). */
+let readOnlyTools = [...nativeReadOnlyTools];
+
+/** Runtime write-enabled tool set (native + MCP write tools, once loaded). */
+let writeTools = [...nativeWriteTools];
+
+/** Component-scoped logger for agent bootstrap steps. */
+const agentsLogger = getLogger("api.agents");
 
 /* ── Tool description map for the reranker ───────────────────────────── */
 
-const allToolDescriptionMap = new Map<string, string>(
+let allToolDescriptionMap = new Map<string, string>(
   [...readOnlyTools, ...writeTools].map((t) => [t.name, t.description]),
 );
 
@@ -110,15 +121,57 @@ function attachProcessors(agent: Agent): Agent {
   return agent;
 }
 
+/**
+ * Rebuild both shared agent instances using the current runtime tool sets.
+ *
+ * @returns Nothing.
+ */
+function rebuildAgents(): void {
+  allToolDescriptionMap = new Map<string, string>(
+    [...readOnlyTools, ...writeTools].map((tool) => [tool.name, tool.description]),
+  );
+
+  readOnlyAgent = attachProcessors(new Agent(readOnlyTools));
+  writeEnabledAgent = attachProcessors(new Agent([...readOnlyTools, ...writeTools]));
+}
+
 /* ── Agent instances (shared across requests) ────────────────────────── */
 
 /** Agent with read-only tool access (default). */
-export const readOnlyAgent = attachProcessors(new Agent(readOnlyTools));
+export let readOnlyAgent = attachProcessors(new Agent(readOnlyTools));
 
 /** Agent with both read and write tool access. */
-export const writeEnabledAgent = attachProcessors(
+export let writeEnabledAgent = attachProcessors(
   new Agent([...readOnlyTools, ...writeTools]),
 );
+
+/**
+ * Load MCP tools (fail-open) and rebuild shared agent singletons.
+ *
+ * This must be called during API startup, before `app.listen()`, so MCP
+ * tools are available for the first request.
+ *
+ * @returns Nothing.
+ */
+export async function initializeAgents(): Promise<void> {
+  try {
+    const { readTools, writeTools: discoveredWriteTools, meta } = await loadMCPTools();
+    readOnlyTools = [...nativeReadOnlyTools, ...readTools];
+    writeTools = [...nativeWriteTools, ...discoveredWriteTools];
+    rebuildAgents();
+
+    agentsLogger.info("mcp_tools_loaded", {
+      readTools: readTools.length,
+      writeTools: discoveredWriteTools.length,
+      totalMCPTools: meta.length,
+    });
+  } catch (error) {
+    readOnlyTools = [...nativeReadOnlyTools];
+    writeTools = [...nativeWriteTools];
+    rebuildAgents();
+    agentsLogger.warn("mcp_tools_load_failed", { error: String(error) });
+  }
+}
 
 /** Recognised model profile names for request validation. */
 export const VALID_PROFILES = new Set<ModelProfile>(["fast", "reasoning", "code", "default"]);

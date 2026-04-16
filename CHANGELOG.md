@@ -11,6 +11,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ### Added
 
+- **MCP bridge integration** (`packages/mcp/`):
+    - Added startup MCP loader that reads `data/mcp-servers.json`, connects to configured MCP servers, discovers `tools/list`, and wraps each tool as a native `ITool`.
+    - MCP tools are namespaced as `mcp_<server>__<tool>` and merged into the same tool registries used by the agent loop and tool reranker.
+    - Fail-open behavior: missing config, disabled bridge, or unreachable servers never block startup; failed servers are skipped with warnings.
+- New MCP environment variables: `MCP_ENABLED`, `MCP_CONFIG_PATH`, `MCP_CONNECT_TIMEOUT_MS`.
+
 - **Repository-wide response metadata (`meta`) for JSON API responses**:
     - `packages/shared/response.ts` now supports an optional typed `meta` object on successful envelopes.
     - Added normalized metadata to core, info, IDE, upload, swarm, and workflow JSON endpoints (duration/start time and request ID everywhere; model/tokens/steps/tool/context where available).
