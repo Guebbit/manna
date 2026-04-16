@@ -17,9 +17,9 @@ import type express from "express";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import ts from "typescript";
-import { generateWithMetadata } from "../../packages/llm/ollama";
-import { logger } from "../../packages/logger/logger";
-import { type IResponseMeta, rejectResponse, successResponse, t } from "../../packages/shared";
+import { generateWithMetadata } from "@/packages/llm/ollama";
+import { logger } from "@/packages/logger/logger";
+import { type IResponseMeta, rejectResponse, successResponse, t } from "@/packages/shared";
 import type {
   AutocompleteRequest,
   AutocompleteResponse,
@@ -27,7 +27,7 @@ import type {
   LintResponse,
   PageReviewRequest,
   PageReviewResponse,
-} from "../../api/models";
+} from "@/api/models";
 
 /** Names of the IDE endpoints, used as keys for rate-limit and timeout maps. */
 type EndpointName = "autocomplete" | "lint-conventions" | "page-review";

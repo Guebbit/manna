@@ -52,7 +52,7 @@ import {
     runCypher,
     ensureConstraints,
     closeDriver
-} from '../../../packages/graph/client.js';
+} from '@/packages/graph/client.js';
 
 describe('graph/client', () => {
     beforeEach(async () => {

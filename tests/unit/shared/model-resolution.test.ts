@@ -3,7 +3,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { resolveModel } from '../../../packages/shared/model-resolution.js';
+import { resolveModel } from '@/packages/shared/model-resolution.js';
 
 const MODEL_ENV_KEYS = [
     'AGENT_MODEL_FAST',

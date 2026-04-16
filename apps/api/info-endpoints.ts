@@ -14,8 +14,8 @@
  */
 
 import type express from "express";
-import { logger } from "../../packages/logger/logger";
-import { rejectResponse, successResponse } from "../../packages/shared";
+import { logger } from "@/packages/logger/logger";
+import { rejectResponse, successResponse } from "@/packages/shared";
 import { VALID_PROFILES } from "./agents";
 
 /* ── Constants ───────────────────────────────────────────────────────── */

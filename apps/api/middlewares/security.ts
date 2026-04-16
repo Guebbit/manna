@@ -7,7 +7,7 @@
 import crypto from 'node:crypto';
 import { rateLimit } from 'express-rate-limit';
 import type { NextFunction, Request, Response } from 'express';
-import { envInt } from '../../../packages/shared/env';
+import { envInt } from '@/packages/shared/env';
 
 /**
  * Parse a positive integer environment variable with safe fallback.

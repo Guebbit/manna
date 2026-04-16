@@ -12,9 +12,9 @@
  */
 
 import type { Express, Request, Response } from "express";
-import { on, off } from "../../packages/events/bus";
-import type { IAgentEvent } from "../../packages/events/bus";
-import { logger } from "../../packages/logger/logger";
+import { on, off } from "@/packages/events/bus";
+import type { IAgentEvent } from "@/packages/events/bus";
+import { logger } from "@/packages/logger/logger";
 import {
   rejectResponse,
   successResponse,
@@ -24,11 +24,11 @@ import {
   setupSSEHeaders,
   onSSEClose,
   t,
-} from "../../packages/shared";
+} from "@/packages/shared";
 import { createSwarmOrchestrator, VALID_PROFILES } from "./agents";
-import type { ModelProfile } from "../../packages/agent/model-router";
-import type { ISwarmConfig } from "../../packages/swarm/types";
-import type { SwarmRequest, SwarmResponse } from "../../api/models";
+import type { ModelProfile } from "@/packages/agent/model-router";
+import type { ISwarmConfig } from "@/packages/swarm/types";
+import type { SwarmRequest, SwarmResponse } from "@/api/models";
 import { writeSwarmEventToSse } from "./sse-event-bridge";
 
 /**

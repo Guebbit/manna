@@ -28,9 +28,9 @@
 
 import { z } from 'zod';
 import type { Express, Request, Response } from 'express';
-import { on, off } from '../../packages/events/bus';
-import type { IAgentEvent } from '../../packages/events/bus';
-import { logger } from '../../packages/logger/logger';
+import { on, off } from '@/packages/events/bus';
+import type { IAgentEvent } from '@/packages/events/bus';
+import { logger } from '@/packages/logger/logger';
 import {
     envInt,
     rejectResponse,
@@ -40,15 +40,15 @@ import {
     setupSSEHeaders,
     onSSEClose,
     t,
-} from '../../packages/shared';
+} from '@/packages/shared';
 import { createAgent, VALID_PROFILES } from './agents';
-import type { ModelProfile } from '../../packages/agent/model-router';
+import type { ModelProfile } from '@/packages/agent/model-router';
 import { writeAgentEventToSse } from './sse-event-bridge';
 import type {
     WorkflowRequest as OpenApiWorkflowRequest,
     WorkflowResponse as OpenApiWorkflowResponse,
     WorkflowStepResult as OpenApiWorkflowStepResult,
-} from '../../api/models';
+} from '@/api/models';
 
 /* ── Constants ───────────────────────────────────────────────────────── */
 

@@ -27,9 +27,9 @@ import cors from "cors";
 import express, { type NextFunction, type Request, type Response } from "express";
 import helmet from "helmet";
 import { MulterError } from "multer";
-import type { ModelProfile } from "../../packages/agent/model-router";
-import { on } from "../../packages/events/bus";
-import { logger } from "../../packages/logger/logger";
+import type { ModelProfile } from "@/packages/agent/model-router";
+import { on } from "@/packages/events/bus";
+import { logger } from "@/packages/logger/logger";
 import {
   envInt,
   ExtendedError,
@@ -40,7 +40,7 @@ import {
   validateProfile,
   t,
   validateRecommendedEnvironment
-} from "../../packages/shared";
+} from "@/packages/shared";
 import { registerIdeRoutes } from "./ide-endpoints";
 import { registerUploadRoutes } from "./upload-endpoints";
 import { registerStreamRoutes } from "./stream-endpoints";
@@ -48,10 +48,10 @@ import { registerSwarmRoutes } from "./swarm-endpoints";
 import { registerInfoRoutes } from "./info-endpoints";
 import { registerWorkflowRoutes } from "./workflow-endpoints";
 import { createAgent, initializeAgents, VALID_PROFILES } from "./agents";
-import { runMigrations } from "../../packages/persistence/migrate";
+import { runMigrations } from "@/packages/persistence/migrate";
 import { rateLimiter, requestIdMiddleware } from "./middlewares/security";
-import type { HealthResponse, RunRequest, RunResponse } from "../../api/models";
-import enTranslation from "../../packages/shared/locales/en.json";
+import type { HealthResponse, RunRequest, RunResponse } from "@/api/models";
+import enTranslation from "@/packages/shared/locales/en.json";
 
 /* ── Observability: log every agent/tool event to stdout ─────────────── */
 on("*", (event) => {

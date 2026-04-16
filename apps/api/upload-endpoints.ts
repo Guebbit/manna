@@ -26,9 +26,9 @@ import {
   imageColorizeTool,
   speechToTextTool,
   readPdfTool
-} from "../../packages/tools/index";
-import { logger } from "../../packages/logger/logger";
-import { type IResponseMeta, rejectResponse, successResponse, t } from "../../packages/shared";
+} from "@/packages/tools/index";
+import { logger } from "@/packages/logger/logger";
+import { type IResponseMeta, rejectResponse, successResponse, t } from "@/packages/shared";
 import { upload } from "./middlewares/multer";
 
 /**

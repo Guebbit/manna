@@ -19,9 +19,9 @@
  */
 
 import type { Express, Request, Response } from "express";
-import { on, off } from "../../packages/events/bus";
-import type { IAgentEvent } from "../../packages/events/bus";
-import { logger } from "../../packages/logger/logger";
+import { on, off } from "@/packages/events/bus";
+import type { IAgentEvent } from "@/packages/events/bus";
+import { logger } from "@/packages/logger/logger";
 import {
   rejectResponse,
   validateTask,
@@ -29,10 +29,10 @@ import {
   sseFrame,
   setupSSEHeaders,
   onSSEClose,
-} from "../../packages/shared";
+} from "@/packages/shared";
 import { createAgent, VALID_PROFILES } from "./agents";
-import type { ModelProfile } from "../../packages/agent/model-router";
-import type { RunRequest } from "../../api/models";
+import type { ModelProfile } from "@/packages/agent/model-router";
+import type { RunRequest } from "@/api/models";
 import { writeAgentEventToSse } from "./sse-event-bridge";
 
 /**

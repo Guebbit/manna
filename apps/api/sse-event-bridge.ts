@@ -1,5 +1,5 @@
-import type { IAgentEvent } from "../../packages/events/bus";
-import { SSE_PAYLOAD_MAX_LENGTH } from "../../packages/shared";
+import type { IAgentEvent } from "@/packages/events/bus";
+import { SSE_PAYLOAD_MAX_LENGTH } from "@/packages/shared";
 
 type WriteEvent = (eventType: string, data: unknown) => void;
 

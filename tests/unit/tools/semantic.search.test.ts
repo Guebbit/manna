@@ -6,7 +6,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { semanticSearchTool } from '../../../packages/tools/semantic.search.js';
+import { semanticSearchTool } from '@/packages/tools/semantic.search.js';
 
 describe('semanticSearchTool', () => {
     beforeEach(() => {

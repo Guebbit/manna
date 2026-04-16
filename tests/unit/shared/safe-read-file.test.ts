@@ -5,7 +5,7 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import fs from 'fs/promises';
 import path from 'path';
-import { safeReadFile } from '../../../packages/shared/safe-read-file.js';
+import { safeReadFile } from '@/packages/shared/safe-read-file.js';
 
 const temporaryDirectory = path.join(process.cwd(), 'data', 'tmp-safe-read-file-tests');
 

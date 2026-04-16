@@ -9,7 +9,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
-import { resolveSafePath, resolveInsideRoot } from '../../../packages/shared/path-safety.js';
+import { resolveSafePath, resolveInsideRoot } from '@/packages/shared/path-safety.js';
 
 describe('resolveSafePath', () => {
     it('resolves a simple relative path within the project root', () => {

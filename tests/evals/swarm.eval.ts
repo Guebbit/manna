@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { LangGraphSwarmOrchestrator } from '../../packages/orchestrator/graph.js';
+import { LangGraphSwarmOrchestrator } from '@/packages/orchestrator/graph.js';
 
 describe('[eval] LangGraphSwarmOrchestrator — end-to-end', () => {
     it('decomposes and synthesises a simple two-part task', async () => {

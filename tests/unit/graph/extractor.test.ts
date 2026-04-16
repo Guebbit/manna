@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { extractEntitiesAndRelationships } from '../../../packages/graph/extractor.js';
+import { extractEntitiesAndRelationships } from '@/packages/graph/extractor.js';
 
 /* ── helpers ─────────────────────────────────────────────────────────── */
 

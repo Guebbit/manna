@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { Agent } from '../../packages/agent/agent.js';
+import { Agent } from '@/packages/agent/agent.js';
 
 describe('[eval] Agent loop — single-agent end-to-end', () => {
     it('returns a non-empty answer for a trivial task', async () => {

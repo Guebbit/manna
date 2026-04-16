@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { agentStepSchema } from '../../../packages/agent/schemas.js';
+import { agentStepSchema } from '@/packages/agent/schemas.js';
 
 describe('agentStepSchema', () => {
     it('parses a valid step with a tool action', () => {
