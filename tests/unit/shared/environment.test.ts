@@ -3,7 +3,7 @@
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { validateRecommendedEnvironment } from '../../../packages/shared/environment.js';
+import { validateRecommendedEnvironment } from '@/packages/shared/environment.js';
 
 describe('validateRecommendedEnvironment', () => {
     afterEach(() => {

@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { chunkText } from '../../../packages/shared/chunker.js';
+import { chunkText } from '@/packages/shared/chunker.js';
 
 describe('chunkText', () => {
     it('returns an empty array for empty input', () => {

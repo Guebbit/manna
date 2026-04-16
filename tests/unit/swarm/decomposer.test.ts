@@ -27,8 +27,8 @@ vi.mock('../../../packages/logger/logger.js', () => ({
     }
 }));
 
-import { generate } from '../../../packages/llm/ollama.js';
-import { decomposeTask } from '../../../packages/swarm/decomposer.js';
+import { generate } from '@/packages/llm/ollama.js';
+import { decomposeTask } from '@/packages/swarm/decomposer.js';
 
 const mockGenerate = generate as ReturnType<typeof vi.fn>;
 

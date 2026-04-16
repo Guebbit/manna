@@ -15,8 +15,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Agent } from '../../../packages/agent/agent.js';
-import type { ITool } from '../../../packages/tools/types.js';
+import { Agent } from '@/packages/agent/agent.js';
+import type { ITool } from '@/packages/tools/types.js';
 
 /* ── Mock persistence (PostgreSQL) and diagnostics ───────────────────── */
 vi.mock('../../../packages/persistence/db.js', () => ({

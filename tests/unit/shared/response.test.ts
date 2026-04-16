@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { generateReject, generateSuccess } from '../../../packages/shared/response.js';
+import { generateReject, generateSuccess } from '@/packages/shared/response.js';
 
 describe('generateSuccess', () => {
     it('builds a success envelope with defaults', () => {

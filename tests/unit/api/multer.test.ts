@@ -4,7 +4,7 @@
 
 import type { Express } from 'express';
 import { describe, it, expect, vi } from 'vitest';
-import { ALLOWED_MIME_TYPES, upload } from '../../../apps/api/middlewares/multer.js';
+import { ALLOWED_MIME_TYPES, upload } from '@/apps/api/middlewares/multer.js';
 
 describe('ALLOWED_MIME_TYPES', () => {
     it('contains the expected MIME types', () => {

@@ -9,12 +9,12 @@
  * @module apps/api/agents
  */
 
-import { Agent } from "../../packages/agent/agent";
-import type { ModelProfile } from "../../packages/agent/model-router";
-import { loadMCPTools } from "../../packages/mcp";
-import { logger } from "../../packages/logger/logger";
-import { LangGraphSwarmOrchestrator } from "../../packages/orchestrator/graph";
-import type { IProcessor } from "../../packages/processors/types";
+import { Agent } from "@/packages/agent/agent";
+import type { ModelProfile } from "@/packages/agent/model-router";
+import { loadMCPTools } from "@/packages/mcp";
+import { logger } from "@/packages/logger/logger";
+import { LangGraphSwarmOrchestrator } from "@/packages/orchestrator/graph";
+import type { IProcessor } from "@/packages/processors/types";
 import {
   readFileTool,
   writeFileTool,
@@ -38,9 +38,9 @@ import {
   documentIngestTool,
   knowledgeGraphTool,
   queryKnowledgeGraphTool,
-} from "../../packages/tools/index";
-import { verificationProcessor } from "../../packages/processors/verification";
-import { createToolRerankerProcessor } from "../../packages/processors/tool-reranker";
+} from "@/packages/tools/index";
+import { verificationProcessor } from "@/packages/processors/verification";
+import { createToolRerankerProcessor } from "@/packages/processors/tool-reranker";
 
 /* ── Tool sets ───────────────────────────────────────────────────────── */
 

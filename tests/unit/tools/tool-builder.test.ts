@@ -8,7 +8,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { z } from 'zod';
-import { createTool } from '../../../packages/tools/tool-builder.js';
+import { createTool } from '@/packages/tools/tool-builder.js';
 
 describe('createTool', () => {
     it('creates a tool with the correct name and description', () => {

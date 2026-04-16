@@ -5,7 +5,7 @@
  */
 
 import multer from "multer";
-import { t } from "../../../packages/shared";
+import { t } from "@/packages/shared";
 
 /**
  * Allowed MIME types for upload endpoints.

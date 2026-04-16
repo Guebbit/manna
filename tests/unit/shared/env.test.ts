@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { envFloat, envInt } from '../../../packages/shared/env.js';
+import { envFloat, envInt } from '@/packages/shared/env.js';
 
 describe('envFloat', () => {
     it('returns the parsed float when value is a valid numeric string', () => {

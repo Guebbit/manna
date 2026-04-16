@@ -14,7 +14,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { LangGraphSwarmOrchestrator } from '../../../packages/orchestrator/graph.js';
+import { LangGraphSwarmOrchestrator } from '@/packages/orchestrator/graph.js';
 
 /* ── Mock persistence and diagnostics (not under test) ───────────────── */
 vi.mock('../../../packages/persistence/db.js', () => ({

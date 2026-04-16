@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { optimizeContextWindow } from '../../../packages/memory/memory.js';
+import { optimizeContextWindow } from '@/packages/memory/memory.js';
 
 describe('optimizeContextWindow', () => {
     it('returns an empty array when given an empty entries list', () => {
