@@ -18,6 +18,7 @@ export default withMermaid(
                 { text: 'Packages', link: '/packages/' },
                 { text: 'Theory', link: '/theory/agent-loop' },
                 { text: 'Scenarios', link: '/scenarios' },
+                { text: 'Examples', link: '/examples/' },
                 { text: 'Glossary', link: '/glossary' }
             ],
             sidebar: [
@@ -28,6 +29,7 @@ export default withMermaid(
                         { text: 'Use the Application', link: '/use-the-application' },
                         { text: 'Endpoint Map', link: '/endpoint-map' },
                         { text: 'Library Ingestion & Search', link: '/library-ingestion' },
+                        { text: 'Practical Examples', link: '/examples/' },
                         { text: 'Scenarios & Tests', link: '/scenarios' },
                         { text: 'Ollama Models', link: '/infra/ollama-models' },
                         { text: 'Ollama Notes', link: '/infra/ollama-notes' },

@@ -11,6 +11,7 @@ This documentation is now organized into **5 clear tracks**:
 3. **Architecture** → [/theory/how-it-works-layered](/theory/how-it-works-layered)
 4. **Modeling & Routing** → [/model-selection](/model-selection)
 5. **Package Reference** → [/packages/](/packages/)
+6. **Practical Examples** → [/examples/](/examples/) — real-world walkthroughs with curl commands, event logs, and Mermaid diagrams
 
 **New — Library & RAG:**
 
@@ -53,6 +54,7 @@ flowchart LR
 ## Fast links
 
 - Endpoint Map: [/endpoint-map](/endpoint-map)
+- Practical Examples: [/examples/](/examples/)
 - Library Ingestion & Search: [/library-ingestion](/library-ingestion)
 - RAG Theory: [/theory/RAG](/theory/RAG)
 - Vector Databases: [/theory/VECTOR_DATABASES](/theory/VECTOR_DATABASES)
