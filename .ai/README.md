@@ -15,7 +15,7 @@ System
   - IDE direct (no loop): `/autocomplete`, `/lint-conventions`, `/page-review`
   - Info (no LLM): `/info/modes`, `/info/models`, `/help`
 
-Execution loop (`POST /run`)
+Execution graph (`POST /run`)
 ```text
 handler: apps/api/index.ts
 input: { task, allowWrite?, profile? }

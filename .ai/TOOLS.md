@@ -1,6 +1,6 @@
 # Tool registry + lifecycle
 
-Native tool registry (`tool -> file [write]`)
+Native tool registry
 - `read_file` -> `packages/tools/fs.read.ts` [no]
 - `write_file` -> `packages/tools/fs.write.ts` [yes]
 - `shell` -> `packages/tools/shell.ts` [no]
