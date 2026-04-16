@@ -48,7 +48,9 @@ export default withMermaid(
                         { text: 'MCP Theory', link: '/theory/MCP' },
                         { text: 'Model Selection & Routing', link: '/model-selection' },
                         { text: 'RAG Theory', link: '/theory/RAG' },
-                        { text: 'Vector Databases', link: '/theory/VECTOR_DATABASES' }
+                        { text: 'Vector Databases', link: '/theory/VECTOR_DATABASES' },
+                        { text: 'LoRA & Fine-Tuning', link: '/theory/lora-fine-tuning' },
+                        { text: 'LoRA Practical Guide', link: '/theory/lora-practical' }
                     ]
                 },
                 {
