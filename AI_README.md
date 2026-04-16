@@ -233,6 +233,8 @@ Tools registered per request in `apps/api/agents.ts`:
 
 Write tools (`write_file`, `scaffold_project`, `document_ingest`, `knowledge_graph`) are only registered when the request body contains `"allowWrite": true`.
 
+**Dynamic MCP tools**: on startup, Manna can discover external MCP tools from configured servers and register them alongside native tools. These tools are always namespaced as `mcp_<server>__<tool>` (for example: `mcp_github__create_issue`) to prevent collisions.
+
 **Exported but not yet registered**: `pg_query` (`pg.query.ts`) and `mongo_query` (`mongo.query.ts`) are fully implemented and exported from `packages/tools/index.ts` but are not imported in `apps/api/agents.ts`. To enable them, add them to the `readOnlyTools` array in `agents.ts`.
 
 ---
@@ -332,6 +334,53 @@ Each processor instance lazily embeds its tool descriptions and caches vectors k
 | ----------------------- | ------- | --------------------- |
 | `TOOL_RERANKER_ENABLED` | `false` | Enable tool reranking |
 | `TOOL_RERANKER_TOP_N`   | `10`    | Max tools per step    |
+
+---
+
+## MCP Bridge
+
+MCP (Model Context Protocol) is a standard tool protocol that allows Manna to connect to external tool servers (for example GitHub, filesystem, or custom servers) and consume their tools without implementing each integration natively. At startup, Manna reads `data/mcp-servers.json` (or `MCP_CONFIG_PATH`), connects to each server (`stdio` or `sse` transport), discovers tools via `tools/list`, wraps each tool into native `ITool`, and registers them with the agent.
+
+Configuration:
+
+- Runtime config file: `data/mcp-servers.json` (gitignored)
+- Example template: `data/mcp-servers.json.example`
+- Kill switch: `MCP_ENABLED=false`
+
+Tool namespacing:
+
+- Every discovered tool is registered as `mcp_<server>__<originalToolName>`
+- Example: `mcp_github__create_issue`
+
+Startup flow:
+
+```mermaid
+sequenceDiagram
+    participant API as apps/api/index.ts
+    participant Agents as apps/api/agents.ts
+    participant Loader as packages/mcp/loader.ts
+    participant Server as MCP Server
+
+    API->>Agents: initializeAgents()
+    Agents->>Loader: loadMCPTools()
+    Loader->>Loader: read + validate mcp-servers.json
+    loop each server
+        Loader->>Server: connect (stdio/sse)
+        Server-->>Loader: connected / error
+        Loader->>Server: tools/list
+        Server-->>Loader: tool descriptors
+        Loader->>Loader: wrap as ITool (mcp_server__tool)
+    end
+    Loader-->>Agents: { readTools, writeTools, meta }
+    Agents-->>API: rebuilt agent tool arrays
+```
+
+Failure modes (fail-open):
+
+- Config file missing → logs info, MCP disabled for this run
+- `MCP_ENABLED=false` → skips loading entirely
+- Server unreachable / timeout / spawn error → logs warning, skips only that server
+- Startup and API server still continue normally even when all MCP servers fail
 
 ---
 
@@ -512,6 +561,9 @@ SSE events for `/run/swarm/stream`:
 | `TOOL_DIAGRAM_MODEL`                     | `AGENT_MODEL_CODE`          | Model used to generate Mermaid diagram markup                                                                                                         |
 | `TOOL_RERANKER_ENABLED`                  | `false`                     | Enable tool reranker processor                                                                                                                        |
 | `TOOL_RERANKER_TOP_N`                    | `10`                        | Max tools passed to agent per step when reranker is on                                                                                                |
+| `MCP_ENABLED`                            | `true`                      | Global MCP bridge kill switch (`false` disables MCP startup loading)                                                                                  |
+| `MCP_CONFIG_PATH`                        | `data/mcp-servers.json`     | Path to MCP server config file                                                                                                                        |
+| `MCP_CONNECT_TIMEOUT_MS`                 | `5000`                      | Per-server MCP connect/list/call timeout (ms)                                                                                                         |
 | `DIAGRAM_OUTPUT_DIR`                     | `data/diagrams`             | Output directory for rendered diagrams                                                                                                                |
 | `DIAGNOSTIC_LOG_ENABLED`                 | `true`                      | Toggle diagnostic Markdown file output                                                                                                                |
 | `DIAGNOSTIC_LOG_DIR`                     | `data/diagnostics`          | Output folder for diagnostic logs                                                                                                                     |
@@ -646,6 +698,11 @@ SSE events for `/run/swarm/stream`:
 │   │   ├── verification.ts   — verificationProcessor; post-tool verification gate
 │   │   ├── tool-reranker.ts  — createToolRerankerProcessor(); embedding-based top-N tool selection
 │   │   └── index.ts
+│   ├── mcp/
+│   │   ├── types.ts          — IMCPServerConfig, IMCPConfig, IMCPToolMeta
+│   │   ├── health.ts         — checkMCPServerHealth(); lightweight MCP ping via listTools
+│   │   ├── loader.ts         — loadMCPTools(); config parse + connect + discover + ITool wrapping
+│   │   └── index.ts          — re-exports MCP bridge symbols
 │   ├── shared/
 │   │   ├── env.ts            — envFloat(); envInt() helpers
 │   │   ├── path-safety.ts    — resolveSafePath(); resolveInsideRoot()
@@ -703,6 +760,7 @@ SSE events for `/run/swarm/stream`:
 │       └── swarm.eval.ts     — swarm end-to-end flow
 ├── data/                     — runtime data; gitignored
 │   ├── boilerplates/         — template sources for scaffold_project
+│   ├── mcp-servers.json.example — MCP server config template (committed example)
 │   ├── diagrams/             — output of generate_diagram (SVG/PNG + .mmd sources)
 │   ├── diagnostics/          — timestamped Markdown diagnostic logs (one per incident)
 │   ├── generated-projects/   — output of write_file / scaffold_project
@@ -731,6 +789,9 @@ SSE events for `/run/swarm/stream`:
 - Diagnostic logs: written only to `DIAGNOSTIC_LOG_DIR` (default `data/diagnostics`); output path validated via `resolveInsideRoot`.
 - Verification processor: disabled by default (`AGENT_VERIFICATION_ENABLED=false`); opt-in only. Fails open — a verification call error does not block the agent.
 - Tool reranker: disabled by default (`TOOL_RERANKER_ENABLED=false`); opt-in only. Fails open — a reranking error returns the original tool list.
+- MCP bridge: disabled when `MCP_ENABLED=false` or when config file is missing; fail-open on per-server errors/timeouts/spawn failures (logs warning, skips server, never crashes startup).
+- MCP tool namespacing: all discovered MCP tools are prefixed with `mcp_` and include a server namespace (`mcp_<server>__<tool>`) to prevent collisions with native tool names.
+- MCP env interpolation: stdio server env entries support `${VAR}` interpolation from `process.env`; secrets are resolved in-memory only and are never written to disk.
 - PostgreSQL persistence: all `saveAgentRun` / `saveSwarmRun` / `saveEvalResult` calls are wrapped in `.catch()` in the agent/swarm; a DB outage only emits a warning log and never crashes the agent. Set `MANNA_DB_ENABLED=false` to disable entirely.
 - Global Express error handler catches `MulterError`, `ExtendedError`, and generic `Error`; all rejections flow through `rejectResponse` with a typed envelope.
 - Nodemailer (`sendMail`) is only active when `SMTP_HOST` is set; `isMailEnabled()` must be checked before calling `sendMail()`; a missing SMTP config never crashes the server.
@@ -744,6 +805,7 @@ SSE events for `/run/swarm/stream`:
 2. Export the instance from `packages/tools/index.ts`.
 3. Import and add to `readOnlyTools` (or `writeTools`) array in `apps/api/index.ts`.
 4. No other registration is needed; the agent discovers tools from the array passed to its constructor.
+5. For MCP-based tools, manual tool registration is not needed: configure the MCP server in `data/mcp-servers.json`, restart Manna, and tools are auto-discovered at startup.
 
 ---
 
@@ -767,6 +829,8 @@ SSE events for `/run/swarm/stream`:
 | Change review/retry logic   | `createReviewNode()` in `packages/orchestrator/nodes.ts`; adjust `SWARM_MAX_REVIEW_RETRIES` env var   |
 | Enable verification         | Set `AGENT_VERIFICATION_ENABLED=true`; optionally set `AGENT_VERIFICATION_MODEL`                      |
 | Enable tool reranking       | Set `TOOL_RERANKER_ENABLED=true`; optionally set `TOOL_RERANKER_TOP_N`                                |
+| Add an MCP integration      | Add a server entry in `data/mcp-servers.json`, then restart Manna                                     |
+| Disable MCP                 | Set `MCP_ENABLED=false`                                                                               |
 | Query the knowledge graph   | Use `query_knowledge_graph` tool (entity, relationship, or Cypher mode); see `docs/packages/graph.md` |
 | Change NER extraction model | Set `GRAPH_NER_MODEL` env var; default is `AGENT_MODEL_FAST`                                          |
 

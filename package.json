@@ -41,6 +41,7 @@
     "dependencies": {
         "@langchain/core": "^1.1.39",
         "@langchain/langgraph": "^1.2.8",
+        "@modelcontextprotocol/sdk": "^1.29.0",
         "@qdrant/js-client-rest": "^1.15.1",
         "cors": "^2.8.6",
         "express": "^4.21.2",

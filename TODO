@@ -36,10 +36,10 @@ continue with reduced context or rephrase the task. Requires a /run API contract
 (status field, resumeContext support). Deferred to avoid breaking the current simple
 request/response contract.
 
-DEFERRED: MCP bridge integration (Phase 4B)
-Add MCP (Model Context Protocol) server support so Manna can consume tools from the growing
-MCP ecosystem (GitHub, Slack, databases, etc.) without building each integration from scratch.
-See AnythingLLM's server/utils/MCP/ for a reference implementation.
+DONE: MCP bridge integration (Phase 4B)
+Manna now supports MCP (Model Context Protocol) server loading at startup via `packages/mcp/`.
+Configured servers are discovered from `data/mcp-servers.json`, their tools are wrapped as native
+`ITool` entries (`mcp_<server>__<tool>`), and unreachable servers are skipped fail-open.
 
 TODO (PR5): Auth gateway wrapper
 Add a thin authentication gateway service that sits in front of Manna and handles all auth

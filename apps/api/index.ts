@@ -47,7 +47,7 @@ import { registerStreamRoutes } from "./stream-endpoints";
 import { registerSwarmRoutes } from "./swarm-endpoints";
 import { registerInfoRoutes } from "./info-endpoints";
 import { registerWorkflowRoutes } from "./workflow-endpoints";
-import { createAgent, VALID_PROFILES } from "./agents";
+import { createAgent, initializeAgents, VALID_PROFILES } from "./agents";
 import { runMigrations } from "../../packages/persistence/migrate";
 import { rateLimiter, requestIdMiddleware } from "./middlewares/security";
 import type { HealthResponse, RunRequest, RunResponse } from "../../api/models";
@@ -217,12 +217,6 @@ app.use((error: Error, request: Request, response: Response, _next: NextFunction
 /* Default port for the Manna API server. */
 const PORT = envInt(process.env.PORT, 3001);
 
-/* Run DB migrations on startup (fail-open — a DB outage must not prevent the
- * API from starting). */
-runMigrations().catch((error: unknown) =>
-  logger.warn(t("info.migrations_failed"), { component: "api.server", error: String(error) })
-);
-
 validateRecommendedEnvironment({
   warn: (message: string, meta?: object) => logger.warn(message, { component: "api.environment", ...meta })
 });
@@ -232,13 +226,24 @@ initI18n({ en: { translation: enTranslation } })
     logger.warn("i18n_init_failed", { component: "api.server", error: String(error) });
   })
   .finally(() => {
-    app.listen(PORT, () => {
-      logger.info(t("info.server_started"), { component: "api.server", url: `http://localhost:${PORT}` });
-      logger.info("ollama_configured", {
-        component: "api.server",
-        ollamaBaseUrl: process.env.OLLAMA_BASE_URL ?? "http://localhost:11434",
+    runMigrations()
+      .catch((error: unknown) =>
+        logger.warn(t("info.migrations_failed"), { component: "api.server", error: String(error) })
+      )
+      .then(() =>
+        initializeAgents().catch((error: unknown) =>
+          logger.warn("agents_init_failed", { component: "api.server", error: String(error) })
+        )
+      )
+      .finally(() => {
+        app.listen(PORT, () => {
+          logger.info(t("info.server_started"), { component: "api.server", url: `http://localhost:${PORT}` });
+          logger.info("ollama_configured", {
+            component: "api.server",
+            ollamaBaseUrl: process.env.OLLAMA_BASE_URL ?? "http://localhost:11434",
+          });
+        });
       });
-    });
   });
 
 /**
