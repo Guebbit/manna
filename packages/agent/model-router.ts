@@ -19,7 +19,6 @@
 import { generate } from '../llm/ollama';
 import { envFloat, envInt, resolveModel, stripCodeFences, PROFILE_LIST } from '../shared';
 import type { ModelProfile } from '../shared';
-import { logger } from '@/packages/logger/logger';
 
 /* ── Budget environment variables ────────────────────────────────────── */
 
@@ -234,11 +233,6 @@ async function routeWithModel(input: IRouteInput): Promise<IModelRouteDecision> 
  * @returns A `ModelRouteDecision` describing the chosen model.
  */
 export async function routeModel(input: IRouteInput): Promise<IModelRouteDecision> {
-    logger.warn('persistence_migrate_dir_not_found', {
-        component: 'test',
-        message: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa',
-        input
-    });
     /* Forced profile — bypass profile selection but still detect tool need via rules. */
     if (input.forcedProfile) {
         return {
