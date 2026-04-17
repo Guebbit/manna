@@ -89,14 +89,12 @@ export function resolveModel(profile: ModelProfile, options: IResolveModelOption
         includeOllamaFallback ? process.env.OLLAMA_MODEL : undefined
     ];
 
-    const resolved = candidates.find(
-        (value) => typeof value === 'string' && value.trim()
-    );
+    const resolved = candidates.find((value) => typeof value === 'string' && value.trim());
     if (!resolved) {
-        const envVar = PROFILE_ENV_VARS[profile];
+        const envVariable = PROFILE_ENV_VARS[profile];
         throw new Error(
             `Unable to resolve model for profile "${profile}". ` +
-            `Set ${envVar}, AGENT_MODEL_DEFAULT, or OLLAMA_MODEL in your .env file.`
+                `Set ${envVariable}, AGENT_MODEL_DEFAULT, or OLLAMA_MODEL in your .env file.`
         );
     }
     return resolved;

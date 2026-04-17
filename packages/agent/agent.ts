@@ -157,8 +157,7 @@ export class Agent {
         llmResult: IGenerateResult
     ): void {
         if (typeof llmResult.promptEvalCount === 'number') {
-            accumulator.promptTokens =
-                (accumulator.promptTokens ?? 0) + llmResult.promptEvalCount;
+            accumulator.promptTokens = (accumulator.promptTokens ?? 0) + llmResult.promptEvalCount;
         }
         if (typeof llmResult.evalCount === 'number') {
             accumulator.completionTokens =
@@ -188,9 +187,7 @@ export class Agent {
      *
      * @param input - The full run input for `saveAgentRun`.
      */
-    private static async persistRun(
-        input: Parameters<typeof saveAgentRun>[0]
-    ): Promise<void> {
+    private static async persistRun(input: Parameters<typeof saveAgentRun>[0]): Promise<void> {
         await saveAgentRun(input).catch((error: unknown) =>
             logger.warn('agent_persist_failed', {
                 component: 'agent',
@@ -231,9 +228,7 @@ export class Agent {
      * @param args - The initial input step arguments.
      * @returns The (possibly modified) input step arguments.
      */
-    private async runInputProcessors(
-        args: IProcessInputStepArgs
-    ): Promise<IProcessInputStepArgs> {
+    private async runInputProcessors(args: IProcessInputStepArgs): Promise<IProcessInputStepArgs> {
         let result = args;
         for (const proc of this.processors) {
             if (proc.processInputStep) {
@@ -420,8 +415,7 @@ export class Agent {
                     inputArgs.memory.length > 0
                         ? `Relevant context:\n${inputArgs.memory.join('\n')}\n\n`
                         : '';
-                const directPrompt =
-                    `${memoryBlock}Task:\n${inputArgs.task}\n\nAnswer concisely and directly.`;
+                const directPrompt = `${memoryBlock}Task:\n${inputArgs.task}\n\nAnswer concisely and directly.`;
                 logger.info('agent_direct_answer', {
                     component: 'agent',
                     step,
@@ -445,11 +439,7 @@ export class Agent {
             }
 
             // ── Build prompt and call LLM ────────────────────────────────────
-            const prompt = this.buildPrompt(
-                inputArgs.task,
-                inputArgs.context,
-                inputArgs.memory
-            );
+            const prompt = this.buildPrompt(inputArgs.task, inputArgs.context, inputArgs.memory);
             logger.info('agent_step_started', {
                 component: 'agent',
                 step,
@@ -620,7 +610,10 @@ export class Agent {
                 });
             if (!toolResult.success) continue;
 
-            emit({ type: 'tool:result', payload: { tool: parsed.action, result: toolResult.result } });
+            emit({
+                type: 'tool:result',
+                payload: { tool: parsed.action, result: toolResult.result }
+            });
             context += `\nStep ${step} — "${parsed.action}" returned: ${JSON.stringify(toolResult.result)}`;
             logger.info('agent_step_finished', {
                 component: 'agent',

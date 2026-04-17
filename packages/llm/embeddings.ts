@@ -26,9 +26,7 @@ import { OLLAMA_BASE_URL, OLLAMA_EMBED_MODEL } from './config';
 export async function getEmbedding(text: string, model?: string): Promise<number[]> {
     const effectiveModel = model ?? OLLAMA_EMBED_MODEL;
     if (!effectiveModel) {
-        throw new Error(
-            'No embedding model configured. Set OLLAMA_EMBED_MODEL in your .env file.'
-        );
+        throw new Error('No embedding model configured. Set OLLAMA_EMBED_MODEL in your .env file.');
     }
 
     const res = await fetch(`${OLLAMA_BASE_URL}/api/embeddings`, {

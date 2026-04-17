@@ -1,21 +1,44 @@
 # Environment variable catalog
 
+## Required (startup validation fails without these)
+
+`OLLAMA_MODEL` — **required** base model fallback (no hardcoded default; used as the last resort in the model resolution chain: profile var → AGENT_MODEL_DEFAULT → OLLAMA_MODEL → throw)
+
+## Recommended (warnings on startup if missing)
+
 `OLLAMA_BASE_URL=http://localhost:11434` — Ollama API endpoint
-`OLLAMA_MODEL=llama3.1:8b` — base model fallback
-`OLLAMA_EMBED_MODEL=nomic-embed-text` — embeddings for memory/search
-`AGENT_MODEL_ROUTER_MODE=rules` — `rules` or `model`
-`AGENT_MODEL_ROUTER_MODEL=phi4-mini:latest` — router model
-`AGENT_MODEL_{FAST=OLLAMA_MODEL,REASONING=OLLAMA_MODEL,CODE=OLLAMA_MODEL,DEFAULT=OLLAMA_MODEL}` — profile model + final fallback
+`OLLAMA_EMBED_MODEL` — embeddings model for memory/search (no hardcoded default; embedding calls throw if unset)
+`AGENT_MODEL_FAST` — model for fast/simple tasks
+`AGENT_MODEL_REASONING` — model for complex reasoning tasks
+`AGENT_MODEL_CODE` — model for code-related tasks
+
+## Agent / Router
+
+`AGENT_MODEL_DEFAULT` — secondary fallback model (after profile-specific, before OLLAMA_MODEL)
+`AGENT_MODEL_ROUTER_MODE=rules` — `rules` (keyword heuristic, zero LLM cost) or `model` (LLM-based routing)
+`AGENT_MODEL_ROUTER_MODEL=phi4-mini:latest` — router model (only used when mode=model)
 `AGENTS_MAX_STEPS=20` — max loop iterations
 `AGENT_BUDGET_{MAX_DURATION_MS=60000,MAX_CONTEXT_CHARS=50000}` — router budget thresholds (fast downgrade / reasoning upgrade)
 `AGENT_VERIFICATION_{ENABLED=false,MODEL=AGENT_MODEL_FAST}` — post-tool verification gate/model
+
+## Model resolution chain (per profile)
+
+Resolution order: `AGENT_MODEL_<PROFILE>` → `AGENT_MODEL_DEFAULT` → `OLLAMA_MODEL` → **throw Error**
+
+No hardcoded model names exist anywhere in the codebase.
+
+## Tools / IDE
+
 `TOOL_VISION_MODEL=llava-llama3` — vision model
 `IMAGE_PROCESSOR_{URL=http://localhost:5000,TIMEOUT=120000}` — image processor base URL/timeout ms
 `TOOL_STT_MODEL=whisper` — speech-to-text model
-`TOOL_IDE_MODEL=starcoder2` — IDE completion model
+`TOOL_IDE_MODEL` — IDE completion model (falls back to resolveModel('code') chain)
 `TOOL_DIAGRAM_MODEL=AGENT_MODEL_CODE` — Mermaid generation model
 `TOOL_RERANKER_{ENABLED=false,TOP_N=10}` — tool reranker enable + retained tool count
 `MCP_{ENABLED=true,CONFIG_PATH=data/mcp-servers.json,CONNECT_TIMEOUT_MS=5000}` — MCP loading/config/timeout
+
+## Infrastructure
+
 `DIAGRAM_OUTPUT_DIR=data/diagrams` — diagram output directory
 `DIAGNOSTIC_LOG_{ENABLED=true,DIR=data/diagnostics,MAX_FILES=100}` — diagnostic markdown logs + prune threshold
 `MANNA_DB_{HOST=localhost,PORT=5432,USER=manna,PASSWORD=,NAME=manna,ENABLED=true}` — persistence DB connection + switch
