@@ -18,7 +18,7 @@ export const PROFILE_ENV_VARS: Record<ModelProfile, string> = {
     fast: 'AGENT_MODEL_FAST',
     reasoning: 'AGENT_MODEL_REASONING',
     code: 'AGENT_MODEL_CODE',
-    default: 'AGENT_MODEL_DEFAULT',
+    default: 'AGENT_MODEL_DEFAULT'
 };
 
 /**
@@ -72,9 +72,7 @@ export function resolveModel(profile: ModelProfile, options: IResolveModelOption
      * chain: profile var → AGENT_MODEL_DEFAULT → OLLAMA_MODEL → llama3.1:8b.
      */
     const hardDefault =
-        options.hardDefault !== undefined
-            ? options.hardDefault.trim() || undefined
-            : 'llama3.1:8b';
+        options.hardDefault !== undefined ? options.hardDefault.trim() || undefined : 'llama3.1:8b';
 
     const defaultChain = [
         includeAgentDefault ? process.env.AGENT_MODEL_DEFAULT : undefined,

@@ -124,8 +124,10 @@ beforeEach(() => {
 afterEach(() => {
     vi.unstubAllGlobals();
     for (const k of [
-        'AGENT_MODEL_FAST', 'AGENT_MODEL_REASONING',
-        'AGENT_MODEL_CODE', 'AGENT_MODEL_DEFAULT',
+        'AGENT_MODEL_FAST',
+        'AGENT_MODEL_REASONING',
+        'AGENT_MODEL_CODE',
+        'AGENT_MODEL_DEFAULT',
         'AGENT_MODEL_ROUTER_MODE'
     ]) {
         delete process.env[k];
@@ -158,7 +160,11 @@ describe('Agent.run — direct-answer shortcut', () => {
          * No tool-signal keywords in the task → requiresTools=false at step 0
          * → agent skips the JSON loop and calls the LLM for a plain answer.
          */
-        fetchQueue.push({ response: 'Hello! Doing great, thanks for asking.', model: 'test-model', done: true });
+        fetchQueue.push({
+            response: 'Hello! Doing great, thanks for asking.',
+            model: 'test-model',
+            done: true
+        });
 
         const agent = new Agent([]);
         const result = await agent.run('Hello, how are you today?');
@@ -169,7 +175,11 @@ describe('Agent.run — direct-answer shortcut', () => {
     });
 
     it('uses the forced profile but still bypasses tools for a conversational task', async () => {
-        fetchQueue.push({ response: 'Sure, just a quick greeting.', model: 'test-model', done: true });
+        fetchQueue.push({
+            response: 'Sure, just a quick greeting.',
+            model: 'test-model',
+            done: true
+        });
 
         const agent = new Agent([]);
         const result = await agent.run('Hey there, what is up?', { profile: 'fast' });
@@ -244,7 +254,7 @@ describe('Agent.run — fail-open / retry paths', () => {
         fetchQueue.push(agentResponse('Corrected.', 'none'));
 
         const agent = new Agent([]);
-        const result = await agent.run('Handle invalid JSON');  /* "json" is a tool signal */
+        const result = await agent.run('Handle invalid JSON'); /* "json" is a tool signal */
         expect(result.answer).toBe('Corrected.');
     });
 

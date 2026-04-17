@@ -148,7 +148,7 @@ export function buildResponseMeta(startedAt: Date, req?: Request): IResponseMeta
     return {
         startedAt: startedAt.toISOString(),
         durationMs: Date.now() - startedAt.getTime(),
-        ...(req?.requestId !== undefined ? { requestId: req.requestId } : {}),
+        ...(req?.requestId !== undefined ? { requestId: req.requestId } : {})
     };
 }
 

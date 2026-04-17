@@ -52,7 +52,7 @@ export const validateRequiredEnvironment = (): void => {
     if (missing.length > 0) {
         throw new Error(
             `Missing required environment variable${missing.length > 1 ? 's' : ''}: ${missing.join(', ')}. ` +
-            `Please set ${missing.length > 1 ? 'them' : 'it'} in your .env file before starting Manna.`
+                `Please set ${missing.length > 1 ? 'them' : 'it'} in your .env file before starting Manna.`
         );
     }
 };

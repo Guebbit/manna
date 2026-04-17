@@ -108,7 +108,12 @@ describe('LangGraphSwarmOrchestrator.run', () => {
         /* 1. decomposer call → single subtask */
         fetchQueue.push(
             decompositionResponse([
-                { id: 'sub-0', description: 'search: Answer the question', profile: 'fast', dependsOn: [] }
+                {
+                    id: 'sub-0',
+                    description: 'search: Answer the question',
+                    profile: 'fast',
+                    dependsOn: []
+                }
             ])
         );
         /* 2. agent step for sub-0 */
