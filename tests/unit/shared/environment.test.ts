@@ -3,9 +3,7 @@
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import {
-    validateRequiredEnvironment,
-} from '@/packages/shared/environment.js';
+import { validateRequiredEnvironment } from '@/packages/shared/environment.js';
 
 describe('validateRequiredEnvironment', () => {
     afterEach(() => {
