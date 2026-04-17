@@ -21,7 +21,7 @@ describe('validateRecommendedEnvironment', () => {
 
     it('does not warn when recommended variables are present', () => {
         process.env.OLLAMA_BASE_URL = 'http://localhost:11434';
-        process.env.OLLAMA_MODEL = 'llama3';
+        process.env.OLLAMA_MODEL = 'llama3.1:8b';
         const warn = vi.fn();
         validateRecommendedEnvironment({ warn });
         expect(warn).not.toHaveBeenCalled();

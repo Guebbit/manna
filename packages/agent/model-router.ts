@@ -187,11 +187,10 @@ async function routeWithModel(input: IRouteInput): Promise<IModelRouteDecision> 
         `- Use reasoning for hard logic, architecture, multi-step analysis.\n` +
         `- Use fast for simple Q&A, greetings, or knowledge-based answers.\n` +
         `- Use default only when uncertain.\n` +
-        `- Set requiresTools to false when the task can be answered from knowledge alone.\n` +
         `Budget state: ${budgetInfo}\n` +
         `- If context is close to ceiling, prefer reasoning (larger context window).\n` +
         `- If elapsed time is close to max, prefer fast to finish quickly.\n` +
-        `Respond ONLY with JSON: {"profile":"fast|reasoning|code|default","reason":"short reason","requiresTools":true|false}\n\n` +
+        `Respond ONLY with JSON: {"profile":"fast|reasoning|code|default","reason":"short reason"}\n\n` +
         `Task:\n${input.task}\n\n` +
         `Context:\n${input.context.slice(-2000)}`;
 

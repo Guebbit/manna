@@ -156,8 +156,7 @@ const failingTool: ITool = {
 describe('Agent.run — direct-answer shortcut', () => {
     it('returns a plain-text answer without tool calls for a conversational task', async () => {
         /*
-         * No tool-signal keywords in the task → requiresTools=false at step 0
-         * → agent skips the JSON loop and calls the LLM for a plain answer.
+         * agent skips the JSON loop and calls the LLM for a plain answer.
          */
         fetchQueue.push({
             response: 'Hello! Doing great, thanks for asking.',
@@ -192,7 +191,6 @@ describe('Agent.run — direct-answer shortcut', () => {
 
 describe('Agent.run — happy paths', () => {
     it('completes in a single step when the LLM returns action "none"', async () => {
-        /* Task includes "search" to ensure requiresTools=true → full JSON loop. */
         fetchQueue.push(agentResponse('The answer is 42.', 'none'));
 
         const agent = new Agent([]);

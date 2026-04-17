@@ -40,19 +40,6 @@ describe('routeModel — rules mode', () => {
         vi.resetModules();
     });
 
-    it('forced profile with tool-signal task yields requiresTools true', async () => {
-        const { routeModel } = await import('../../../packages/agent/model-router.js');
-        const result = await routeModel({
-            task: 'read the config.json file',
-            context: '',
-            step: 0,
-            forcedProfile: 'default'
-        });
-        expect(result.profile).toBe('default');
-        expect(result.reason).toBe('forced_by_caller');
-        expect(result.requiresTools).toBe(true);
-    });
-
     it('routes to code profile for a task containing "typescript"', async () => {
         const { routeModel } = await import('../../../packages/agent/model-router.js');
         const result = await routeModel({
