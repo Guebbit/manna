@@ -118,6 +118,7 @@ const ROUTER_MODEL = process.env.AGENT_MODEL_ROUTER_MODEL ?? 'phi4-mini:latest';
 const ROUTER_MODE = (process.env.AGENT_MODEL_ROUTER_MODE ?? 'rules').toLowerCase();
 
 /** Default generation options per profile. Extend this map to add a new profile. */
+/* eslint-disable @typescript-eslint/naming-convention -- Ollama API uses snake_case parameter names */
 const PROFILE_OPTION_DEFAULTS: Record<ModelProfile, {
     temperature: number; top_p: number; top_k: number;
     num_ctx: number; repeat_penalty: number;
@@ -127,6 +128,7 @@ const PROFILE_OPTION_DEFAULTS: Record<ModelProfile, {
     code:      { temperature: 0.1, top_p: 0.90, top_k: 40,  num_ctx: 6144,  repeat_penalty: 1.1 },
     default:   { temperature: 0.3, top_p: 0.85, top_k: 30,  num_ctx: 8192,  repeat_penalty: 1.2 },
 };
+/* eslint-enable @typescript-eslint/naming-convention */
 
 /**
  * Build profile-specific generation options (temperature, top_p, etc.).

@@ -8,6 +8,7 @@
  */
 
 declare module 'express-serve-static-core' {
+    // eslint-disable-next-line @typescript-eslint/naming-convention -- augmenting Express's existing Request interface
     interface Request {
         requestId?: string;
     }
