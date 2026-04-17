@@ -41,7 +41,12 @@ describe('routeModel', () => {
         const { generate } = await import('../../../packages/llm/ollama.js');
         const { routeModel } = await import('../../../packages/agent/model-router.js');
 
-        const result = await routeModel({ task: 'anything', context: '', step: 0, forcedProfile: 'code' });
+        const result = await routeModel({
+            task: 'anything',
+            context: '',
+            step: 0,
+            forcedProfile: 'code'
+        });
 
         expect(result.profile).toBe('code');
         expect(result.model).toBe('code-model');
@@ -54,7 +59,12 @@ describe('routeModel', () => {
         const { generate } = await import('../../../packages/llm/ollama.js');
         const { routeModel } = await import('../../../packages/agent/model-router.js');
 
-        const result = await routeModel({ task: 'simple task', context: '', step: 0, contextLength: 850 });
+        const result = await routeModel({
+            task: 'simple task',
+            context: '',
+            step: 0,
+            contextLength: 850
+        });
 
         expect(result.profile).toBe('reasoning');
         expect(result.reason).toBe('budget:context_near_ceiling');
@@ -66,7 +76,12 @@ describe('routeModel', () => {
         const { generate } = await import('../../../packages/llm/ollama.js');
         const { routeModel } = await import('../../../packages/agent/model-router.js');
 
-        const result = await routeModel({ task: 'analyze this', context: '', step: 0, cumulativeDurationMs: 8000 });
+        const result = await routeModel({
+            task: 'analyze this',
+            context: '',
+            step: 0,
+            cumulativeDurationMs: 8000
+        });
 
         expect(result.profile).toBe('fast');
         expect(result.reason).toBe('budget:duration_near_ceiling');
@@ -78,7 +93,11 @@ describe('routeModel', () => {
         vi.mocked(generate).mockResolvedValueOnce('{"profile":"code","reason":"coding task"}');
         const { routeModel } = await import('../../../packages/agent/model-router.js');
 
-        const result = await routeModel({ task: 'write a TypeScript function', context: '', step: 0 });
+        const result = await routeModel({
+            task: 'write a TypeScript function',
+            context: '',
+            step: 0
+        });
 
         expect(result.profile).toBe('code');
         expect(result.model).toBe('code-model');
@@ -87,10 +106,16 @@ describe('routeModel', () => {
 
     it('uses LLM router and routes to reasoning profile', async () => {
         const { generate } = await import('../../../packages/llm/ollama.js');
-        vi.mocked(generate).mockResolvedValueOnce('{"profile":"reasoning","reason":"architecture decision"}');
+        vi.mocked(generate).mockResolvedValueOnce(
+            '{"profile":"reasoning","reason":"architecture decision"}'
+        );
         const { routeModel } = await import('../../../packages/agent/model-router.js');
 
-        const result = await routeModel({ task: 'compare microservices vs monolith', context: '', step: 0 });
+        const result = await routeModel({
+            task: 'compare microservices vs monolith',
+            context: '',
+            step: 0
+        });
 
         expect(result.profile).toBe('reasoning');
         expect(result.model).toBe('reasoning-model');
@@ -101,7 +126,11 @@ describe('routeModel', () => {
         vi.mocked(generate).mockResolvedValueOnce('{"profile":"fast","reason":"simple question"}');
         const { routeModel } = await import('../../../packages/agent/model-router.js');
 
-        const result = await routeModel({ task: 'What is the capital of France?', context: '', step: 0 });
+        const result = await routeModel({
+            task: 'What is the capital of France?',
+            context: '',
+            step: 0
+        });
 
         expect(result.profile).toBe('fast');
         expect(result.model).toBe('fast-model');
@@ -158,7 +187,12 @@ describe('routeModel', () => {
         const { routeModel } = await import('../../../packages/agent/model-router.js');
 
         const code = await routeModel({ task: '', context: '', step: 0, forcedProfile: 'code' });
-        const reasoning = await routeModel({ task: '', context: '', step: 0, forcedProfile: 'reasoning' });
+        const reasoning = await routeModel({
+            task: '',
+            context: '',
+            step: 0,
+            forcedProfile: 'reasoning'
+        });
 
         expect(code.options?.temperature).not.toBe(reasoning.options?.temperature);
         expect(code.options?.top_k).not.toBe(reasoning.options?.top_k);

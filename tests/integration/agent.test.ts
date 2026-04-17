@@ -128,11 +128,7 @@ beforeEach(() => {
 
 afterEach(() => {
     vi.unstubAllGlobals();
-    for (const k of [
-        'AGENT_MODEL_FAST',
-        'AGENT_MODEL_REASONING',
-        'AGENT_MODEL_CODE'
-    ]) {
+    for (const k of ['AGENT_MODEL_FAST', 'AGENT_MODEL_REASONING', 'AGENT_MODEL_CODE']) {
         delete process.env[k];
     }
 });

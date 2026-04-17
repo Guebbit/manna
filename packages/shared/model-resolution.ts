@@ -73,10 +73,7 @@ export function resolveModel(profile: ModelProfile, options: IResolveModelOption
         code: process.env.AGENT_MODEL_CODE
     }[profile];
 
-    const candidates = [
-        profileModel,
-        includeOllamaFallback ? process.env.OLLAMA_MODEL : undefined
-    ];
+    const candidates = [profileModel, includeOllamaFallback ? process.env.OLLAMA_MODEL : undefined];
 
     const resolved = candidates.find((value) => typeof value === 'string' && value.trim());
     if (!resolved) {

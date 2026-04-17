@@ -65,9 +65,9 @@ describe('resolveModel', () => {
     });
 
     it('throws when OLLAMA fallback is disabled and profile has no env var', () => {
-        expect(() =>
-            resolveModel('code', { includeOllamaFallback: false })
-        ).toThrow('Unable to resolve model for profile "code"');
+        expect(() => resolveModel('code', { includeOllamaFallback: false })).toThrow(
+            'Unable to resolve model for profile "code"'
+        );
     });
 
     it('includes the env var name in the error message', () => {
