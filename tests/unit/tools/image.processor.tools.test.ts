@@ -38,6 +38,7 @@ describe('image processor tools', () => {
             new Response(
                 JSON.stringify({
                     image: 'c2tldGNo',
+                    imageData: 'c2tldGNo',
                     duration_ms: 321,
                     model: 'mock-sketch-model'
                 }),
@@ -53,7 +54,12 @@ describe('image processor tools', () => {
 
         expect(mockedFetch).toHaveBeenCalledTimes(1);
         expect(mockedFetch.mock.calls[0]?.[0]).toBe(`${IMAGE_PROCESSOR_URL}/sketch`);
-        expect(result).toEqual({ image: 'c2tldGNo', duration_ms: 321, model: 'mock-sketch-model' });
+        expect(result).toEqual({
+            image: 'c2tldGNo',
+            imageData: 'c2tldGNo',
+            duration_ms: 321,
+            model: 'mock-sketch-model'
+        });
     });
 
     it('imageColorizeTool calls /colorize and returns processor payload', async () => {
@@ -62,6 +68,7 @@ describe('image processor tools', () => {
             new Response(
                 JSON.stringify({
                     image: 'Y29sb3I=',
+                    imageData: 'Y29sb3I=',
                     duration_ms: 654,
                     model: 'mock-colorize-model'
                 }),
@@ -79,6 +86,7 @@ describe('image processor tools', () => {
         expect(mockedFetch.mock.calls[0]?.[0]).toBe(`${IMAGE_PROCESSOR_URL}/colorize`);
         expect(result).toEqual({
             image: 'Y29sb3I=',
+            imageData: 'Y29sb3I=',
             duration_ms: 654,
             model: 'mock-colorize-model'
         });
@@ -99,6 +107,7 @@ describe('image processor tools', () => {
             new Response(
                 JSON.stringify({
                     image: 'Y3VzdG9t',
+                    imageData: 'Y3VzdG9t',
                     duration_ms: 111,
                     model: 'mock-custom-model'
                 }),
@@ -118,7 +127,12 @@ describe('image processor tools', () => {
             style: 'vibrant'
         })) as Record<string, unknown>;
 
-        expect(result).toEqual({ image: 'Y3VzdG9t', duration_ms: 111, model: 'mock-custom-model' });
+        expect(result).toEqual({
+            image: 'Y3VzdG9t',
+            imageData: 'Y3VzdG9t',
+            duration_ms: 111,
+            model: 'mock-custom-model'
+        });
         expect(mockedFetch).toHaveBeenCalledTimes(1);
     });
 });

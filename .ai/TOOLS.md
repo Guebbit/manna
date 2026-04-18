@@ -45,6 +45,7 @@ Execution notes
 - Duplicate tool calls are blocked per run via SHA-256 (`toolName + args`).
 - Tools may set `directOutput: true` to return immediately without another LLM round.
 - Tool outputs may include `citations: [{id,title,text}]`; citations are buffered per run and returned in API output.
+- `image_sketch`/`image_colorize` output includes `imageData: string` (base64); agent loop runs vision description on it and, if model matches `AGENT_MULTIMODAL_MODELS`, forwards raw bytes to the next LLM call.
 
 Add/remove procedure
 

@@ -48,6 +48,8 @@ import type { IGenerateResult, IChatResult } from '../llm/ollama';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { ToolCitationBuffer, toolCitationSchema, type IToolCitation } from '../tools/citations';
 import { ToolCallDeduplicator } from '../tools/tool-call-deduplicator';
+import { isMultimodalModel } from './vision-capability';
+import { getVisionDescription } from './vision-description';
 
 /**
  * Maximum number of reasoning iterations before the agent gives up.
@@ -382,6 +384,7 @@ export class Agent {
         const runStartedAt = Date.now();
         const startTime = new Date();
         let context = '';
+        let pendingImages: string[] = [];
         const diagnosticEntries: IDiagnosticEntry[] = [];
         const toolCalls: IToolCall[] = [];
         const toolDeduplicator = new ToolCallDeduplicator();
@@ -508,8 +511,10 @@ export class Agent {
 
                 const directResult = await generateWithMetadata(directPrompt, {
                     model: route.model,
+                    images: pendingImages.length > 0 ? pendingImages : undefined,
                     options: route.options
                 }).catch((error: unknown) => Agent.handleLlmError(error, step));
+                pendingImages = [];
 
                 llmSteps += 1;
                 modelsUsed.add(directResult.model ?? route.model);
@@ -604,8 +609,10 @@ export class Agent {
 
                     const llmResult = await generateWithMetadata(prompt, {
                         model: route.model,
+                        images: pendingImages.length > 0 ? pendingImages : undefined,
                         options: route.options
                     }).catch((error: unknown) => Agent.handleLlmError(error, step));
+                    pendingImages = [];
 
                     llmSteps += 1;
                     modelsUsed.add(llmResult.model ?? route.model);
@@ -803,7 +810,28 @@ export class Agent {
                     return { answer: directAnswer, meta: buildRunMeta(citations), citations };
                 }
 
-                context += `\nStep ${step} — "${parsed.action}" returned: ${JSON.stringify(toolResult.result)}`;
+                const rawResult = toolResult.result as Record<string, unknown> | null | undefined;
+                const imageData =
+                    rawResult &&
+                    typeof rawResult === 'object' &&
+                    typeof rawResult.imageData === 'string'
+                        ? rawResult.imageData
+                        : undefined;
+
+                if (imageData) {
+                    const description = await getVisionDescription(imageData);
+                    if (description) {
+                        context += `\nStep ${step} — image description: ${description}`;
+                    } else {
+                        const sanitized = { ...rawResult, imageData: '[base64 omitted]' };
+                        context += `\nStep ${step} — "${parsed.action}" returned: ${JSON.stringify(sanitized)}`;
+                    }
+                    if (isMultimodalModel(route.model)) {
+                        pendingImages.push(imageData);
+                    }
+                } else {
+                    context += `\nStep ${step} — "${parsed.action}" returned: ${JSON.stringify(toolResult.result)}`;
+                }
                 toolCallsThisStep += 1;
             }
 

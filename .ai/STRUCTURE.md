@@ -7,7 +7,7 @@ Directory map
 ├─ apps/api/{index.ts,agents.ts,stream-endpoints.ts,swarm-endpoints.ts,workflow-endpoints.ts,ide-endpoints.ts,upload-endpoints.ts,info-endpoints.ts,middlewares/{multer.ts,security.ts},types.d.ts}
 ├─ api/
 ├─ packages/
-│  ├─ agent/{agent.ts,model-router.ts,schemas.ts}
+│  ├─ agent/{agent.ts,model-router.ts,schemas.ts,vision-capability.ts,vision-description.ts}
 │  ├─ orchestrator/{state.ts,nodes.ts,graph.ts,index.ts}
 │  ├─ swarm/{types.ts,decomposer.ts,index.ts}
 │  ├─ diagnostics/{types.ts,writer.ts,cleanup.ts,index.ts}

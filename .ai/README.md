@@ -23,7 +23,7 @@ Execution graph (`POST /run`)
 ```text
 handler: apps/api/index.ts
 input: { task, allowWrite?, profile? }
-validate profile in {fast,reasoning,code,default}
+validate profile in {fast,reasoning,code}
 agent = select readOnly/writeEnabled by allowWrite
 memory = getMemory(task); emit(agent:start)
 for step in 1..MAX_STEPS:
@@ -44,7 +44,14 @@ for step in 1..MAX_STEPS:
   result = tool.execute(out.input)
   if tool.directOutput: return result immediately
   collect result.citations[] into run citation buffer
-  append tool result/error + emit(tool:result|tool:error) + diagnostics; continue
+  if result has imageData:
+    description = getVisionDescription(imageData)  // TOOL_VISION_MODEL; fails open → ""
+    if description: append "image description: <text>" to context
+    else:           append sanitized JSON (imageData redacted) to context
+    if isMultimodalModel(route.model): push imageData → pendingImages
+  else: append JSON-stringified result to context
+  emit(tool:result|tool:error) + diagnostics; continue
+  pendingImages forwarded as images[] to next generateWithMetadata call, then cleared
 loop exhausted => generate self-debug summary (FAST_MODEL) -> addMemory(MAX_STEPS summary) -> writeDiagnosticLog(AI commentary) -> emit(agent:max_steps{task,summary,diagnosticFile}) -> return summary
 ```
 
@@ -76,7 +83,7 @@ Core invariants/safety
 - Duplicate tool calls are blocked per run via SHA-256 name+args deduplication
 - Tool chaining is capped by `AGENT_MAX_TOOL_CALLS`
 - Tool citations are flushed in final run output (`result.citations` and response metadata)
-- Qdrant/MCP/verification/reranker failures: fail-open, no process crash
+- Qdrant/MCP/verification/reranker/vision-description failures: fail-open, no process crash
 - Diagnostic files constrained to `DIAGNOSTIC_LOG_DIR` via safe path checks
 - Persistence failures logged/ignored (`.catch()` in run paths), never crash run
 - Try to not use try/catch when possible
@@ -84,8 +91,9 @@ Core invariants/safety
 
 Routing/model fallback summary
 
-- Profiles: `fast|reasoning|code|default`
+- Profiles: `fast|reasoning|code`
 - Fallback chain per profile: profile var -> `OLLAMA_MODEL` -> throw Error
+- LLM classifier (`AGENT_MODEL_ROUTER_MODEL`) runs when no profile is forced; budget pre-checks short-circuit first
 
 Update protocol
 

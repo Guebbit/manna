@@ -28,7 +28,8 @@ No hardcoded model names exist anywhere in the codebase.
 
 ## Tools / IDE
 
-`TOOL_VISION_MODEL=llava-llama3` — vision model
+`TOOL_VISION_MODEL=llava-llama3` — vision model for image→text description (vision feedback loop)
+`AGENT_MULTIMODAL_MODELS=llava,bakllava,qwen2-vl,gemma3` — comma-separated substrings; matching models also receive raw base64 images in the next LLM call (case-insensitive)
 `IMAGE_PROCESSOR_{URL=http://localhost:5000,TIMEOUT=120000}` — image processor base URL/timeout ms
 `TOOL_STT_MODEL=whisper` — speech-to-text model
 `TOOL_IDE_MODEL` — IDE completion model (falls back to resolveModel('code') chain)

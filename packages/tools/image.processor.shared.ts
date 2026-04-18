@@ -28,9 +28,14 @@ export const imageProcessorInputSchema = z.object({
 
 /**
  * Shared base output schema for image-processor tools.
+ *
+ * `imageData` is the base64-encoded result image forwarded to the agent's
+ * vision feedback loop. `image` is kept for backward compatibility with
+ * callers that display the raw output directly.
  */
 export const imageProcessorOutputSchema = z.object({
     image: z.string().trim().min(1),
+    imageData: z.string().trim().min(1),
     duration_ms: z.number().nonnegative(),
     model: z.string().trim().min(1)
 });

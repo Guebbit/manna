@@ -14,6 +14,7 @@ AGENT_MODEL_CODE=qwen2.5-coder:14b-instruct-q8_0
 AGENT_MODEL_ROUTER_MODEL=phi4-mini:latest
 OLLAMA_EMBED_MODEL=nomic-embed-text
 TOOL_VISION_MODEL=llava:13b-v1.6-vicuna-q4_K_M
+AGENT_MULTIMODAL_MODELS=llava,bakllava,qwen2-vl,gemma3
 TOOL_STT_MODEL=whisper
 TOOL_IDE_MODEL=qwen2.5-coder:7b-instruct-q8_0
 TOOL_DIAGRAM_MODEL=qwen2.5-coder:14b-instruct-q8_0
