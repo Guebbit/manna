@@ -1,9 +1,5 @@
 # Manna — Personal AI Agent Platform Documentation
 
-::: tip Canonical documentation
-This VitePress site is the **single source of truth** for setup, architecture, endpoints, tools, model routing, and operational behavior.
-:::
-
 ::: tip TL;DR
 Local-first AI agent platform for multi-step reasoning, tool execution, orchestration, and domain workflows (coding, research, data, documents, knowledge graphs).
 :::
@@ -27,18 +23,24 @@ Local-first AI agent platform for multi-step reasoning, tool execution, orchestr
 - Local-first TypeScript agent API (`POST /run`)
 - [Agent loop](/glossary#agent-loop) with tool execution and [memory](/glossary#ring-buffer)
 - [Ollama](/glossary#ollama) backend with per-step [model routing](/glossary#model-router)
+- [Swarm orchestrator](/packages/orchestrator) — LangGraph state machine that decomposes tasks across multiple specialised agents
+- [Knowledge graph](/packages/graph) — GraphRAG layer (Neo4j) for entity/relationship retrieval alongside vector search
+- [MCP integration](/theory/MCP) — plug in any Model Context Protocol server as a tool source
 
 ```mermaid
 flowchart LR
     User -->|POST /run| API
-    API --> Agent
+    API --> Orchestrator
+    Orchestrator -->|subtasks| Agent
     Agent --> LLM[LLM / Ollama]
     Agent --> Tools[Tools]
     Agent --> Memory
+    Agent --> KG[Knowledge Graph]
     LLM -->|JSON decision| Agent
     Tools -->|result| Agent
     Memory -->|past context| Agent
-    Agent -->|final answer| API
+    KG -->|entity graph| Agent
+    Orchestrator -->|final answer| API
     API -->|response| User
 ```
 
@@ -57,5 +59,5 @@ flowchart LR
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Learn**          | [Examples](/examples/) · [Scenarios](/scenarios/) · [Glossary](/glossary)                                                                           |
 | **Theory**         | [Agent Loop](/theory/agent-loop) · [RAG](/theory/RAG) · [Vectors](/theory/VECTOR_DATABASES) · [LoRA](/theory/lora-fine-tuning) · [MCP](/theory/MCP) |
-| **Reference**      | [Endpoint Map](/endpoint-map) · [Packages](/packages/) · [Tools](/packages/tools/) · [Model Selection](/model-selection)                            |
+| **Reference**      | [Endpoint Map](/endpoint-map) · [Packages](/packages/) · [Tools](/packages/tools/) · [Model Selection](/model-selection) · [Orchestrator](/packages/orchestrator) · [Knowledge Graph](/packages/graph) |
 | **Infrastructure** | [Ollama Setup](/infra/ollama-notes) · [Ollama Models](/infra/ollama-models) · [Library Ingestion](/library-ingestion)                               |
