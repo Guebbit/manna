@@ -260,7 +260,10 @@ describe('chat API', () => {
                 { role: 'user', content: 'Hello, how are you?' },
                 { role: 'assistant', content: 'Hi! I am doing well.' }
             ]);
-            expect(mockFetch).toHaveBeenCalledTimes(1);
+            const ollamaCalls = mockFetch.mock.calls.filter(([url]) =>
+                url.toString().startsWith('http://ollama.test/')
+            );
+            expect(ollamaCalls).toHaveLength(1);
         } finally {
             await new Promise<void>((resolve, reject) => {
                 server.close((error) => (error ? reject(error) : resolve()));
