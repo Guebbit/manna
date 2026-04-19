@@ -32,14 +32,13 @@ sequenceDiagram
 
 ## Per-step routing profiles
 
-At each step, the router assigns the current task to one of four profiles:
+At each step, the router assigns the current task to one of three profiles:
 
 | Profile     | When it is used                  | Goal                      |
 | ----------- | -------------------------------- | ------------------------- |
 | `fast`      | Simple Q&A, quick lookups        | Low latency, small model  |
 | `reasoning` | Logic, math, multi-step analysis | Best reasoning capability |
 | `code`      | Coding, debugging, refactoring   | Best code understanding   |
-| `default`   | Everything else, safety fallback | Balanced general model    |
 
 ### Visual: how routing works
 
@@ -53,7 +52,6 @@ flowchart TD
     Select --> Fast["⚡ fast\nqwen3:4b"]
     Select --> Reasoning["🧠 reasoning\ndeepseek"]
     Select --> Code["💻 code\nqwen3-coder"]
-    Select --> Default["📦 default\nllama3.1:8b"]
 ```
 
 ---
@@ -114,15 +112,6 @@ Each agent routing profile supports fine-grained generation parameter control vi
 | `AGENT_MODEL_REASONING_NUM_CTX`        | `8192`  | Context window size (tokens) |
 | `AGENT_MODEL_REASONING_REPEAT_PENALTY` | `1.3`   | Repetition penalty           |
 
-**default profile** — balanced general-purpose:
-
-| Variable                             | Default | Description                  |
-| ------------------------------------ | ------- | ---------------------------- |
-| `AGENT_MODEL_DEFAULT_TEMPERATURE`    | `0.3`   | Sampling temperature         |
-| `AGENT_MODEL_DEFAULT_TOP_P`          | `0.85`  | Nucleus sampling probability |
-| `AGENT_MODEL_DEFAULT_TOP_K`          | `30`    | Top-K token candidates       |
-| `AGENT_MODEL_DEFAULT_NUM_CTX`        | `8192`  | Context window size (tokens) |
-| `AGENT_MODEL_DEFAULT_REPEAT_PENALTY` | `1.2`   | Repetition penalty           |
 
 These options are resolved at startup from env vars and passed through to Ollama's `/api/generate` endpoint on every call. Runtime options take priority over any Modelfile defaults — see [Modelfile Example](/infra/modelfile-example) for the relationship between the two approaches.
 
@@ -130,22 +119,21 @@ These options are resolved at startup from env vars and passed through to Ollama
 
 ## Environment variables (full reference)
 
-| Variable                   | Default       | Description                                    |
-| -------------------------- | ------------- | ---------------------------------------------- |
-| `AGENT_MODEL_ROUTER_MODE`  | `rules`       | `rules` or `model`                             |
-| `AGENT_MODEL_ROUTER_MODEL` | --            | Classifier model (model mode only)             |
-| `AGENT_MODEL_FAST`         | --            | Model for `fast` profile                       |
-| `AGENT_MODEL_REASONING`    | --            | Model for `reasoning` profile                  |
-| `AGENT_MODEL_CODE`         | --            | Model for `code` profile                       |
-| `AGENT_MODEL_DEFAULT`      | --            | Model for `default` profile                    |
-| `OLLAMA_MODEL`             | `llama3.1:8b` | Global fallback (used if profile var is unset) |
+| Variable                   | Default | Description                                    |
+| -------------------------- | ------- | ---------------------------------------------- |
+| `AGENT_MODEL_ROUTER_MODE`  | `rules` | `rules` or `model`                             |
+| `AGENT_MODEL_ROUTER_MODEL` | --      | Classifier model (model mode only)             |
+| `AGENT_MODEL_FAST`         | --      | Model for `fast` profile                       |
+| `AGENT_MODEL_REASONING`    | --      | Model for `reasoning` profile                  |
+| `AGENT_MODEL_CODE`         | --      | Model for `code` profile                       |
+| `OLLAMA_MODEL`             | --      | Global fallback — **required** if any profile var is unset; throws if missing |
 
 ### Priority order for model selection
 
 ```
 1. Profile-specific var (e.g. AGENT_MODEL_CODE)
 2. OLLAMA_MODEL (global fallback)
-3. "llama3.1:8b" (hardcoded final fallback)
+3. throw Error — no hardcoded fallback; OLLAMA_MODEL must be set
 ```
 
 ### How the router selects a profile
@@ -161,7 +149,6 @@ flowchart TD
     Profile --> Fast["⚡ fast → small model"]
     Profile --> Reasoning["🧠 reasoning → deep model"]
     Profile --> Code["💻 code → coder model"]
-    Profile --> Default["📦 default → balanced"]
 ```
 
 ---
@@ -173,6 +160,9 @@ Based on the locally installed model set:
 ```bash
 # .env or shell exports
 
+# Required: global fallback when a profile var is not set
+export OLLAMA_MODEL=llama3.1:8b
+
 # Fast profile -- small and quick
 export AGENT_MODEL_FAST=qwen3:4b
 
@@ -181,9 +171,6 @@ export AGENT_MODEL_REASONING=deepseek-r1:32b
 
 # Code profile -- best coding model
 export AGENT_MODEL_CODE=qwen2.5-coder:32b
-
-# Default profile -- solid general model
-export AGENT_MODEL_DEFAULT=llama3.1:8b
 
 # Router model (only needed for model mode)
 export AGENT_MODEL_ROUTER_MODEL=qwen3:4b
@@ -214,8 +201,8 @@ export OLLAMA_MAX_LOADED_MODELS=1
 export OLLAMA_NUM_PARALLEL=1
 
 # Use small models
+export OLLAMA_MODEL=llama3.1:8b                # 4.9 GB — global fallback
 export AGENT_MODEL_FAST=phi4-mini:latest       # 2.5 GB
-export AGENT_MODEL_DEFAULT=llama3.1:8b         # 4.9 GB
 export AGENT_MODEL_CODE=deepseek-r1:14b        # 9.0 GB
 ```
 
@@ -226,10 +213,10 @@ export AGENT_MODEL_CODE=deepseek-r1:14b        # 9.0 GB
 export OLLAMA_MAX_LOADED_MODELS=3
 
 # Use larger, higher quality models
+export OLLAMA_MODEL=qwen3:32b                  # global fallback
 export AGENT_MODEL_FAST=qwen3:4b
 export AGENT_MODEL_REASONING=deepseek-r1:32b
 export AGENT_MODEL_CODE=qwen2.5-coder:32b
-export AGENT_MODEL_DEFAULT=qwen3:32b
 ```
 
 ### Sizing strategy

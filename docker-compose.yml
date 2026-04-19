@@ -124,10 +124,8 @@ services:
             OLLAMA_BASE_URL: http://ollama:${OLLAMA_PORT:-11434}
             QDRANT_URL: http://qdrant:${QDRANT_PORT:-6333}
         depends_on:
-            postgres:
-                condition: service_healthy
-            neo4j:
-                condition: service_healthy
+            - postgres
+            - neo4j
         restart: unless-stopped
 
 volumes:

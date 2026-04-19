@@ -26,7 +26,7 @@ import { routeModel } from '@/packages/agent/model-router';
 import { chatWithMetadata } from '@/packages/llm/ollama';
 import type { IOllamaChatMessage } from '@/packages/llm/ollama';
 import { logger } from '@/packages/logger/logger';
-import { rejectResponse, successResponse, buildResponseMeta, sumTokens } from '@/packages/shared';
+import { rejectResponse, successResponse, buildResponseMeta, sumTokens, setupSSEHeaders, createSseWriter, onSSEClose } from '@/packages/shared';
 import {
     listConversations,
     createConversation,
@@ -234,9 +234,16 @@ export function registerChatRoutes(app: express.Express): void {
             return;
         }
 
+        // Switch to SSE for user messages: emit the saved message immediately,
+        // then stream the assistant reply once the model finishes.
+        setupSSEHeaders(res);
+        const writeEvent = createSseWriter(res);
+        onSSEClose(req, () => res.end());
+
+        writeEvent('message', result);
+
         const profile = isValidChatProfile(conversation.profile) ? conversation.profile : DEFAULT_CHAT_PROFILE;
         const promptMessages = [...conversation.messages, result];
-        let responseMessage = '';
 
         try {
             const route = await routeModel({
@@ -257,43 +264,32 @@ export function registerChatRoutes(app: express.Express): void {
                     content: assistantContent
                 });
 
-                if (assistantMessage === null) {
-                    responseMessage = 'Assistant reply unavailable';
+                if (assistantMessage) {
+                    writeEvent('reply', {
+                        message: assistantMessage,
+                        meta: {
+                            ...buildResponseMeta(startedAt, req),
+                            model: route.model,
+                            profile: route.profile,
+                            promptTokens: llmResult.promptEvalCount,
+                            completionTokens: llmResult.evalCount,
+                            totalTokens: sumTokens(llmResult.promptEvalCount, llmResult.evalCount)
+                        }
+                    });
+                } else {
                     logger.warn('chat_assistant_reply_persist_failed', {
                         component: 'api.chat',
                         conversationId: id,
                         requestId: req.requestId,
-                        reason: 'database_unavailable'
+                        reason: assistantMessage === null ? 'database_unavailable' : 'conversation_missing'
                     });
-                } else if (assistantMessage === undefined) {
-                    responseMessage = 'Assistant reply unavailable';
-                    logger.warn('chat_assistant_reply_persist_failed', {
-                        component: 'api.chat',
-                        conversationId: id,
-                        requestId: req.requestId,
-                        reason: 'unexpected_missing_conversation_after_reply_generation'
-                    });
+                    writeEvent('error', { error: 'Assistant reply could not be saved' });
                 }
             } else {
-                responseMessage = 'Assistant reply unavailable';
-                logger.warn('chat_assistant_reply_empty', {
-                    component: 'api.chat',
-                    conversationId: id,
-                    requestId: req.requestId
-                });
+                logger.warn('chat_assistant_reply_empty', { component: 'api.chat', conversationId: id, requestId: req.requestId });
+                writeEvent('error', { error: 'Assistant returned an empty reply' });
             }
-
-            successResponse(res, { message: result }, 201, responseMessage, {
-                ...buildResponseMeta(startedAt, req),
-                model: route.model,
-                profile: route.profile,
-                promptTokens: llmResult.promptEvalCount,
-                completionTokens: llmResult.evalCount,
-                totalTokens: sumTokens(llmResult.promptEvalCount, llmResult.evalCount)
-            });
-            return;
         } catch (error) {
-            responseMessage = 'Assistant reply unavailable';
             logger.error('chat_assistant_reply_failed', {
                 component: 'api.chat',
                 conversationId: id,
@@ -302,9 +298,10 @@ export function registerChatRoutes(app: express.Express): void {
                 errorName: error instanceof Error ? error.name : typeof error,
                 errorMessage: error instanceof Error ? error.message : String(error)
             });
+            writeEvent('error', { error: 'Assistant reply failed' });
         }
 
-        successResponse(res, { message: result }, 201, responseMessage, buildResponseMeta(startedAt, req));
+        res.end();
     });
 
     /* ── PUT /chat/conversations/:id/messages/:msgId ─────────────────────── */

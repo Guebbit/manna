@@ -190,7 +190,6 @@ This is the right endpoint whenever no specialized endpoint covers the use case.
 | `AGENT_MODEL_FAST`      | `OLLAMA_MODEL` | Model used for the `fast` profile      |
 | `AGENT_MODEL_REASONING` | `OLLAMA_MODEL` | Model used for the `reasoning` profile |
 | `AGENT_MODEL_CODE`      | `OLLAMA_MODEL` | Model used for the `code` profile      |
-| `AGENT_MODEL_DEFAULT`   | `OLLAMA_MODEL` | Model used for the `default` profile   |
 
 **curl example**
 
