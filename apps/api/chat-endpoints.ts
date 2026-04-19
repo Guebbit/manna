@@ -24,6 +24,7 @@ import type express from 'express';
 import type { ModelProfile } from '@/packages/agent/model-router';
 import { routeModel } from '@/packages/agent/model-router';
 import { chatWithMetadata } from '@/packages/llm/ollama';
+import type { IOllamaChatMessage } from '@/packages/llm/ollama';
 import { logger } from '@/packages/logger/logger';
 import { rejectResponse, successResponse, buildResponseMeta, sumTokens } from '@/packages/shared';
 import {
@@ -52,11 +53,18 @@ function isValidChatProfile(value: string | null): value is ModelProfile {
     return value !== null && VALID_CHAT_PROFILES.has(value as ModelProfile);
 }
 
+/**
+ * Convert stored chat messages into the plain-text `role: content` context
+ * string used by the model router.
+ */
 function buildConversationContext(messages: IChatMessage[]): string {
     return messages.map((message) => `${message.role}: ${message.content}`).join('\n');
 }
 
-function toOllamaMessages(messages: IChatMessage[]) {
+/**
+ * Map persisted chat messages to Ollama's chat message payload shape.
+ */
+function toOllamaMessages(messages: IChatMessage[]): IOllamaChatMessage[] {
     return messages.map((message) => ({
         role: message.role,
         content: message.content
@@ -263,7 +271,7 @@ export function registerChatRoutes(app: express.Express): void {
                         component: 'api.chat',
                         conversationId: id,
                         requestId: req.requestId,
-                        reason: 'unexpected-missing-conversation-after-reply-generation'
+                        reason: 'unexpected_missing_conversation_after_reply_generation'
                     });
                 }
             } else {
