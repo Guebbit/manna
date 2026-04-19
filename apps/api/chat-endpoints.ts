@@ -263,7 +263,7 @@ export function registerChatRoutes(app: express.Express): void {
                         component: 'api.chat',
                         conversationId: id,
                         requestId: req.requestId,
-                        reason: 'unexpected_missing_conversation_after_reply_generation'
+                        reason: 'unexpected-missing-conversation-after-reply-generation'
                     });
                 }
             } else {
