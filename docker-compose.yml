@@ -15,11 +15,11 @@
 
 services:
     ollama:
+        image: ollama/ollama:latest
         # how long Podman waits before forcing shutdown with SIGKILL; adjust if you have very large models that need more time to unload
         # Default is SIGTERM which is graceful but may hang
         stop_signal: SIGKILL
         stop_grace_period: 5s
-        image: ollama/ollama:latest
         ports:
             - '${OLLAMA_PORT:-11434}:${OLLAMA_PORT:-11434}'
         environment:
@@ -53,6 +53,8 @@ services:
 
     qdrant:
         image: qdrant/qdrant:latest
+        stop_signal: SIGKILL
+        stop_grace_period: 5s
         ports:
             - '${QDRANT_PORT:-6333}:${QDRANT_PORT:-6333}'
         volumes:
@@ -61,6 +63,8 @@ services:
 
     postgres:
         image: postgres:16-alpine
+        stop_signal: SIGKILL
+        stop_grace_period: 5s
         ports:
             - '${MANNA_DB_PORT:-5432}:5432'
         environment:
@@ -79,6 +83,8 @@ services:
 
     neo4j:
         image: neo4j:5-community
+        stop_signal: SIGKILL
+        stop_grace_period: 5s
         ports:
             # Neo4j Browser UI (HTTP)
             - '${NEO4J_PORT:-7474}:${NEO4J_PORT:-7474}'
