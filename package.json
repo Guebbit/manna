@@ -31,7 +31,7 @@
         "docs:dev": "vitepress dev docs",
         "docs:build": "vitepress build docs",
         "docs:preview": "vitepress preview docs",
-        "podman:restart": "podman compose restart",
+        "podman:restart": "podman compose down --timeout 1 && podman compose up -d",
         "podman:rebuild": "podman compose down -v --timeout 1 && podman compose build --no-cache && podman compose up -d",
         "podman:nuke": "pkill -9 -f 'podman|conmon|runc' 2>/dev/null || true; systemctl --user restart podman",
         "update:all": "npx npm-check-updates -u",
