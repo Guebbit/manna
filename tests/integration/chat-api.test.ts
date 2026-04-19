@@ -93,40 +93,47 @@ vi.mock('@/packages/persistence/db', () => ({
         const conversation = persistenceState.conversations.get(id);
         return conversation ? cloneConversation(conversation) : undefined;
     }),
-    updateConversation: vi.fn(async (id: string, input: { title?: string; profile?: string | null }) => {
-        const conversation = persistenceState.conversations.get(id);
-        if (!conversation) return undefined;
-        if (input.title !== undefined) conversation.title = input.title.trim() || 'New Conversation';
-        if (input.profile !== undefined) conversation.profile = input.profile;
-        conversation.updatedAt = nextTimestamp();
-        return cloneConversation(conversation);
-    }),
+    updateConversation: vi.fn(
+        async (id: string, input: { title?: string; profile?: string | null }) => {
+            const conversation = persistenceState.conversations.get(id);
+            if (!conversation) return undefined;
+            if (input.title !== undefined)
+                conversation.title = input.title.trim() || 'New Conversation';
+            if (input.profile !== undefined) conversation.profile = input.profile;
+            conversation.updatedAt = nextTimestamp();
+            return cloneConversation(conversation);
+        }
+    ),
     deleteConversation: vi.fn(async (id: string) => persistenceState.conversations.delete(id)),
-    createMessage: vi.fn(async (conversationId: string, input: { role: ChatRole; content: string }) => {
-        const conversation = persistenceState.conversations.get(conversationId);
-        if (!conversation) return undefined;
-        const now = nextTimestamp();
-        persistenceState.messageCounter += 1;
-        const message: IStoredMessage = {
-            id: `message-${persistenceState.messageCounter}`,
-            conversationId,
-            role: input.role,
-            content: input.content,
-            createdAt: now,
-            updatedAt: now
-        };
-        conversation.messages.push(message);
-        conversation.updatedAt = now;
-        return cloneMessage(message);
-    }),
-    updateMessage: vi.fn(async (conversationId: string, messageId: string, input: { content: string }) => {
-        const conversation = persistenceState.conversations.get(conversationId);
-        const message = conversation?.messages.find((entry) => entry.id === messageId);
-        if (!message) return undefined;
-        message.content = input.content;
-        message.updatedAt = nextTimestamp();
-        return cloneMessage(message);
-    }),
+    createMessage: vi.fn(
+        async (conversationId: string, input: { role: ChatRole; content: string }) => {
+            const conversation = persistenceState.conversations.get(conversationId);
+            if (!conversation) return undefined;
+            const now = nextTimestamp();
+            persistenceState.messageCounter += 1;
+            const message: IStoredMessage = {
+                id: `message-${persistenceState.messageCounter}`,
+                conversationId,
+                role: input.role,
+                content: input.content,
+                createdAt: now,
+                updatedAt: now
+            };
+            conversation.messages.push(message);
+            conversation.updatedAt = now;
+            return cloneMessage(message);
+        }
+    ),
+    updateMessage: vi.fn(
+        async (conversationId: string, messageId: string, input: { content: string }) => {
+            const conversation = persistenceState.conversations.get(conversationId);
+            const message = conversation?.messages.find((entry) => entry.id === messageId);
+            if (!message) return undefined;
+            message.content = input.content;
+            message.updatedAt = nextTimestamp();
+            return cloneMessage(message);
+        }
+    ),
     deleteMessage: vi.fn(async (conversationId: string, messageId: string) => {
         const conversation = persistenceState.conversations.get(conversationId);
         if (!conversation) return false;
@@ -152,9 +159,7 @@ const mockFetch = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
     };
 
     expect(body.model).toBe('fast-model');
-    expect(body.messages).toMatchObject([
-        { role: 'user', content: 'Hello, how are you?' }
-    ]);
+    expect(body.messages).toMatchObject([{ role: 'user', content: 'Hello, how are you?' }]);
 
     const responseBody = {
         message: { role: 'assistant', content: 'Hi! I am doing well.' },
@@ -214,7 +219,7 @@ describe('chat API', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({})
             });
-            const createConversationBody = await createConversationResponse.json() as {
+            const createConversationBody = (await createConversationResponse.json()) as {
                 data: { conversation: { id: string } };
             };
 
@@ -226,7 +231,7 @@ describe('chat API', () => {
                     body: JSON.stringify({ role: 'user', content: 'Hello, how are you?' })
                 }
             );
-            const postMessageBody = await postMessageResponse.json() as {
+            const postMessageBody = (await postMessageResponse.json()) as {
                 success: boolean;
                 data: { message: { role: string; content: string } };
                 meta: { model?: string; profile?: string; totalTokens?: number };
@@ -247,7 +252,7 @@ describe('chat API', () => {
             const getConversationResponse = await fetch(
                 `${baseUrl}/chat/conversations/${createConversationBody.data.conversation.id}`
             );
-            const getConversationBody = await getConversationResponse.json() as {
+            const getConversationBody = (await getConversationResponse.json()) as {
                 data: {
                     conversation: {
                         messages: Array<{ role: string; content: string }>;

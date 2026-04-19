@@ -42,6 +42,7 @@ import type { ChatRole, IChatMessage } from '@/packages/persistence/types';
 
 const VALID_ROLES = new Set<ChatRole>(['user', 'assistant', 'system']);
 const VALID_CHAT_PROFILES = new Set<ModelProfile>(['fast', 'reasoning', 'code']);
+const DEFAULT_CHAT_PROFILE: ModelProfile = 'fast';
 
 function isValidRole(value: unknown): value is ChatRole {
     return typeof value === 'string' && VALID_ROLES.has(value as ChatRole);
@@ -225,8 +226,9 @@ export function registerChatRoutes(app: express.Express): void {
             return;
         }
 
-        const profile = isValidChatProfile(conversation.profile) ? conversation.profile : 'fast';
+        const profile = isValidChatProfile(conversation.profile) ? conversation.profile : DEFAULT_CHAT_PROFILE;
         const promptMessages = [...conversation.messages, result];
+        let responseMessage = '';
 
         try {
             const route = await routeModel({
@@ -248,6 +250,7 @@ export function registerChatRoutes(app: express.Express): void {
                 });
 
                 if (assistantMessage === null) {
+                    responseMessage = 'Assistant reply unavailable';
                     logger.warn('chat_assistant_reply_persist_failed', {
                         component: 'api.chat',
                         conversationId: id,
@@ -255,6 +258,7 @@ export function registerChatRoutes(app: express.Express): void {
                         reason: 'database_unavailable'
                     });
                 } else if (assistantMessage === undefined) {
+                    responseMessage = 'Assistant reply unavailable';
                     logger.warn('chat_assistant_reply_persist_failed', {
                         component: 'api.chat',
                         conversationId: id,
@@ -263,6 +267,7 @@ export function registerChatRoutes(app: express.Express): void {
                     });
                 }
             } else {
+                responseMessage = 'Assistant reply unavailable';
                 logger.warn('chat_assistant_reply_empty', {
                     component: 'api.chat',
                     conversationId: id,
@@ -270,7 +275,7 @@ export function registerChatRoutes(app: express.Express): void {
                 });
             }
 
-            successResponse(res, { message: result }, 201, '', {
+            successResponse(res, { message: result }, 201, responseMessage, {
                 ...buildResponseMeta(startedAt, req),
                 model: route.model,
                 profile: route.profile,
@@ -280,6 +285,7 @@ export function registerChatRoutes(app: express.Express): void {
             });
             return;
         } catch (error) {
+            responseMessage = 'Assistant reply unavailable';
             logger.error('chat_assistant_reply_failed', {
                 component: 'api.chat',
                 conversationId: id,
@@ -288,7 +294,7 @@ export function registerChatRoutes(app: express.Express): void {
             });
         }
 
-        successResponse(res, { message: result }, 201, '', buildResponseMeta(startedAt, req));
+        successResponse(res, { message: result }, 201, responseMessage, buildResponseMeta(startedAt, req));
     });
 
     /* ── PUT /chat/conversations/:id/messages/:msgId ─────────────────────── */
