@@ -28,7 +28,7 @@ import {
 import { createSwarmOrchestrator, VALID_PROFILES } from "./agents";
 import type { ModelProfile } from "@/packages/agent/model-router";
 import type { ISwarmConfig } from "@/packages/swarm/types";
-import type { SwarmRequest, SwarmResponse } from "@/api/models";
+import type { SwarmRequest, SwarmResponse } from "@/api";
 import { writeSwarmEventToSse } from "./sse-event-bridge";
 
 /** Discriminated-union return types for {@link parseSwarmBody}. */

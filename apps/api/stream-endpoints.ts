@@ -32,7 +32,7 @@ import {
 } from "@/packages/shared";
 import { createAgent, VALID_PROFILES } from "./agents";
 import type { ModelProfile } from "@/packages/agent/model-router";
-import type { RunRequest } from "@/api/models";
+import type { RunRequest } from "@/api";
 import { writeAgentEventToSse } from "./sse-event-bridge";
 
 /**

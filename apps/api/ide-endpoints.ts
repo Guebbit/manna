@@ -27,7 +27,7 @@ import type {
   LintResponse,
   PageReviewRequest,
   PageReviewResponse,
-} from "@/api/models";
+} from "@/api";
 import { buildCacheKey, getCached, setCached } from "./ide/cache";
 import {
   getTypeScriptFindings,
@@ -79,6 +79,9 @@ const PAGE_REVIEW_MAX_TOKENS = Number.parseInt(
   process.env.PAGE_REVIEW_MAX_TOKENS ?? "1200",
   10,
 );
+
+type LintFindingSource = NonNullable<NonNullable<LintResponse["findings"]>[number]["source"]>;
+type LintFindingSeverity = NonNullable<NonNullable<LintResponse["findings"]>[number]["severity"]>;
 
 // ---------------------------------------------------------------------------
 // Rate limiters — one per endpoint, using express-rate-limit.
@@ -230,7 +233,7 @@ export function registerIdeRoutes(application: express.Express): void {
         language: cacheHit.language,
         cached: true,
         latencyMs: Date.now() - startedAt.getTime(),
-        createdAtIso: new Date(cacheHit.createdAtIso),
+        createdAtIso: cacheHit.createdAtIso,
       };
       const typedPayload: AutocompleteResponse = payload;
       successResponse(response, typedPayload, 200, "", {
@@ -269,7 +272,7 @@ export function registerIdeRoutes(application: express.Express): void {
           language,
           cached: false,
           latencyMs: Date.now() - startedAt.getTime(),
-          createdAtIso: new Date(createdAtIsoString),
+          createdAtIso: createdAtIsoString,
         };
         setCached(cacheKey, {
           completion: payload.completion,
@@ -366,7 +369,13 @@ export function registerIdeRoutes(application: express.Express): void {
       : Promise.resolve([] as IFinding[]);
 
     llmFindingsPromise.then((llmFindings) => {
-      const findings = [...deterministicFindings, ...llmFindings].slice(0, parsed.data.maxFindings);
+      const findings: LintResponse["findings"] = [...deterministicFindings, ...llmFindings]
+        .slice(0, parsed.data.maxFindings)
+        .map((finding) => ({
+          ...finding,
+          source: finding.source as LintFindingSource,
+          severity: finding.severity as LintFindingSeverity,
+        }));
       const summary = {
         total: findings.length,
         errors: findings.filter((item) => item.severity === "error").length,

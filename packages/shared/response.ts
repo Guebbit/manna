@@ -15,7 +15,7 @@ declare module 'express-serve-static-core' {
 }
 
 import type { Request, Response } from 'express';
-import type { ResponseMeta as ApiResponseMeta } from '../../api/models';
+import type { ResponseMeta as ApiResponseMeta } from '../../api';
 
 /**
  * Standard operational metadata attached to successful API responses.

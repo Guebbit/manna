@@ -4,12 +4,13 @@ node_modules/
 # Build output
 dist/
 /api/*
-!/api/apis/
-!/api/apis/**
+!/api/core/
+!/api/core/**
 !/api/models/
 !/api/models/**
+!/api/services/
+!/api/services/**
 !/api/index.ts
-!/api/runtime.ts
 
 # Environment variables — never commit secrets
 .env
