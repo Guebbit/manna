@@ -116,9 +116,9 @@ export function createPolicyProcessor(options: IPolicyProcessorOptions): IProces
          * crossed the hard-stop threshold.
          *
          * Throws `PolicyViolationError('E_CONSECUTIVE_ERRORS')` when
-         * `consecutiveErrors >= consecutiveErrorLimit`.
+         * `consecutiveErrors >= consecutiveErrorLimit` (repeated recoverable failures).
          * Throws `PolicyViolationError('E_CONSECUTIVE_ERRORS')` when
-         * `hardStopErrors >= 2` (two terminal errors in one run).
+         * `hardStopErrors >= 2` (two terminal errors — path violations or permission denials).
          */
         processInputStep(args: IProcessInputStepArgs): IProcessInputStepArgs {
             if (hardStopErrors >= 2) {

@@ -747,7 +747,7 @@ export class Agent {
                     });
                 } catch (error: unknown) {
                     if (error instanceof PolicyViolationError) {
-                        /* E_PERMISSION_DENIED: notify processors then hard stop. */
+                        /* Policy violation (e.g. E_PERMISSION_DENIED): notify processors then hard stop. */
                         await this.runToolResultProcessors({
                             task,
                             stepNumber: step,
@@ -758,16 +758,7 @@ export class Agent {
                             errorCode: error.code,
                             durationMs: 0
                         });
-                        diagnosticEntries.push({
-                            timestamp: new Date().toISOString(),
-                            step,
-                            severity: 'error',
-                            category: 'policy',
-                            code: error.code,
-                            message: error.message
-                        });
-                        context += `\n${error.message}`;
-                        break;
+                        return handleHardStop(error);
                     }
                     throw error;
                 }

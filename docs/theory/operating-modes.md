@@ -16,7 +16,7 @@ The default is `standard`.
 | `AGENTS_MAX_STEPS` default | 5 | 20 | 50 |
 | `AGENT_MAX_TOOL_CALLS` default | 3 | 10 | 20 |
 | `AGENT_CONSECUTIVE_ERROR_LIMIT` default | 2 | 3 | 5 |
-| Self-debug on exhaustion | No (returns fallback) | Yes (fast model) | Yes (reasoning model) |
+| Self-debug on exhaustion | No (returns fallback) | Yes (fast model) | Yes (fast model) |
 | Target hardware | 8–16 GB RAM, CPU-only, ≤8B models | 16–32 GB RAM, mid-range GPU, 7–13B models | 32+ GB VRAM, large models (34B+) |
 
 ---
