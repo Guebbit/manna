@@ -2,7 +2,7 @@
  * Unit tests for packages/processors/policy.ts
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { createPolicyProcessor, PolicyViolationError } from '@/packages/processors/policy.js';
 
 const WRITE_TOOL_NAMES = new Set(['write_file', 'scaffold_project']);
@@ -20,6 +20,16 @@ describe('PolicyViolationError', () => {
 });
 
 describe('PolicyProcessor — processInputStep', () => {
+    const originalOperatingMode = process.env.AGENT_OPERATING_MODE;
+
+    afterEach(() => {
+        if (originalOperatingMode === undefined) {
+            delete process.env.AGENT_OPERATING_MODE;
+        } else {
+            process.env.AGENT_OPERATING_MODE = originalOperatingMode;
+        }
+    });
+
     it('returns the input args unchanged when counters are within limits', () => {
         const proc = createPolicyProcessor({
             allowWrite: false,
@@ -114,6 +124,28 @@ describe('PolicyProcessor — processInputStep', () => {
 
         await proc.processToolResult!(hardFailArgs);
         await proc.processToolResult!(hardFailArgs);
+
+        const inputArgs = { task: 'test', context: '', memory: [], stepNumber: 2, tools: [] };
+        expect(() => proc.processInputStep!(inputArgs)).toThrow(PolicyViolationError);
+    });
+
+    it('uses operating-mode consecutive-error default when no explicit limit is set', async () => {
+        process.env.AGENT_OPERATING_MODE = 'low-spec';
+        const proc = createPolicyProcessor({
+            allowWrite: false,
+            writeToolNames: WRITE_TOOL_NAMES
+        });
+        const resultArgs = {
+            task: '',
+            stepNumber: 0,
+            tool: 'read_file',
+            input: {},
+            success: false,
+            durationMs: 1
+        };
+
+        await proc.processToolResult!(resultArgs);
+        await proc.processToolResult!(resultArgs);
 
         const inputArgs = { task: 'test', context: '', memory: [], stepNumber: 2, tools: [] };
         expect(() => proc.processInputStep!(inputArgs)).toThrow(PolicyViolationError);

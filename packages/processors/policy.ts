@@ -9,7 +9,7 @@
  *
  * - **Consecutive-error budget** — tracks tool failures per run.  When
  *   the `consecutiveErrors` counter reaches the configured limit (defaults to
- *   `AGENT_CONSECUTIVE_ERROR_LIMIT` env var or `3`), throws
+ *   `resolveOperatingModeConfig().consecutiveErrorLimit`), throws
  *   `PolicyViolationError('E_CONSECUTIVE_ERRORS')` in the next
  *   `processInputStep`.
  *
@@ -40,6 +40,7 @@ import type {
     IProcessOutputStepArgs,
     IProcessToolResultArgs
 } from './types';
+import { resolveOperatingModeConfig } from '../shared/operating-mode';
 
 /** Error codes that are considered "terminal" — two in one run triggers hard stop. */
 const HARD_STOP_CODES = new Set(['E_PATH_OUTSIDE_ROOT', 'E_PERMISSION_DENIED']);
@@ -88,7 +89,7 @@ export interface IPolicyProcessorOptions {
 
     /**
      * Number of consecutive tool failures that trigger a hard stop.
-     * Defaults to `3`.
+     * Defaults to the resolved operating-mode `consecutiveErrorLimit`.
      */
     consecutiveErrorLimit?: number;
 }
@@ -105,7 +106,8 @@ export interface IPolicyProcessorOptions {
  */
 export function createPolicyProcessor(options: IPolicyProcessorOptions): IProcessor {
     const { allowWrite, writeToolNames } = options;
-    const consecutiveErrorLimit = options.consecutiveErrorLimit ?? 3;
+    const consecutiveErrorLimit =
+        options.consecutiveErrorLimit ?? resolveOperatingModeConfig().consecutiveErrorLimit;
 
     let consecutiveErrors = 0;
     let hardStopErrors = 0;

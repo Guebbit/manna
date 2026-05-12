@@ -32,7 +32,7 @@ export const readFileTool = createTool({
      * @param input      - Tool input object.
      * @param input.path - Path to the file (relative to project root).
      * @returns The UTF-8 contents of the file.
-     * @throws {Error} When `path` is missing, empty, or escapes the project root.
+     * @throws {PathSafetyError} When `path` escapes the project root.
      */
     execute({ path: filePath }) {
         return safeReadFile(filePath, 'utf-8');
