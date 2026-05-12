@@ -4,18 +4,25 @@
  * Missing any of these throws at startup rather than silently using a
  * wrong default that causes cryptic runtime failures later.
  *
- * `OLLAMA_MODEL` is required because it serves as the last-resort
- * fallback in the model resolution chain (profile var → OLLAMA_MODEL → throw).
- * Without it, requests fail with confusing "Unable to resolve model" errors
- * instead of a clear startup message.
+ * Only the truly non-negotiable variables are listed here:
+ *
+ * - `OLLAMA_MODEL` — last-resort fallback in the model resolution chain
+ *   (`AGENT_MODEL_<PROFILE>` → `OLLAMA_MODEL` → throw). Without it,
+ *   requests fail with confusing "Unable to resolve model" errors.
+ * - `OLLAMA_BASE_URL` — network address of the Ollama inference server.
+ *   Without it, every LLM call fails immediately.
+ * - `OLLAMA_EMBED_MODEL` — model used for vector embeddings (memory,
+ *   semantic search). Without it, memory recall is silently lost.
+ *
+ * Profile-specific model vars (`AGENT_MODEL_FAST`, `AGENT_MODEL_REASONING`,
+ * `AGENT_MODEL_CODE`) are intentionally **not** required: they all fall back
+ * to `OLLAMA_MODEL` via `resolveModel()`, so a single-model deployment works
+ * out of the box without setting all three.
  */
 const REQUIRED_ENV_KEYS = [
     'OLLAMA_MODEL',
     'OLLAMA_BASE_URL',
-    'OLLAMA_EMBED_MODEL',
-    'AGENT_MODEL_FAST',
-    'AGENT_MODEL_REASONING',
-    'AGENT_MODEL_CODE'
+    'OLLAMA_EMBED_MODEL'
 ];
 
 /**
@@ -35,7 +42,8 @@ export const validateRequiredEnvironment = (): void => {
     if (missing.length > 0) {
         throw new Error(
             `Missing required environment variable${missing.length > 1 ? 's' : ''}: ${missing.join(', ')}. ` +
-                `Please set ${missing.length > 1 ? 'them' : 'it'} in your .env file before starting Manna.`
+                `Please set ${missing.length > 1 ? 'them' : 'it'} in your .env file before starting Manna. ` +
+                `See docs/quickstart.md for a minimal configuration example.`
         );
     }
 };

@@ -4,6 +4,10 @@
 Manna is versatile — you can use it as an AI agent inside your IDE, as an agentic coding engine to build entire websites, or as a searchable knowledge base over your own PDFs and documents.
 :::
 
+::: info First time here?
+**[→ Quickstart](./quickstart.md)** gets you to a working first response in 5 minutes with a single model and three commands. Come back to this page for the full setup and advanced use cases.
+:::
+
 There are several ways to use Manna, each suited to a different workflow. This page covers the initial setup and then explains each use case individually.
 
 ---
@@ -17,6 +21,7 @@ Before using Manna in any mode, you need the base stack running.
 ```bash
 npm install
 ```
+
 
 ### 2. Start Ollama
 

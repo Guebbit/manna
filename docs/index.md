@@ -4,11 +4,18 @@
 Local-first AI agent platform for multi-step reasoning, tool execution, orchestration, and domain workflows (coding, research, data, documents, knowledge graphs).
 :::
 
+## New here? Start in 5 minutes
+
+> **[→ Quickstart: Your First Run](./quickstart.md)** — one model, three commands, working agent.
+
+---
+
 ## Documentation tracks
 
 | Track                     | What you'll find                                                            | Start here                                   |
 | ------------------------- | --------------------------------------------------------------------------- | -------------------------------------------- |
-| **Getting Started**       | Setup, use cases, first request                                             | [Use the Application](/use-the-application)  |
+| **Getting Started**       | First run, setup, use cases                                                 | [Quickstart](./quickstart.md)                |
+| **Full Setup**            | All use cases, IDE integration, write mode, knowledge base                  | [Use the Application](/use-the-application)  |
 | **Practical Examples**    | Request → under-the-hood → response walkthroughs                            | [Examples](/examples/)                       |
 | **Scenarios**             | Hands-on drills (10 min each)                                               | [Scenarios](/scenarios/)                     |
 | **Architecture & Theory** | How the system works, [RAG](/glossary#rag), [LoRA](/glossary#lora), vectors | [How It Works](/theory/how-it-works-layered) |
@@ -46,7 +53,7 @@ flowchart LR
 
 ## Quick-start path
 
-1. [Set up & run your first request](/use-the-application)
+1. **[Get your first response →](./quickstart.md)** — the fastest path to a working run
 2. [See a full example walkthrough](/examples/read-and-answer)
 3. [Explore the API endpoints](/endpoint-map)
 4. [Understand the internals](/theory/how-it-works-layered)
@@ -57,7 +64,7 @@ flowchart LR
 
 | Area               | Links                                                                                                                                                                                                  |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Learn**          | [Examples](/examples/) · [Scenarios](/scenarios/) · [Glossary](/glossary)                                                                                                                              |
-| **Theory**         | [Agent Loop](/theory/agent-loop) · [RAG](/theory/RAG) · [Vectors](/theory/VECTOR_DATABASES) · [LoRA](/theory/lora-fine-tuning) · [MCP](/theory/MCP)                                                    |
+| **Learn**          | [Quickstart](./quickstart.md) · [Examples](/examples/) · [Scenarios](/scenarios/) · [Glossary](/glossary)                                                                                              |
+| **Theory**         | [Agent Loop](/theory/agent-loop) · [Operating Modes](/theory/operating-modes) · [Error Taxonomy](/theory/error-taxonomy) · [RAG](/theory/RAG) · [MCP](/theory/MCP)                                     |
 | **Reference**      | [Endpoint Map](/endpoint-map) · [Packages](/packages/) · [Tools](/packages/tools/) · [Model Selection](/model-selection) · [Orchestrator](/packages/orchestrator) · [Knowledge Graph](/packages/graph) |
 | **Infrastructure** | [Ollama Setup](/infra/ollama-notes) · [Ollama Models](/infra/ollama-models) · [Library Ingestion](/library-ingestion)                                                                                  |
