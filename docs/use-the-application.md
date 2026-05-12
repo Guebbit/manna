@@ -60,6 +60,33 @@ You should get back a JSON response with the agent's answer. If this works, the 
 
 ---
 
+## Operating Mode
+
+Set `AGENT_OPERATING_MODE` in your `.env` file to match your hardware:
+
+| Value | Best for | Max steps | Consecutive-error limit |
+| --- | --- | --- | --- |
+| `low-spec` | 8–16 GB RAM, CPU-only, ≤ 8B models | 5 | 2 |
+| `standard` _(default)_ | 16–32 GB RAM, mid-range GPU, 7–13B models | 20 | 3 |
+| `high-trust` | 32+ GB VRAM, large models (34B+) | 50 | 5 |
+
+```bash
+# .env
+AGENT_OPERATING_MODE=low-spec
+```
+
+Individual limits can still be overridden independently:
+
+```bash
+AGENT_OPERATING_MODE=standard
+AGENTS_MAX_STEPS=30              # override max steps for this deployment
+AGENT_CONSECUTIVE_ERROR_LIMIT=5  # allow more retries before hard stop
+```
+
+See [Operating Modes](./theory/operating-modes.md) for the full reference.
+
+---
+
 ## Use Case 1: IDE Agent (WebStorm, VS Code, etc.)
 
 Manna exposes dedicated HTTP endpoints designed for IDE integration. These endpoints bypass the full agentic loop and are optimised for low-latency responses at cursor-time.

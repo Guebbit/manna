@@ -16,6 +16,7 @@ import { loadMCPTools } from "@/packages/mcp";
 import { logger } from "@/packages/logger/logger";
 import { LangGraphSwarmOrchestrator } from "@/packages/orchestrator/graph";
 import type { IProcessor } from "@/packages/processors/types";
+import { createPolicyProcessor } from "@/packages/processors/policy";
 import {
   readFileTool,
   writeFileTool,
@@ -82,18 +83,35 @@ let allToolDescriptionMap = new Map<string, string>(
   [...readOnlyTools, ...writeTools].map((t) => [t.name, t.description]),
 );
 
+/* ── Write-tool names set (used by PolicyProcessor) ─────────────────── */
+
+/** Names of tools that require `allowWrite: true`. */
+const WRITE_TOOL_NAMES = new Set(nativeWriteTools.map((t) => t.name));
+
 /* ── Processor registration ──────────────────────────────────────────── */
 
 /**
  * Build the list of active processors based on environment variables.
  *
+ * `PolicyProcessor` is always registered first so capability gates and
+ * error-budget enforcement run before any other middleware.
+ *
  * Shared by both single-agent and swarm paths so the same middleware
  * applies regardless of execution mode.
  *
+ * @param allowWrite - Whether write tools are permitted for this agent instance.
  * @returns An array of active {@link IProcessor} instances.
  */
-function buildProcessors(): IProcessor[] {
+function buildProcessors(allowWrite: boolean): IProcessor[] {
   const procs: IProcessor[] = [];
+
+  /* PolicyProcessor must be first — it enforces capability gates and budgets. */
+  procs.push(
+    createPolicyProcessor({
+      allowWrite,
+      writeToolNames: WRITE_TOOL_NAMES,
+    }),
+  );
 
   if (process.env.AGENT_VERIFICATION_ENABLED === "true") {
     procs.push(verificationProcessor);
@@ -109,11 +127,12 @@ function buildProcessors(): IProcessor[] {
 /**
  * Attach optional processors to an agent based on environment variables.
  *
- * @param agent - The `Agent` instance to configure.
+ * @param agent      - The `Agent` instance to configure.
+ * @param allowWrite - Whether write tools are permitted for this agent.
  * @returns The same `agent` for fluent chaining.
  */
-function attachProcessors(agent: Agent): Agent {
-  for (const proc of buildProcessors()) {
+function attachProcessors(agent: Agent, allowWrite: boolean): Agent {
+  for (const proc of buildProcessors(allowWrite)) {
     agent.addProcessor(proc);
   }
   return agent;
@@ -129,18 +148,19 @@ function rebuildAgents(): void {
     [...readOnlyTools, ...writeTools].map((tool) => [tool.name, tool.description]),
   );
 
-  readOnlyAgent = attachProcessors(new Agent(readOnlyTools));
-  writeEnabledAgent = attachProcessors(new Agent([...readOnlyTools, ...writeTools]));
+  readOnlyAgent = attachProcessors(new Agent(readOnlyTools), false);
+  writeEnabledAgent = attachProcessors(new Agent([...readOnlyTools, ...writeTools]), true);
 }
 
 /* ── Agent instances (shared across requests) ────────────────────────── */
 
 /** Agent with read-only tool access (default). */
-export let readOnlyAgent = attachProcessors(new Agent(readOnlyTools));
+export let readOnlyAgent = attachProcessors(new Agent(readOnlyTools), false);
 
 /** Agent with both read and write tool access. */
 export let writeEnabledAgent = attachProcessors(
   new Agent([...readOnlyTools, ...writeTools]),
+  true,
 );
 
 /**
@@ -201,5 +221,5 @@ export function createSwarmOrchestrator(allowWrite: boolean): LangGraphSwarmOrch
   const tools = allowWrite
     ? [...readOnlyTools, ...writeTools]
     : readOnlyTools;
-  return new LangGraphSwarmOrchestrator(tools, buildProcessors());
+  return new LangGraphSwarmOrchestrator(tools, buildProcessors(allowWrite));
 }

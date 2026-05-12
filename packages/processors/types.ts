@@ -64,6 +64,43 @@ export interface IProcessOutputStepArgs {
 }
 
 /**
+ * Arguments passed to `processToolResult`.
+ * Called after each tool execution (success or failure) so processors
+ * can observe outcomes and update internal state (e.g. error counters).
+ */
+export interface IProcessToolResultArgs {
+    /** The original task the agent was asked to perform. */
+    task: string;
+
+    /** Current step index (zero-based). */
+    stepNumber: number;
+
+    /** Name of the tool that was executed. */
+    tool: string;
+
+    /** Input that was supplied to the tool. */
+    input: Record<string, unknown>;
+
+    /** Whether the tool call succeeded. */
+    success: boolean;
+
+    /** Error message when `success` is `false`. */
+    error?: string;
+
+    /**
+     * Typed error code when the error is a classified harness failure.
+     * Example: `'E_PATH_OUTSIDE_ROOT'`, `'E_PERMISSION_DENIED'`.
+     */
+    errorCode?: string;
+
+    /** Tool output when `success` is `true`. */
+    result?: unknown;
+
+    /** Wall-clock duration of the tool call in milliseconds. */
+    durationMs: number;
+}
+
+/**
  * A Processor is an object with one or both lifecycle hooks.
  *
  * Both hooks are optional — implement only the ones you need.
@@ -79,6 +116,9 @@ export interface IProcessor {
      *
      * Return a modified `ProcessInputStepArgs` to override context, memory,
      * or the tool list.  Return `void`/`undefined` to leave them unchanged.
+     *
+     * A processor may throw a `PolicyViolationError` here to trigger an
+     * immediate hard stop before the step begins.
      */
     processInputStep?(
         args: IProcessInputStepArgs
@@ -89,8 +129,20 @@ export interface IProcessor {
      *
      * Return a modified `ProcessOutputStepArgs` to override the action or
      * tool input.  Return `void`/`undefined` to leave them unchanged.
+     *
+     * A processor may throw a `PolicyViolationError` here to block a
+     * tool call before it is executed.
      */
     processOutputStep?(
         args: IProcessOutputStepArgs
     ): Promise<IProcessOutputStepArgs | void> | IProcessOutputStepArgs | void;
+
+    /**
+     * Called *after* each tool execution — whether it succeeded or failed.
+     *
+     * Use this hook to update per-run counters (e.g. consecutive error
+     * tracking) so that the next `processInputStep` can make hard-stop
+     * decisions based on accumulated state.
+     */
+    processToolResult?(args: IProcessToolResultArgs): Promise<void> | void;
 }

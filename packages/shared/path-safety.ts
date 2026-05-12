@@ -15,16 +15,51 @@
 import path from 'path';
 
 /**
+ * Typed error thrown when a user-supplied path escapes a trusted root.
+ *
+ * Carries a `code` field so the agent harness can distinguish a path
+ * violation from generic tool failures and take an immediate hard-stop
+ * decision without retrying.
+ */
+export class PathSafetyError extends Error {
+    /** Typed error code — always `'E_PATH_OUTSIDE_ROOT'`. */
+    public readonly code = 'E_PATH_OUTSIDE_ROOT' as const;
+
+    /** The path the caller attempted to access. */
+    public readonly attemptedPath: string;
+
+    /** The root the path was required to stay within. */
+    public readonly root: string;
+
+    /**
+     * @param message      - Human-readable error message.
+     * @param attemptedPath - The path that violated the constraint.
+     * @param root          - The root the path was required to stay within.
+     */
+    constructor(message: string, attemptedPath: string, root: string) {
+        super(message);
+        this.name = 'PathSafetyError';
+        this.attemptedPath = attemptedPath;
+        this.root = root;
+        Object.setPrototypeOf(this, new.target.prototype);
+    }
+}
+
+/**
  * Verify that `resolved` does not escape the given `root` directory.
  *
- * @param resolved   - The already-resolved absolute path to validate.
- * @param root       - The trusted root directory (absolute path).
- * @param errorLabel - Label used in the thrown error message (e.g. "project root").
- * @throws {Error} When `resolved` is outside `root`.
+ * @param resolved      - The already-resolved absolute path to validate.
+ * @param root          - The trusted root directory (absolute path).
+ * @param errorLabel    - Label used in the thrown error message (e.g. "project root").
+ * @throws {PathSafetyError} When `resolved` is outside `root`.
  */
 function assertInsideRoot(resolved: string, root: string, errorLabel: string): void {
     if (!resolved.startsWith(root + path.sep) && resolved !== root) {
-        throw new Error(`Access denied: path is outside the ${errorLabel}`);
+        throw new PathSafetyError(
+            `Access denied: path is outside the ${errorLabel}`,
+            resolved,
+            root
+        );
     }
 }
 

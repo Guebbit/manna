@@ -17,3 +17,4 @@
 
 export * from './types';
 export * from './processor-builder';
+export * from './policy';

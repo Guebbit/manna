@@ -32,7 +32,7 @@ export interface IToolCall {
 }
 
 /** Status of a finished agent or swarm run. */
-export type RunStatus = 'completed' | 'max_steps' | 'error';
+export type RunStatus = 'completed' | 'max_steps' | 'error' | 'hard_stopped';
 
 /**
  * Input payload for {@link saveAgentRun}.
