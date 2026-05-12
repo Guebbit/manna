@@ -289,6 +289,99 @@ Phases are ordered so each one is independently shippable and leaves the system 
 
 ---
 
+## Later-Phase Backlog
+
+> Items in this section are **post-harness / after-core-overhaul**.  
+> They should not be started until Phases 0–6 above are complete and stable.  
+> Each item is a candidate for its own planning document or `docs/` page.
+
+---
+
+### B1 — Onboarding improvements
+
+- [ ] Write a **quickstart guide** that guarantees at least one successful end-to-end run for a new user: minimal `.env`, `POST /run` with a concrete task, expected response shape.
+- [ ] Add a **"What should I try next?"** section to the quickstart, giving a short curated list of tasks that exercise real capabilities without requiring write access.
+- [ ] General first-run UX audit: identify and fix the most common sources of confusion (unclear env var names, missing defaults, ambiguous error messages on startup).
+
+---
+
+### B2 — Complete observability layer
+
+The goal is a single, coherent observability payload attached to every run, surfaced in diagnostics and events.
+
+| Observable | Where it lives today | Target state |
+|---|---|---|
+| Model / profile chosen per step | `agent:model_routed` event | Persisted in run record + diagnostic log |
+| Per-step traces (thought, action, tool, result) | Diagnostic log (partial) | Structured trace array on run record |
+| Tool latency breakdown | Not captured | Per-call `durationMs` in trace |
+| Token and context usage | `contextLength` logged at step end | Token counts per LLM call if provider exposes them |
+| Stop reason | `action: "none"` in thought | Explicit typed `stopReason` field (`hard_stop`, `budget`, `done`, `timeout`) |
+| Debug meta payload | Not available | Optional `debug: true` flag on `POST /run` that returns full trace + meta in the response |
+
+- [ ] Define a `IRunObservability` interface in `packages/shared/` covering the fields above.
+- [ ] Attach `observability` to the persisted `IAgentRun` record.
+- [ ] Expose a `debug` flag on `POST /run` (opt-in) that inlines the full observability payload in the HTTP response.
+- [ ] Emit `agent:observability_snapshot` event at run completion.
+
+---
+
+### B3 — Activable persistent run history
+
+Persistent run history (powered by `packages/persistence/`) is already partially implemented.  
+This item makes the full observability data from B2 storable and configurable via environment.
+
+- [ ] Add an env var (e.g. `MANNA_PERSISTENCE_ENABLED=true`) to gate whether runs are persisted at all; default to `false` for minimal deployments.
+- [ ] When enabled, persist the full `IRunObservability` payload from B2 alongside the existing run record.
+- [ ] Document the storage format and env var in `docs/use-the-application.md` and `.ai/ENVVARS.md`.
+- [ ] Add a `GET /runs` or `GET /history` endpoint (read-only) to retrieve persisted run summaries.
+
+---
+
+### B4 — Specialised endpoints extending `POST /run`
+
+Long-term, the generic `/run` endpoint should be complemented by narrower purpose-built endpoints that carry stronger semantic contracts (fixed tool sets, targeted prompts, typed response shapes).
+
+Candidates:
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /summarize-file` | Summarize a file at a given path within the project root |
+| `POST /explain-file` | Explain what a file does, its public API, its dependencies |
+| `POST /docs-chat` | Conversational Q&A against the `docs/` tree |
+| `POST /refactor-suggestion` | Suggest refactoring improvements for a given file or symbol |
+| `POST /test-generate` | Generate test stubs for a given module or function |
+| `POST /trace-request` | Replay and explain a previous run by ID |
+
+- [ ] Define endpoint contracts (request body, response shape, allowed tools) in `docs/endpoint-map.md` before implementing.
+- [ ] Each endpoint should reuse `Agent.run()` internally with a pre-configured task prefix and restricted tool set — no new execution engine.
+- [ ] `/run` remains the general-purpose escape hatch; specialised endpoints are narrower alternatives, not replacements.
+
+---
+
+### B5 — Naming and terminology consistency
+
+As the surface area grows (env vars, events, API fields, tool names, docs), inconsistencies accumulate.
+
+- [ ] Audit all env var names against a chosen prefix convention (e.g. `MANNA_*` vs `AGENT_*`); pick one and document it in `.ai/ENVVARS.md`.
+- [ ] Audit event names (`agent:*`, `tool:*`, `memory:*`) for consistent casing and namespace.
+- [ ] Audit API response fields (`meta`, `answer`, `steps`, `observability`) across all endpoints for consistent naming.
+- [ ] Audit `docs/glossary.md` — ensure every term used in code, config, and docs maps to a single glossary entry.
+- [ ] Produce a one-page **terminology map** (code name → docs name → event name → env var) and add it to `docs/` or `.ai/`.
+- [ ] Apply renaming in a single dedicated PR to minimise noise in the history.
+
+---
+
+### B6 — Visual workflow builder
+
+A visual, node-based interface for constructing multi-step agent workflows (sequences of tool calls, branching on conditions, human-in-the-loop approval gates).
+
+- [ ] **Assessment first:** check whether an equivalent UI already exists in the repository (e.g. in `apps/`) or in an upstream dependency before building anything new. If a suitable component exists, evaluate reuse.
+- [ ] If building new: define the data model for a "workflow graph" (nodes = steps, edges = transitions, triggers = events) before any UI work.
+- [ ] Target integration: workflows should compile to a `POST /run` call or a sequence of specialised endpoint calls (B4).
+- [ ] Keep this as a future item until the core harness (Phases 0–6) and observability (B2) are stable; the builder needs a reliable backend to be useful.
+
+---
+
 ## Appendix: Relevant Existing Symbols
 
 Quick lookup so future sessions don't re-explore:
@@ -311,4 +404,4 @@ Quick lookup so future sessions don't re-explore:
 
 ---
 
-*Last updated: 2026-05-12. Author: Copilot planning session.*
+*Last updated: 2026-05-12. Author: Copilot planning session. Backlog section (B1–B6) added 2026-05-12.*
