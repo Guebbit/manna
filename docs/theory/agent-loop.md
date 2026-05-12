@@ -66,16 +66,16 @@ instead of burning tokens on hopeless retries.
 
 ## Failure modes (and what happens)
 
-| What goes wrong | Code | Recovery action |
-| --- | --- | --- |
-| LLM returns invalid JSON | `E_JSON_PARSE` | Appends parse error to context, tries again next step |
-| LLM requests a tool that does not exist | `E_TOOL_UNKNOWN` | Appends "unknown tool" error + valid tool list, tries again |
-| Tool throws a runtime error | _(generic)_ | Appends error message to context, increments consecutive-error counter |
-| Tool path escapes project root | `E_PATH_OUTSIDE_ROOT` | Actionable message with actual root path; increments hard-stop counter |
-| Write tool called without `allowWrite` | `E_PERMISSION_DENIED` | Immediate hard stop — not retried |
-| Same tool + same args repeated | `E_DUPLICATE_CALL` | Skipped with notice, increments error counter |
-| N consecutive errors (default N=3) | `E_CONSECUTIVE_ERRORS` | Immediate hard stop, persisted as `hard_stopped` |
-| Max steps reached | `E_BUDGET_EXCEEDED` | Self-debug summary returned, emits `agent:max_steps` |
+| What goes wrong                         | Code                   | Recovery action                                                        |
+| --------------------------------------- | ---------------------- | ---------------------------------------------------------------------- |
+| LLM returns invalid JSON                | `E_JSON_PARSE`         | Appends parse error to context, tries again next step                  |
+| LLM requests a tool that does not exist | `E_TOOL_UNKNOWN`       | Appends "unknown tool" error + valid tool list, tries again            |
+| Tool throws a runtime error             | _(generic)_            | Appends error message to context, increments consecutive-error counter |
+| Tool path escapes project root          | `E_PATH_OUTSIDE_ROOT`  | Actionable message with actual root path; increments hard-stop counter |
+| Write tool called without `allowWrite`  | `E_PERMISSION_DENIED`  | Immediate hard stop — not retried                                      |
+| Same tool + same args repeated          | `E_DUPLICATE_CALL`     | Skipped with notice, increments error counter                          |
+| N consecutive errors (default N=3)      | `E_CONSECUTIVE_ERRORS` | Immediate hard stop, persisted as `hard_stopped`                       |
+| Max steps reached                       | `E_BUDGET_EXCEEDED`    | Self-debug summary returned, emits `agent:max_steps`                   |
 
 ## Stop conditions
 
@@ -90,12 +90,11 @@ flowchart LR
 
 ## Run states
 
-| State | Trigger | Persisted status |
-| --- | --- | --- |
-| `Done` | `action: "none"` from model | `completed` |
-| `SelfDebug` | Max steps exhausted | `max_steps` |
-| `HardStop` | `PolicyViolationError` | `hard_stopped` |
-| _(error)_ | Unhandled LLM exception | `error` |
+| State       | Trigger                     | Persisted status |
+| ----------- | --------------------------- | ---------------- |
+| `Done`      | `action: "none"` from model | `completed`      |
+| `SelfDebug` | Max steps exhausted         | `max_steps`      |
+| `HardStop`  | `PolicyViolationError`      | `hard_stopped`   |
+| _(error)_   | Unhandled LLM exception     | `error`          |
 
 See also: [Operating Modes](./operating-modes.md) · [Error Taxonomy](./error-taxonomy.md)
-

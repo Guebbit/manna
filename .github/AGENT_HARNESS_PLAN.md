@@ -1,9 +1,9 @@
-# TEMPORARY PLANNING DOCUMENT — Agent Harness Overhaul
+# Agent Harness Overhaul — Planning Document
 
-> **Status: THEORETICAL ONLY — nothing described here is implemented.**
-> This file exists solely to preserve context, reduce hallucinations across
-> sessions, and keep future implementation work aligned.
-> Delete or move to `docs/` once the architecture stabilises and implementation begins.
+> **Status: IMPLEMENTED** (Phases 0–4 complete as of 2026-05-12).
+> Kept for historical context and as a reference for the Backlog (B1–B6).
+> See `docs/theory/agent-loop.md`, `docs/theory/error-taxonomy.md`, and
+> `docs/theory/operating-modes.md` for the live architecture documentation.
 
 ---
 
@@ -22,11 +22,11 @@ Step 6 → action: "none" — final "thought" is ~750-char hallucination
 Root causes:
 
 1. **No consecutive-error budget.** A repeating tool error burns steps identically to progress.
-2. **No path-normalisation feedback.** The error message was technically correct but gave the model nothing actionable ("outside project root" without saying *what* the root is).
+2. **No path-normalisation feedback.** The error message was technically correct but gave the model nothing actionable ("outside project root" without saying _what_ the root is).
 3. **No halt-on-hopeless logic.** Nothing detects "same tool, same path, same error ×N" and stops early.
 4. **Weaker local models drift.** `llama3.1:8b` can lose the thread when the system prompt doesn't constrain recovery strategies tightly enough.
 
-**The fix philosophy:** build the harness first, then fix individual bugs *within* that structure. Patching symptoms one-by-one without a coherent harness produces an accumulation of special-cases that nobody can reason about.
+**The fix philosophy:** build the harness first, then fix individual bugs _within_ that structure. Patching symptoms one-by-one without a coherent harness produces an accumulation of special-cases that nobody can reason about.
 
 ---
 
@@ -44,14 +44,14 @@ Root causes:
 
 ### 1. Design Principles
 
-| Principle | Meaning in Manna |
-|---|---|
-| **Harness before features** | Every new capability must fit inside defined policy, routing, execution, verification, evaluation layers. |
-| **Fail loudly, stop early** | Repeated identical failures must terminate the run with a typed error, not silently consume steps. |
-| **Deterministic feedback loops** | Tool errors must include structured codes + context so the model can reason about them, not just a raw exception string. |
-| **Mode-aware limits** | `AGENTS_MAX_STEPS`, `AGENT_MAX_TOOL_CALLS`, and consecutive-error budgets scale with the hardware/trust tier. |
-| **Traceable decisions** | Every state transition emits a typed event (`agent:*`). No silent state. |
-| **Processors are the extension point** | Policy enforcement lives in `packages/processors/`, not scattered across `agent.ts`. |
+| Principle                              | Meaning in Manna                                                                                                         |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **Harness before features**            | Every new capability must fit inside defined policy, routing, execution, verification, evaluation layers.                |
+| **Fail loudly, stop early**            | Repeated identical failures must terminate the run with a typed error, not silently consume steps.                       |
+| **Deterministic feedback loops**       | Tool errors must include structured codes + context so the model can reason about them, not just a raw exception string. |
+| **Mode-aware limits**                  | `AGENTS_MAX_STEPS`, `AGENT_MAX_TOOL_CALLS`, and consecutive-error budgets scale with the hardware/trust tier.            |
+| **Traceable decisions**                | Every state transition emits a typed event (`agent:*`). No silent state.                                                 |
+| **Processors are the extension point** | Policy enforcement lives in `packages/processors/`, not scattered across `agent.ts`.                                     |
 
 ---
 
@@ -95,15 +95,15 @@ flowchart TD
 
 ### 3. Task Taxonomy
 
-| Class | Description | Example | Write gate |
-|---|---|---|---|
-| `read` | Read-only information gathering | "What does the .env file contain?" | No |
-| `write` | Produces side-effects the user explicitly requested | "Rename this file" | Yes (`allowWrite: true`) |
-| `destructive` | Irreversible side-effects | "Drop the table" | Yes + confirmation |
-| `multi-step` | Requires ≥3 tool calls to complete | "Refactor the module and run tests" | Depends |
-| `ambient` | Background / daemon task | Memory sweep, index rebuild | Scheduled |
+| Class         | Description                                         | Example                             | Write gate               |
+| ------------- | --------------------------------------------------- | ----------------------------------- | ------------------------ |
+| `read`        | Read-only information gathering                     | "What does the .env file contain?"  | No                       |
+| `write`       | Produces side-effects the user explicitly requested | "Rename this file"                  | Yes (`allowWrite: true`) |
+| `destructive` | Irreversible side-effects                           | "Drop the table"                    | Yes + confirmation       |
+| `multi-step`  | Requires ≥3 tool calls to complete                  | "Refactor the module and run tests" | Depends                  |
+| `ambient`     | Background / daemon task                            | Memory sweep, index rebuild         | Scheduled                |
 
-The routing layer must classify the task *before* handing it to the execution layer so that the correct step budget and tool set are pre-configured.
+The routing layer must classify the task _before_ handing it to the execution layer so that the correct step budget and tool set are pre-configured.
 
 ---
 
@@ -111,19 +111,19 @@ The routing layer must classify the task *before* handing it to the execution la
 
 Typed error codes allow the harness to take different recovery actions rather than feeding every raw exception string back to the model.
 
-| Code | Meaning | Recovery action |
-|---|---|---|
-| `E_PATH_OUTSIDE_ROOT` | `read_file` / `write_file` path violates sandbox | **Immediate stop** + user message: "Path `X` is outside the project root (`Y`). Cannot access." |
-| `E_TOOL_UNKNOWN` | Model requested a tool not in the registered list | Append tool list to context, retry (max 2×) |
-| `E_TOOL_PARSE` | Tool input failed schema validation | Append validation error, retry (max 2×) |
-| `E_JSON_PARSE` | LLM output is not valid JSON | Append correction hint, retry (max 2×) |
-| `E_DUPLICATE_CALL` | Same tool + same input already called this run | Skip execution, append dedup notice |
-| `E_CONSECUTIVE_ERRORS` | N tool errors in a row (see §6) | Terminate run with structured summary |
-| `E_BUDGET_EXCEEDED` | Step count or context chars over limit | Terminate run, emit `agent:budget_exceeded` |
-| `E_LLM_TIMEOUT` | LLM did not respond within `AGENT_BUDGET_MAX_DURATION_MS` | Terminate, emit `agent:timeout` |
-| `E_PERMISSION_DENIED` | Tool requires `allowWrite` but flag is not set | Append explanation, do **not** retry |
+| Code                   | Meaning                                                   | Recovery action                                                                                 |
+| ---------------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `E_PATH_OUTSIDE_ROOT`  | `read_file` / `write_file` path violates sandbox          | **Immediate stop** + user message: "Path `X` is outside the project root (`Y`). Cannot access." |
+| `E_TOOL_UNKNOWN`       | Model requested a tool not in the registered list         | Append tool list to context, retry (max 2×)                                                     |
+| `E_TOOL_PARSE`         | Tool input failed schema validation                       | Append validation error, retry (max 2×)                                                         |
+| `E_JSON_PARSE`         | LLM output is not valid JSON                              | Append correction hint, retry (max 2×)                                                          |
+| `E_DUPLICATE_CALL`     | Same tool + same input already called this run            | Skip execution, append dedup notice                                                             |
+| `E_CONSECUTIVE_ERRORS` | N tool errors in a row (see §6)                           | Terminate run with structured summary                                                           |
+| `E_BUDGET_EXCEEDED`    | Step count or context chars over limit                    | Terminate run, emit `agent:budget_exceeded`                                                     |
+| `E_LLM_TIMEOUT`        | LLM did not respond within `AGENT_BUDGET_MAX_DURATION_MS` | Terminate, emit `agent:timeout`                                                                 |
+| `E_PERMISSION_DENIED`  | Tool requires `allowWrite` but flag is not set            | Append explanation, do **not** retry                                                            |
 
-**Key design decision:** `E_PATH_OUTSIDE_ROOT` and `E_PERMISSION_DENIED` must **never** trigger a retry cycle. They are definitional — retrying cannot fix them. Any step that produces one of these codes increments both the tool-error counter *and* the "hard stop" counter; two hard-stop errors in one run terminate immediately.
+**Key design decision:** `E_PATH_OUTSIDE_ROOT` and `E_PERMISSION_DENIED` must **never** trigger a retry cycle. They are definitional — retrying cannot fix them. Any step that produces one of these codes increments both the tool-error counter _and_ the "hard stop" counter; two hard-stop errors in one run terminate immediately.
 
 ---
 
@@ -160,22 +160,22 @@ The `HardStop` state is new (not yet implemented). It must:
 
 The following counters must be tracked per-run inside `Agent.run()` alongside the existing `step` counter:
 
-| Counter | Increment when | Hard stop when |
-|---|---|---|
-| `consecutiveErrors` | Any tool call returns an error | ≥ 3 (configurable: `AGENT_CONSECUTIVE_ERROR_LIMIT`, default `3`) |
-| `hardStopErrors` | Tool returns `E_PATH_OUTSIDE_ROOT` or `E_PERMISSION_DENIED` | ≥ 2 |
-| `duplicateCalls` | `ToolCallDeduplicator` blocks a call | ≥ 5 (treat as loop) |
-| `jsonParseFailures` | Zod rejects the LLM output | ≥ 3 in a row |
+| Counter             | Increment when                                              | Hard stop when                                                   |
+| ------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------- |
+| `consecutiveErrors` | Any tool call returns an error                              | ≥ 3 (configurable: `AGENT_CONSECUTIVE_ERROR_LIMIT`, default `3`) |
+| `hardStopErrors`    | Tool returns `E_PATH_OUTSIDE_ROOT` or `E_PERMISSION_DENIED` | ≥ 2                                                              |
+| `duplicateCalls`    | `ToolCallDeduplicator` blocks a call                        | ≥ 5 (treat as loop)                                              |
+| `jsonParseFailures` | Zod rejects the LLM output                                  | ≥ 3 in a row                                                     |
 
 `consecutiveErrors` resets to 0 on any **successful** tool call.
 
 **Mode-specific defaults** (see §7):
 
-| Mode | `AGENTS_MAX_STEPS` default | `AGENT_CONSECUTIVE_ERROR_LIMIT` default |
-|---|---|---|
-| `low-spec` | 5 | 2 |
-| `standard` | 20 | 3 |
-| `high-trust` | 50 | 5 |
+| Mode         | `AGENTS_MAX_STEPS` default | `AGENT_CONSECUTIVE_ERROR_LIMIT` default |
+| ------------ | -------------------------- | --------------------------------------- |
+| `low-spec`   | 5                          | 2                                       |
+| `standard`   | 20                         | 3                                       |
+| `high-trust` | 50                         | 5                                       |
 
 ---
 
@@ -214,14 +214,14 @@ They are set via `AGENT_OPERATING_MODE` env var (`low-spec` | `standard` | `high
 
 The existing `vitest.eval.config.ts` suite should gain explicit coverage for harness behaviour:
 
-| Eval scenario | Pass criteria |
-|---|---|
+| Eval scenario                                       | Pass criteria                                                                    |
+| --------------------------------------------------- | -------------------------------------------------------------------------------- |
 | `read_file` outside project root → single hard stop | Run terminates at step 0, answer contains path context, `status: "hard_stopped"` |
-| Same tool + same path ×3 | Run terminates with `E_CONSECUTIVE_ERRORS` before step 3 |
-| Max steps exhausted | Self-debug summary returned, `agent:max_steps` emitted |
-| `allowWrite=false` + write tool call | Tool refused with `E_PERMISSION_DENIED`, not retried |
-| Duplicate tool calls | Deduplicator blocks ≥1 call, run still completes |
-| Low-spec mode task | Completes within 5 steps or hard-stops cleanly |
+| Same tool + same path ×3                            | Run terminates with `E_CONSECUTIVE_ERRORS` before step 3                         |
+| Max steps exhausted                                 | Self-debug summary returned, `agent:max_steps` emitted                           |
+| `allowWrite=false` + write tool call                | Tool refused with `E_PERMISSION_DENIED`, not retried                             |
+| Duplicate tool calls                                | Deduplicator blocks ≥1 call, run still completes                                 |
+| Low-spec mode task                                  | Completes within 5 steps or hard-stops cleanly                                   |
 
 Each eval should assert on:
 
@@ -248,7 +248,7 @@ Phases are ordered so each one is independently shippable and leaves the system 
 - [ ] Add `E_PATH_OUTSIDE_ROOT` code to `packages/shared/path-safety.ts` errors.
 - [ ] Update `read_file` / `write_file` tools to throw structured errors (object with `code`, `message`, `context`).
 - [ ] Update `agent.ts` tool-error handler to read the code and build actionable feedback text.
-- [ ] Example feedback: *"Path `/home/user/.env` is outside the project root (`/app`). I cannot access files outside the project. Please ask for a file within the project."*
+- [ ] Example feedback: _"Path `/home/user/.env` is outside the project root (`/app`). I cannot access files outside the project. Please ask for a file within the project."_
 - [ ] Add eval: path-outside-root → single clear refusal.
 
 #### Phase 2 — Consecutive-error budget + hard-stop (~1 session)
@@ -268,8 +268,8 @@ Phases are ordered so each one is independently shippable and leaves the system 
 #### Phase 4 — Policy layer as processor (~1–2 sessions)
 
 - [ ] Implement `PolicyProcessor` in `packages/processors/policy.ts`.
-  - Pre-step: check task classification, verify capability gates, enforce duplicate guard.
-  - Post-step: record error code, update counters.
+    - Pre-step: check task classification, verify capability gates, enforce duplicate guard.
+    - Post-step: record error code, update counters.
 - [ ] Register `PolicyProcessor` before other processors in `apps/api/agents.ts`.
 - [ ] Migrate hard-stop logic from `agent.ts` into the processor.
 - [ ] Update integration tests.
@@ -309,14 +309,14 @@ Phases are ordered so each one is independently shippable and leaves the system 
 
 The goal is a single, coherent observability payload attached to every run, surfaced in diagnostics and events.
 
-| Observable | Where it lives today | Target state |
-|---|---|---|
-| Model / profile chosen per step | `agent:model_routed` event | Persisted in run record + diagnostic log |
-| Per-step traces (thought, action, tool, result) | Diagnostic log (partial) | Structured trace array on run record |
-| Tool latency breakdown | Not captured | Per-call `durationMs` in trace |
-| Token and context usage | `contextLength` logged at step end | Token counts per LLM call if provider exposes them |
-| Stop reason | `action: "none"` in thought | Explicit typed `stopReason` field (`hard_stop`, `budget`, `done`, `timeout`) |
-| Debug meta payload | Not available | Optional `debug: true` flag on `POST /run` that returns full trace + meta in the response |
+| Observable                                      | Where it lives today               | Target state                                                                              |
+| ----------------------------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------- |
+| Model / profile chosen per step                 | `agent:model_routed` event         | Persisted in run record + diagnostic log                                                  |
+| Per-step traces (thought, action, tool, result) | Diagnostic log (partial)           | Structured trace array on run record                                                      |
+| Tool latency breakdown                          | Not captured                       | Per-call `durationMs` in trace                                                            |
+| Token and context usage                         | `contextLength` logged at step end | Token counts per LLM call if provider exposes them                                        |
+| Stop reason                                     | `action: "none"` in thought        | Explicit typed `stopReason` field (`hard_stop`, `budget`, `done`, `timeout`)              |
+| Debug meta payload                              | Not available                      | Optional `debug: true` flag on `POST /run` that returns full trace + meta in the response |
 
 - [ ] Define a `IRunObservability` interface in `packages/shared/` covering the fields above.
 - [ ] Attach `observability` to the persisted `IAgentRun` record.
@@ -343,14 +343,14 @@ Long-term, the generic `/run` endpoint should be complemented by narrower purpos
 
 Candidates:
 
-| Endpoint | Purpose |
-|---|---|
-| `POST /summarize-file` | Summarize a file at a given path within the project root |
-| `POST /explain-file` | Explain what a file does, its public API, its dependencies |
-| `POST /docs-chat` | Conversational Q&A against the `docs/` tree |
+| Endpoint                    | Purpose                                                     |
+| --------------------------- | ----------------------------------------------------------- |
+| `POST /summarize-file`      | Summarize a file at a given path within the project root    |
+| `POST /explain-file`        | Explain what a file does, its public API, its dependencies  |
+| `POST /docs-chat`           | Conversational Q&A against the `docs/` tree                 |
 | `POST /refactor-suggestion` | Suggest refactoring improvements for a given file or symbol |
-| `POST /test-generate` | Generate test stubs for a given module or function |
-| `POST /trace-request` | Replay and explain a previous run by ID |
+| `POST /test-generate`       | Generate test stubs for a given module or function          |
+| `POST /trace-request`       | Replay and explain a previous run by ID                     |
 
 - [ ] Define endpoint contracts (request body, response shape, allowed tools) in `docs/endpoint-map.md` before implementing.
 - [ ] Each endpoint should reuse `Agent.run()` internally with a pre-configured task prefix and restricted tool set — no new execution engine.
@@ -386,22 +386,22 @@ A visual, node-based interface for constructing multi-step agent workflows (sequ
 
 Quick lookup so future sessions don't re-explore:
 
-| Symbol | Location | Notes |
-|---|---|---|
-| `Agent.run()` | `packages/agent/agent.ts` | Main loop; add counters in Phase 2 |
-| `MAX_STEPS` | `packages/agent/agent.ts:58` | Reads `AGENTS_MAX_STEPS` env var |
-| `AGENT_MAX_TOOL_CALLS` | `packages/agent/agent.ts` | Per-step tool-call limit |
-| `AGENT_BUDGET_MAX_DURATION_MS` | env | Run wall-clock budget |
-| `AGENT_BUDGET_MAX_CONTEXT_CHARS` | env | Context accumulator cap |
-| `IDiagnosticEntry` | `packages/diagnostics/` | Add `code` field here (Phase 0) |
-| `IProcessInputStepArgs` | `packages/processors/types.ts` | Hook point for PolicyProcessor |
-| `IProcessOutputStepArgs` | `packages/processors/types.ts` | Hook point for PolicyProcessor |
-| `path-safety.ts` | `packages/shared/path-safety.ts` | Throw typed errors here (Phase 1) |
-| `ToolCallDeduplicator` | `packages/tools/tool-call-deduplicator.ts` | Already exists; wire counters (Phase 2) |
-| `saveAgentRun` | `packages/persistence/db.ts` | Add `hard_stopped` status (Phase 0) |
-| `emit` | `packages/events/bus.ts` | Add `agent:hard_stop` event (Phase 0) |
-| `vitest.eval.config.ts` | repo root | Eval suite entry point |
+| Symbol                           | Location                                   | Notes                                   |
+| -------------------------------- | ------------------------------------------ | --------------------------------------- |
+| `Agent.run()`                    | `packages/agent/agent.ts`                  | Main loop; add counters in Phase 2      |
+| `MAX_STEPS`                      | `packages/agent/agent.ts:58`               | Reads `AGENTS_MAX_STEPS` env var        |
+| `AGENT_MAX_TOOL_CALLS`           | `packages/agent/agent.ts`                  | Per-step tool-call limit                |
+| `AGENT_BUDGET_MAX_DURATION_MS`   | env                                        | Run wall-clock budget                   |
+| `AGENT_BUDGET_MAX_CONTEXT_CHARS` | env                                        | Context accumulator cap                 |
+| `IDiagnosticEntry`               | `packages/diagnostics/`                    | Add `code` field here (Phase 0)         |
+| `IProcessInputStepArgs`          | `packages/processors/types.ts`             | Hook point for PolicyProcessor          |
+| `IProcessOutputStepArgs`         | `packages/processors/types.ts`             | Hook point for PolicyProcessor          |
+| `path-safety.ts`                 | `packages/shared/path-safety.ts`           | Throw typed errors here (Phase 1)       |
+| `ToolCallDeduplicator`           | `packages/tools/tool-call-deduplicator.ts` | Already exists; wire counters (Phase 2) |
+| `saveAgentRun`                   | `packages/persistence/db.ts`               | Add `hard_stopped` status (Phase 0)     |
+| `emit`                           | `packages/events/bus.ts`                   | Add `agent:hard_stop` event (Phase 0)   |
+| `vitest.eval.config.ts`          | repo root                                  | Eval suite entry point                  |
 
 ---
 
-*Last updated: 2026-05-12. Author: Copilot planning session. Backlog section (B1–B6) added 2026-05-12.*
+_Last updated: 2026-05-12. Author: Copilot planning session. Backlog section (B1–B6) added 2026-05-12._

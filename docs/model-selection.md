@@ -112,20 +112,19 @@ Each agent routing profile supports fine-grained generation parameter control vi
 | `AGENT_MODEL_REASONING_NUM_CTX`        | `8192`  | Context window size (tokens) |
 | `AGENT_MODEL_REASONING_REPEAT_PENALTY` | `1.3`   | Repetition penalty           |
 
-
 These options are resolved at startup from env vars and passed through to Ollama's `/api/generate` endpoint on every call. Runtime options take priority over any Modelfile defaults — see [Modelfile Example](/infra/modelfile-example) for the relationship between the two approaches.
 
 ---
 
 ## Environment variables (full reference)
 
-| Variable                   | Default | Description                                    |
-| -------------------------- | ------- | ---------------------------------------------- |
-| `AGENT_MODEL_ROUTER_MODE`  | `rules` | `rules` or `model`                             |
-| `AGENT_MODEL_ROUTER_MODEL` | --      | Classifier model (model mode only)             |
-| `AGENT_MODEL_FAST`         | --      | Model for `fast` profile                       |
-| `AGENT_MODEL_REASONING`    | --      | Model for `reasoning` profile                  |
-| `AGENT_MODEL_CODE`         | --      | Model for `code` profile                       |
+| Variable                   | Default | Description                                                                   |
+| -------------------------- | ------- | ----------------------------------------------------------------------------- |
+| `AGENT_MODEL_ROUTER_MODE`  | `rules` | `rules` or `model`                                                            |
+| `AGENT_MODEL_ROUTER_MODEL` | --      | Classifier model (model mode only)                                            |
+| `AGENT_MODEL_FAST`         | --      | Model for `fast` profile                                                      |
+| `AGENT_MODEL_REASONING`    | --      | Model for `reasoning` profile                                                 |
+| `AGENT_MODEL_CODE`         | --      | Model for `code` profile                                                      |
 | `OLLAMA_MODEL`             | --      | Global fallback — **required** if any profile var is unset; throws if missing |
 
 ### Priority order for model selection

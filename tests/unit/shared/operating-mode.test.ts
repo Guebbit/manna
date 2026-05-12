@@ -3,16 +3,19 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { resolveOperatingMode, resolveOperatingModeConfig } from '@/packages/shared/operating-mode.js';
+import {
+    resolveOperatingMode,
+    resolveOperatingModeConfig
+} from '@/packages/shared/operating-mode.js';
 
 describe('resolveOperatingMode', () => {
-    const originalEnv = process.env.AGENT_OPERATING_MODE;
+    const originalEnvironment = process.env.AGENT_OPERATING_MODE;
 
     afterEach(() => {
-        if (originalEnv === undefined) {
+        if (originalEnvironment === undefined) {
             delete process.env.AGENT_OPERATING_MODE;
         } else {
-            process.env.AGENT_OPERATING_MODE = originalEnv;
+            process.env.AGENT_OPERATING_MODE = originalEnvironment;
         }
     });
 
@@ -49,8 +52,8 @@ describe('resolveOperatingModeConfig', () => {
         'AGENT_MAX_TOOL_CALLS',
         'AGENT_CONSECUTIVE_ERROR_LIMIT'
     ] as const;
-    type EnvKey = (typeof savedKeys)[number];
-    const saved: Partial<Record<EnvKey, string | undefined>> = {};
+    type EnvironmentKey = (typeof savedKeys)[number];
+    const saved: Partial<Record<EnvironmentKey, string | undefined>> = {};
 
     beforeEach(() => {
         for (const key of savedKeys) {

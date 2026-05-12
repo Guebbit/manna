@@ -492,7 +492,9 @@ export class Agent {
          * @param violation - The `PolicyViolationError` that triggered the stop.
          * @returns The `IAgentRunResult` to return from `run()`.
          */
-        const handleHardStop = async (violation: PolicyViolationError): Promise<IAgentRunResult> => {
+        const handleHardStop = async (
+            violation: PolicyViolationError
+        ): Promise<IAgentRunResult> => {
             const answer = violation.message;
             logger.warn('agent_hard_stop', {
                 component: 'agent',
@@ -1018,7 +1020,9 @@ export class Agent {
                       `3. Suggestions for what to try next.`,
                   { model: resolveModel('fast'), stream: false }
               )
-                  .then((result) => result.trim() || 'Max steps reached without a conclusive answer.')
+                  .then(
+                      (result) => result.trim() || 'Max steps reached without a conclusive answer.'
+                  )
                   .catch((error: unknown) => {
                       logger.warn('agent_self_debug_failed', {
                           component: 'agent',

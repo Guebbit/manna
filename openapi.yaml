@@ -138,6 +138,7 @@ paths:
                 - `done` — final answer ready: `{ result, meta? }`
                 - `error` — agent threw: `{ error }`
                 - `max_steps` — loop exhausted: `{ task, summary }`
+                - `hard_stop` — policy hard stop: `{ step, code, reason }`
             operationId: postRunStream
             requestBody:
                 required: true
@@ -162,6 +163,7 @@ paths:
                         - `done` event: SseDoneEvent `{ result, meta? }`
                         - `error` event: SseErrorEvent `{ error }`
                         - `max_steps` event: SseMaxStepsEvent `{ task, summary, diagnosticFile? }`
+                        - `hard_stop` event: SseHardStopEvent `{ step, code, reason }`
                     content:
                         text/event-stream:
                             schema:
@@ -261,6 +263,7 @@ paths:
                         - `tool` event: SseToolEvent `{ tool, result?, error? }`
                         - `done` event: SseDoneEvent `{ result, meta? }`
                         - `error` event: SseErrorEvent `{ error }`
+                        - `hard_stop` event: SseHardStopEvent `{ step, code, reason }`
                         Other swarm-specific events: `decomposed`, `subtask_start`, `subtask_done`, `subtask_error`.
                     content:
                         text/event-stream:
@@ -1666,6 +1669,27 @@ components:
                     type: string
                 diagnosticFile:
                     type: string
+
+        SseHardStopEvent:
+            type: object
+            description: |
+                Emitted when the agent is hard-stopped by the policy layer
+                (e.g. path-safety violation, permission denied, or consecutive-error budget exceeded).
+                The run is persisted with `status: "hard_stopped"`.
+            properties:
+                step:
+                    type: integer
+                    description: Zero-based step index when the hard stop was triggered.
+                code:
+                    type: string
+                    description: |
+                        Typed error code from the error taxonomy.
+                        Well-known values: `E_PATH_OUTSIDE_ROOT`, `E_PERMISSION_DENIED`,
+                        `E_CONSECUTIVE_ERRORS`.
+                    example: E_CONSECUTIVE_ERRORS
+                reason:
+                    type: string
+                    description: Human-readable explanation of why the run was hard-stopped.
 
         ErrorResponse:
             type: object
