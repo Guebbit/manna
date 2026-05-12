@@ -18,7 +18,22 @@ import { logger } from "@/packages/logger/logger";
 import { rejectResponse, successResponse, buildResponseMeta, PROFILE_ENV_VARS } from "@/packages/shared";
 import type { ModelProfile } from "@/packages/shared";
 import { VALID_PROFILES } from "./agents";
-import type { GetHelp200ResponseAllOfDataEndpointsInner } from "@/api/models";
+
+/** Help parameter metadata for a single endpoint. */
+interface IHelpParam {
+  name: string;
+  type: string;
+  required: boolean;
+  description: string;
+}
+
+/** Help catalogue entry describing an exposed REST endpoint. */
+interface IHelpEndpoint {
+  method: string;
+  path: string;
+  summary: string;
+  params: IHelpParam[];
+}
 
 /* ── Constants ───────────────────────────────────────────────────────── */
 
@@ -56,7 +71,7 @@ function resolveProfileModel(profile: ModelProfile): { envVar: string; model: st
 /* ── Help catalogue ──────────────────────────────────────────────────── */
 
 /** Static help catalogue — kept in sync with the codebase manually. */
-const HELP_CATALOGUE: GetHelp200ResponseAllOfDataEndpointsInner[] = [
+const HELP_CATALOGUE: IHelpEndpoint[] = [
   /* ── Core ──────────────────────────────────────────────────────────── */
   {
     method: "GET",

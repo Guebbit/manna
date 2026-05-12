@@ -51,7 +51,7 @@ import { registerChatRoutes } from "./chat-endpoints";
 import { createAgent, initializeAgents, VALID_PROFILES } from "./agents";
 import { runMigrations } from "@/packages/persistence/migrate";
 import { rateLimiter, requestIdMiddleware } from "./middlewares/security";
-import type { HealthResponse, RunRequest, RunResponse } from "@/api/models";
+import type { HealthResponse, RunRequest, RunResponse } from "@/api";
 import enTranslation from "@/packages/shared/locales/en.json";
 
 /* ── Observability: log every agent/tool event to stdout ─────────────── */
@@ -167,7 +167,7 @@ app.post("/run", (req, res) => {
  */
 app.get("/health", (_req, res) => {
   const startedAt = new Date();
-  const response: HealthResponse = { status: "ok", timestamp: new Date() };
+  const response: HealthResponse = { status: "ok", timestamp: new Date().toISOString() };
   successResponse(res, response, 200, "", {
     startedAt: startedAt.toISOString(),
     durationMs: Date.now() - startedAt.getTime(),

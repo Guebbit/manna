@@ -17,6 +17,7 @@ import type express from "express";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import rateLimit from "express-rate-limit";
+import { LintFinding } from "@/api";
 import { generateWithMetadata } from "@/packages/llm/ollama";
 import { logger } from "@/packages/logger/logger";
 import { rejectResponse, successResponse, t, withTimeout, buildResponseMeta, inferLanguage, isTypeScriptLike, isJavaScriptLike, resolveModel } from "@/packages/shared";
@@ -27,7 +28,7 @@ import type {
   LintResponse,
   PageReviewRequest,
   PageReviewResponse,
-} from "@/api/models";
+} from "@/api";
 import { buildCacheKey, getCached, setCached } from "./ide/cache";
 import {
   getTypeScriptFindings,
@@ -79,6 +80,40 @@ const PAGE_REVIEW_MAX_TOKENS = Number.parseInt(
   process.env.PAGE_REVIEW_MAX_TOKENS ?? "1200",
   10,
 );
+
+function toApiLintSource(source: IFinding["source"]): LintFinding.source {
+  switch (source) {
+    case "typescript": {
+      return LintFinding.source.TYPESCRIPT;
+    }
+    case "convention": {
+      return LintFinding.source.CONVENTION;
+    }
+    case "llm": {
+      return LintFinding.source.LLM;
+    }
+    default: {
+      throw new Error(`Unsupported lint finding source: ${source}`);
+    }
+  }
+}
+
+function toApiLintSeverity(severity: IFinding["severity"]): LintFinding.severity {
+  switch (severity) {
+    case "error": {
+      return LintFinding.severity.ERROR;
+    }
+    case "warning": {
+      return LintFinding.severity.WARNING;
+    }
+    case "info": {
+      return LintFinding.severity.INFO;
+    }
+    default: {
+      throw new Error(`Unsupported lint finding severity: ${severity}`);
+    }
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Rate limiters — one per endpoint, using express-rate-limit.
@@ -230,7 +265,7 @@ export function registerIdeRoutes(application: express.Express): void {
         language: cacheHit.language,
         cached: true,
         latencyMs: Date.now() - startedAt.getTime(),
-        createdAtIso: new Date(cacheHit.createdAtIso),
+        createdAtIso: cacheHit.createdAtIso,
       };
       const typedPayload: AutocompleteResponse = payload;
       successResponse(response, typedPayload, 200, "", {
@@ -269,7 +304,7 @@ export function registerIdeRoutes(application: express.Express): void {
           language,
           cached: false,
           latencyMs: Date.now() - startedAt.getTime(),
-          createdAtIso: new Date(createdAtIsoString),
+          createdAtIso: createdAtIsoString,
         };
         setCached(cacheKey, {
           completion: payload.completion,
@@ -366,12 +401,18 @@ export function registerIdeRoutes(application: express.Express): void {
       : Promise.resolve([] as IFinding[]);
 
     llmFindingsPromise.then((llmFindings) => {
-      const findings = [...deterministicFindings, ...llmFindings].slice(0, parsed.data.maxFindings);
+      const findings: LintResponse["findings"] = [...deterministicFindings, ...llmFindings]
+        .slice(0, parsed.data.maxFindings)
+        .map((finding) => ({
+          ...finding,
+          source: toApiLintSource(finding.source),
+          severity: toApiLintSeverity(finding.severity),
+        }));
       const summary = {
         total: findings.length,
-        errors: findings.filter((item) => item.severity === "error").length,
-        warnings: findings.filter((item) => item.severity === "warning").length,
-        infos: findings.filter((item) => item.severity === "info").length,
+        errors: findings.filter((item) => item.severity === LintFinding.severity.ERROR).length,
+        warnings: findings.filter((item) => item.severity === LintFinding.severity.WARNING).length,
+        infos: findings.filter((item) => item.severity === LintFinding.severity.INFO).length,
         deterministicCount: deterministicFindings.length,
         llmCount: llmFindings.length,
       };

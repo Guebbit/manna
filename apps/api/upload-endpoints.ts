@@ -29,7 +29,7 @@ import {
 } from "@/packages/tools/index";
 import { logger } from "@/packages/logger/logger";
 import { type IResponseMeta, rejectResponse, successResponse, t } from "@/packages/shared";
-import type { ImageProcessorResponse } from "@/api/models";
+import type { ImageProcessorResponse } from "@/api";
 import { upload } from "./middlewares/multer";
 
 /**

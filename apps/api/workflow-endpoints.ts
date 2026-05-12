@@ -49,7 +49,7 @@ import type {
     WorkflowRequest as OpenApiWorkflowRequest,
     WorkflowResponse as OpenApiWorkflowResponse,
     WorkflowStepResult as OpenApiWorkflowStepResult,
-} from '@/api/models';
+} from '@/api';
 
 /* ── Constants ───────────────────────────────────────────────────────── */
 
@@ -182,7 +182,7 @@ interface IWorkflowCallbacks {
  * @returns A string to prepend to the step task, or an empty string when
  *          carry is `none` or there are no prior results.
  */
-function buildCarryContext(carry: NonNullable<OpenApiWorkflowRequest['carry']>, priors: IWorkflowStepResult[]): string {
+function buildCarryContext(carry: NonNullable<IWorkflowRequestBody['carry']>, priors: IWorkflowStepResult[]): string {
     if (carry === 'none' || priors.length === 0) {
         return '';
     }
