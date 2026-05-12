@@ -67,12 +67,12 @@ function assertInsideRoot(resolved: string, root: string, errorLabel: string): v
  * Resolve `userPath` relative to the current working directory and
  * verify that the result does not escape the project root.
  *
- * Throws an `Error` if the resolved path is outside the project root
+ * Throws a `PathSafetyError` if the resolved path is outside the project root
  * (e.g. via `../` traversal).
  *
  * @param userPath - Relative or absolute path supplied by the caller.
  * @returns The fully resolved, root-safe absolute path.
- * @throws {Error} When the path escapes the project root.
+ * @throws {PathSafetyError} When the path escapes the project root.
  */
 export function resolveSafePath(userPath: string): string {
     const root = path.resolve(process.cwd());
@@ -91,7 +91,7 @@ export function resolveSafePath(userPath: string): string {
  * @param root     - The trusted root directory (must be an absolute path).
  * @param userPath - Relative path supplied by the caller.
  * @returns The fully resolved, root-safe absolute path.
- * @throws {Error} When the path escapes the allowed root.
+ * @throws {PathSafetyError} When the path escapes the allowed root.
  */
 export function resolveInsideRoot(root: string, userPath: string): string {
     const resolved = path.resolve(root, userPath);

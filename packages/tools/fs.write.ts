@@ -65,7 +65,8 @@ export const writeFileTool = createTool({
      * @param input.content - String content to write.
      * @param input.mode    - Write mode: `"create"`, `"overwrite"`, or `"append"`.
      * @returns Metadata about the write operation (path, mode, bytes written).
-     * @throws {Error} When inputs are invalid, path escapes the root, or file exists in create mode.
+     * @throws {PathSafetyError} When `path` escapes the configured output root.
+     * @throws {Error} When file exists in `create` mode.
      */
     async execute({ path: filePath, content, mode }) {
         const writeMode: WriteMode =
