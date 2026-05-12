@@ -7,14 +7,14 @@ actions instead of feeding every raw exception string back to the model.
 
 ## Error codes
 
-| Code                   | Meaning                                                              | Recovery action                                                                                 |
-| ---------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Code                   | Meaning                                                              | Recovery action                                                                                  |
+| ---------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | `E_PATH_OUTSIDE_ROOT`  | `read_file` / `write_file` path violates sandbox                     | Actionable refusal; increments hard-stop counter (run hard-stops after terminal-error threshold) |
-| `E_TOOL_UNKNOWN`       | Model requested a tool not in the registered list                    | Append tool list to context, continue loop                                                      |
-| `E_DUPLICATE_CALL`     | Same tool + same input already called this run                       | Skip execution, append dedup notice to context                                                  |
-| `E_CONSECUTIVE_ERRORS` | N tool errors in a row (see [Operating Modes](./operating-modes.md)) | **Immediate hard stop** — structured summary returned                                           |
-| `E_BUDGET_EXCEEDED`    | Step count over limit                                                | Self-debug summary returned, emits `agent:max_steps`                                            |
-| `E_PERMISSION_DENIED`  | Tool requires `allowWrite` but flag is not set                       | Immediate hard stop for that step; increments terminal-error counter                            |
+| `E_TOOL_UNKNOWN`       | Model requested a tool not in the registered list                    | Append tool list to context, continue loop                                                       |
+| `E_DUPLICATE_CALL`     | Same tool + same input already called this run                       | Skip execution, append dedup notice to context                                                   |
+| `E_CONSECUTIVE_ERRORS` | N tool errors in a row (see [Operating Modes](./operating-modes.md)) | **Immediate hard stop** — structured summary returned                                            |
+| `E_BUDGET_EXCEEDED`    | Step count over limit                                                | Self-debug summary returned, emits `agent:max_steps`                                             |
+| `E_PERMISSION_DENIED`  | Tool requires `allowWrite` but flag is not set                       | Immediate hard stop for that step; increments terminal-error counter                             |
 
 ---
 

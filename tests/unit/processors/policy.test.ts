@@ -150,6 +150,31 @@ describe('PolicyProcessor — processInputStep', () => {
         const inputArgs = { task: 'test', context: '', memory: [], stepNumber: 2, tools: [] };
         expect(() => proc.processInputStep!(inputArgs)).toThrow(PolicyViolationError);
     });
+
+    it('falls back to standard mode default (3) when AGENT_OPERATING_MODE is unset', async () => {
+        delete process.env.AGENT_OPERATING_MODE;
+        const proc = createPolicyProcessor({
+            allowWrite: false,
+            writeToolNames: WRITE_TOOL_NAMES
+        });
+        const resultArgs = {
+            task: '',
+            stepNumber: 0,
+            tool: 'read_file',
+            input: {},
+            success: false,
+            durationMs: 1
+        };
+
+        await proc.processToolResult!(resultArgs);
+        await proc.processToolResult!(resultArgs);
+        const beforeLimitArgs = { task: 'test', context: '', memory: [], stepNumber: 2, tools: [] };
+        expect(() => proc.processInputStep!(beforeLimitArgs)).not.toThrow();
+
+        await proc.processToolResult!(resultArgs);
+        const atLimitArgs = { task: 'test', context: '', memory: [], stepNumber: 3, tools: [] };
+        expect(() => proc.processInputStep!(atLimitArgs)).toThrow(PolicyViolationError);
+    });
 });
 
 describe('PolicyProcessor — processOutputStep', () => {

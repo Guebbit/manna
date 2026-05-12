@@ -37,8 +37,13 @@ describe('writeAgentEventToSse', () => {
             { type: 'agent:done', payload: { thought: 'ok' } },
             writeEvent
         );
+        const handledMaxSteps = writeAgentEventToSse(
+            { type: 'agent:max_steps', payload: { task: 't', summary: 's' } },
+            writeEvent
+        );
 
         expect(handled).toBe(false);
+        expect(handledMaxSteps).toBe(false);
         expect(writeEvent).not.toHaveBeenCalled();
     });
 });
