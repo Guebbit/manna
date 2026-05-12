@@ -81,6 +81,34 @@ const PAGE_REVIEW_MAX_TOKENS = Number.parseInt(
   10,
 );
 
+function toApiLintSource(source: IFinding["source"]): LintFinding.source {
+  switch (source) {
+    case "typescript": {
+      return LintFinding.source.TYPESCRIPT;
+    }
+    case "convention": {
+      return LintFinding.source.CONVENTION;
+    }
+    case "llm": {
+      return LintFinding.source.LLM;
+    }
+  }
+}
+
+function toApiLintSeverity(severity: IFinding["severity"]): LintFinding.severity {
+  switch (severity) {
+    case "error": {
+      return LintFinding.severity.ERROR;
+    }
+    case "warning": {
+      return LintFinding.severity.WARNING;
+    }
+    case "info": {
+      return LintFinding.severity.INFO;
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Rate limiters — one per endpoint, using express-rate-limit.
 // ---------------------------------------------------------------------------
@@ -371,18 +399,8 @@ export function registerIdeRoutes(application: express.Express): void {
         .slice(0, parsed.data.maxFindings)
         .map((finding) => ({
           ...finding,
-          source:
-            finding.source === "typescript"
-              ? LintFinding.source.TYPESCRIPT
-              : finding.source === "convention"
-                ? LintFinding.source.CONVENTION
-                : LintFinding.source.LLM,
-          severity:
-            finding.severity === "error"
-              ? LintFinding.severity.ERROR
-              : finding.severity === "warning"
-                ? LintFinding.severity.WARNING
-                : LintFinding.severity.INFO,
+          source: toApiLintSource(finding.source),
+          severity: toApiLintSeverity(finding.severity),
         }));
       const summary = {
         total: findings.length,
