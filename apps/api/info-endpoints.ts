@@ -19,6 +19,7 @@ import { rejectResponse, successResponse, buildResponseMeta, PROFILE_ENV_VARS } 
 import type { ModelProfile } from "@/packages/shared";
 import { VALID_PROFILES } from "./agents";
 
+/** Help parameter metadata for a single endpoint. */
 interface IHelpParam {
   name: string;
   type: string;
@@ -26,6 +27,7 @@ interface IHelpParam {
   description: string;
 }
 
+/** Help catalogue entry describing an exposed REST endpoint. */
 interface IHelpEndpoint {
   method: string;
   path: string;

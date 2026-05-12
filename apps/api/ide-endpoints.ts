@@ -17,6 +17,7 @@ import type express from "express";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import rateLimit from "express-rate-limit";
+import { LintFinding } from "@/api";
 import { generateWithMetadata } from "@/packages/llm/ollama";
 import { logger } from "@/packages/logger/logger";
 import { rejectResponse, successResponse, t, withTimeout, buildResponseMeta, inferLanguage, isTypeScriptLike, isJavaScriptLike, resolveModel } from "@/packages/shared";
@@ -79,9 +80,6 @@ const PAGE_REVIEW_MAX_TOKENS = Number.parseInt(
   process.env.PAGE_REVIEW_MAX_TOKENS ?? "1200",
   10,
 );
-
-type LintFindingSource = NonNullable<NonNullable<LintResponse["findings"]>[number]["source"]>;
-type LintFindingSeverity = NonNullable<NonNullable<LintResponse["findings"]>[number]["severity"]>;
 
 // ---------------------------------------------------------------------------
 // Rate limiters — one per endpoint, using express-rate-limit.
@@ -373,8 +371,18 @@ export function registerIdeRoutes(application: express.Express): void {
         .slice(0, parsed.data.maxFindings)
         .map((finding) => ({
           ...finding,
-          source: finding.source as LintFindingSource,
-          severity: finding.severity as LintFindingSeverity,
+          source:
+            finding.source === "typescript"
+              ? LintFinding.source.TYPESCRIPT
+              : finding.source === "convention"
+                ? LintFinding.source.CONVENTION
+                : LintFinding.source.LLM,
+          severity:
+            finding.severity === "error"
+              ? LintFinding.severity.ERROR
+              : finding.severity === "warning"
+                ? LintFinding.severity.WARNING
+                : LintFinding.severity.INFO,
         }));
       const summary = {
         total: findings.length,
