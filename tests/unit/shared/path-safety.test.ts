@@ -2,14 +2,31 @@
  * Unit tests for packages/shared/path-safety.ts
  *
  * Tests the resolveSafePath and resolveInsideRoot functions that
- * prevent directory traversal attacks.
+ * prevent directory traversal attacks, and the PathSafetyError class
+ * that carries typed error codes for the agent harness.
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
-import { resolveSafePath, resolveInsideRoot } from '@/packages/shared/path-safety.js';
+import {
+    resolveSafePath,
+    resolveInsideRoot,
+    PathSafetyError
+} from '@/packages/shared/path-safety.js';
+
+describe('PathSafetyError', () => {
+    it('has code E_PATH_OUTSIDE_ROOT', () => {
+        const err = new PathSafetyError('msg', '/attempt', '/root');
+        expect(err.code).toBe('E_PATH_OUTSIDE_ROOT');
+        expect(err.attemptedPath).toBe('/attempt');
+        expect(err.root).toBe('/root');
+        expect(err.name).toBe('PathSafetyError');
+        expect(err instanceof PathSafetyError).toBe(true);
+        expect(err instanceof Error).toBe(true);
+    });
+});
 
 describe('resolveSafePath', () => {
     it('resolves a simple relative path within the project root', () => {
@@ -24,21 +41,30 @@ describe('resolveSafePath', () => {
         expect(resolveSafePath(inside)).toBe(inside);
     });
 
-    it('throws when a path traverses outside the project root', () => {
+    it('throws PathSafetyError when a path traverses outside the project root', () => {
+        expect(() => resolveSafePath('../../etc/passwd')).toThrow(PathSafetyError);
         expect(() => resolveSafePath('../../etc/passwd')).toThrow(
             'Access denied: path is outside the project root'
         );
     });
 
-    it('throws for an absolute path outside the project root', () => {
-        expect(() => resolveSafePath('/etc/passwd')).toThrow(
-            'Access denied: path is outside the project root'
-        );
+    it('throws PathSafetyError for an absolute path outside the project root', () => {
+        expect(() => resolveSafePath('/etc/passwd')).toThrow(PathSafetyError);
     });
 
     it('resolves the project root itself without throwing', () => {
         const cwd = process.cwd();
         expect(resolveSafePath('.')).toBe(cwd);
+    });
+
+    it('exposes attemptedPath and root on the thrown PathSafetyError', () => {
+        try {
+            resolveSafePath('/etc/passwd');
+        } catch (err) {
+            expect(err instanceof PathSafetyError).toBe(true);
+            expect((err as PathSafetyError).attemptedPath).toBe('/etc/passwd');
+            expect((err as PathSafetyError).root).toBe(process.cwd());
+        }
     });
 });
 
@@ -62,21 +88,21 @@ describe('resolveInsideRoot', () => {
         expect(resolveInsideRoot(temporaryRoot, '.')).toBe(temporaryRoot);
     });
 
-    it('throws when a path traverses outside the root', () => {
+    it('throws PathSafetyError when a path traverses outside the root', () => {
+        expect(() => resolveInsideRoot(temporaryRoot, '../outside.txt')).toThrow(PathSafetyError);
         expect(() => resolveInsideRoot(temporaryRoot, '../outside.txt')).toThrow(
             'Access denied: path is outside the allowed root'
         );
     });
 
-    it('throws for deeply nested traversal', () => {
-        expect(() => resolveInsideRoot(temporaryRoot, 'a/b/../../../../outside.txt')).toThrow(
-            'Access denied: path is outside the allowed root'
-        );
+    it('throws PathSafetyError for deeply nested traversal', () => {
+        expect(() =>
+            resolveInsideRoot(temporaryRoot, 'a/b/../../../../outside.txt')
+        ).toThrow(PathSafetyError);
     });
 
-    it('throws when an absolute path escapes the root', () => {
-        expect(() => resolveInsideRoot(temporaryRoot, '/etc/hosts')).toThrow(
-            'Access denied: path is outside the allowed root'
-        );
+    it('throws PathSafetyError when an absolute path escapes the root', () => {
+        expect(() => resolveInsideRoot(temporaryRoot, '/etc/hosts')).toThrow(PathSafetyError);
     });
 });
+

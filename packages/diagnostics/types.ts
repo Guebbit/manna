@@ -33,6 +33,18 @@ export interface IDiagnosticEntry {
     /** Human-readable description of what happened. */
     message: string;
 
+    /**
+     * Typed error code when this entry records a classified failure.
+     *
+     * Well-known codes: `'E_PATH_OUTSIDE_ROOT'`, `'E_TOOL_UNKNOWN'`,
+     * `'E_TOOL_PARSE'`, `'E_JSON_PARSE'`, `'E_DUPLICATE_CALL'`,
+     * `'E_CONSECUTIVE_ERRORS'`, `'E_BUDGET_EXCEEDED'`, `'E_LLM_TIMEOUT'`,
+     * `'E_PERMISSION_DENIED'`.
+     *
+     * Leave `undefined` for informational entries that have no error code.
+     */
+    code?: string;
+
     /** Optional structured data to attach to the entry (e.g. error details). */
     metadata?: Record<string, unknown>;
 }

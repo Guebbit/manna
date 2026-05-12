@@ -4,6 +4,10 @@
 Manna is versatile — you can use it as an AI agent inside your IDE, as an agentic coding engine to build entire websites, or as a searchable knowledge base over your own PDFs and documents.
 :::
 
+::: info First time here?
+**[→ Quickstart](./quickstart.md)** gets you to a working first response in 5 minutes with a single model and three commands. Come back to this page for the full setup and advanced use cases.
+:::
+
 There are several ways to use Manna, each suited to a different workflow. This page covers the initial setup and then explains each use case individually.
 
 ---
@@ -17,6 +21,7 @@ Before using Manna in any mode, you need the base stack running.
 ```bash
 npm install
 ```
+
 
 ### 2. Start Ollama
 
@@ -57,6 +62,33 @@ curl -X POST http://localhost:3001/run \
 ```
 
 You should get back a JSON response with the agent's answer. If this works, the stack is healthy and you can proceed to any of the use cases below.
+
+---
+
+## Operating Mode
+
+Set `AGENT_OPERATING_MODE` in your `.env` file to match your hardware:
+
+| Value | Best for | Max steps | Consecutive-error limit |
+| --- | --- | --- | --- |
+| `low-spec` | 8–16 GB RAM, CPU-only, ≤ 8B models | 5 | 2 |
+| `standard` _(default)_ | 16–32 GB RAM, mid-range GPU, 7–13B models | 20 | 3 |
+| `high-trust` | 32+ GB VRAM, large models (34B+) | 50 | 5 |
+
+```bash
+# .env
+AGENT_OPERATING_MODE=low-spec
+```
+
+Individual limits can still be overridden independently:
+
+```bash
+AGENT_OPERATING_MODE=standard
+AGENTS_MAX_STEPS=30              # override max steps for this deployment
+AGENT_CONSECUTIVE_ERROR_LIMIT=5  # allow more retries before hard stop
+```
+
+See [Operating Modes](./theory/operating-modes.md) for the full reference.
 
 ---
 

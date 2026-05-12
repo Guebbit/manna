@@ -8,7 +8,7 @@
  *
  * Canonical event types emitted during an agent run:
  *   `agent:start`, `agent:step`, `agent:done`, `agent:error`,
- *   `agent:max_steps`, `agent:model_routed`,
+ *   `agent:max_steps`, `agent:hard_stop`, `agent:model_routed`,
  *   `tool:result`, `tool:error`
  *
  * Upgrade to an async / persistent bus (Redis Streams, BullMQ, etc.)

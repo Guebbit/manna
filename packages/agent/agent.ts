@@ -31,15 +31,18 @@ import { addMemory, getMemory } from '../memory/memory';
 import { emit } from '../events/bus';
 import type { ITool } from '../tools/types';
 import { logger } from '../logger/logger';
-import { envNumber, resolveModel, stripCodeFences } from '../shared';
+import { resolveModel, stripCodeFences, resolveOperatingModeConfig } from '../shared';
+import { PathSafetyError } from '../shared/path-safety';
 import { routeModel } from './model-router';
 import type { ModelProfile } from './model-router';
 import { agentStepSchema } from './schemas';
 import type {
     IProcessor,
     IProcessInputStepArgs,
-    IProcessOutputStepArgs
+    IProcessOutputStepArgs,
+    IProcessToolResultArgs
 } from '../processors/types';
+import { PolicyViolationError } from '../processors/policy';
 import { writeDiagnosticLog, cleanupOldLogs } from '../diagnostics';
 import type { IDiagnosticEntry } from '../diagnostics';
 import { saveAgentRun } from '../persistence/db';
@@ -50,12 +53,6 @@ import { ToolCitationBuffer, toolCitationSchema, type IToolCitation } from '../t
 import { ToolCallDeduplicator } from '../tools/tool-call-deduplicator';
 import { isMultimodalModel } from './vision-capability';
 import { getVisionDescription } from './vision-description';
-
-/**
- * Maximum number of reasoning iterations before the agent gives up.
- * Configurable via the `AGENTS_MAX_STEPS` environment variable.
- */
-const MAX_STEPS = Number.parseInt(process.env.AGENTS_MAX_STEPS ?? '20', 10);
 
 /**
  * Directory where diagnostic Markdown files are written.
@@ -280,6 +277,28 @@ export class Agent {
         return result;
     }
 
+    /**
+     * Notify all registered processors of a tool execution result.
+     *
+     * Errors thrown by processors are caught and logged so that one
+     * faulty processor cannot prevent the remaining ones from observing
+     * the result.
+     *
+     * @param args - Tool result metadata.
+     */
+    private async runToolResultProcessors(args: IProcessToolResultArgs): Promise<void> {
+        for (const proc of this.processors) {
+            if (proc.processToolResult) {
+                await Promise.resolve(proc.processToolResult(args)).catch((error: unknown) => {
+                    logger.warn('agent_processor_tool_result_failed', {
+                        component: 'agent',
+                        error: String(error)
+                    });
+                });
+            }
+        }
+    }
+
     private buildUntooledPrompt(
         task: string,
         context: string,
@@ -397,11 +416,13 @@ export class Agent {
         };
         let llmSteps = 0;
 
+        /* Resolve operating mode and apply mode-specific defaults. */
+        const modeConfig = resolveOperatingModeConfig();
         const effectiveMaxSteps =
             typeof options?.maxSteps === 'number' && options.maxSteps > 0
                 ? options.maxSteps
-                : MAX_STEPS;
-        const effectiveMaxToolCalls = Math.max(1, envNumber(process.env.AGENT_MAX_TOOL_CALLS, 10));
+                : modeConfig.maxSteps;
+        const effectiveMaxToolCalls = Math.max(1, modeConfig.maxToolCalls);
 
         logger.info('agent_run_started', {
             component: 'agent',
@@ -448,7 +469,10 @@ export class Agent {
             };
         };
 
-        const persistInput = (output: string, status: 'completed' | 'max_steps') => ({
+        const persistInput = (
+            output: string,
+            status: 'completed' | 'max_steps' | 'hard_stopped'
+        ) => ({
             task,
             agentProfile: options?.profile ?? null,
             output,
@@ -462,17 +486,57 @@ export class Agent {
             status
         });
 
+        /**
+         * Execute the hard-stop sequence: log, emit event, persist, return.
+         *
+         * @param violation - The `PolicyViolationError` that triggered the stop.
+         * @returns The `IAgentRunResult` to return from `run()`.
+         */
+        const handleHardStop = async (violation: PolicyViolationError): Promise<IAgentRunResult> => {
+            const answer = violation.message;
+            logger.warn('agent_hard_stop', {
+                component: 'agent',
+                step: violation.step,
+                code: violation.code,
+                durationMs: Date.now() - runStartedAt
+            });
+            diagnosticEntries.push({
+                timestamp: new Date().toISOString(),
+                step: violation.step,
+                severity: 'error',
+                category: 'policy',
+                code: violation.code,
+                message: `Hard stop: ${violation.message}`
+            });
+            emit({
+                type: 'agent:hard_stop',
+                payload: { step: violation.step, code: violation.code, reason: violation.message }
+            });
+            await Agent.writeDiagnostics(diagnosticEntries, task);
+            await Agent.persistRun(persistInput(answer, 'hard_stopped'));
+            const citations = citationBuffer.flush();
+            return { answer, meta: buildRunMeta(citations), citations };
+        };
+
         for (let step = 0; step < effectiveMaxSteps; step++) {
             const stepStartedAt = Date.now();
 
             // ── Run input processors ─────────────────────────────────────────
-            const inputArgs = await this.runInputProcessors({
-                task,
-                context,
-                memory,
-                stepNumber: step,
-                tools: this.tools.map((t) => t.name)
-            });
+            let inputArgs: IProcessInputStepArgs;
+            try {
+                inputArgs = await this.runInputProcessors({
+                    task,
+                    context,
+                    memory,
+                    stepNumber: step,
+                    tools: this.tools.map((t) => t.name)
+                });
+            } catch (error: unknown) {
+                if (error instanceof PolicyViolationError) {
+                    return handleHardStop(error);
+                }
+                throw error;
+            }
 
             // ── Route model ──────────────────────────────────────────────────
             const route = await routeModel({
@@ -671,14 +735,33 @@ export class Agent {
                 });
                 emit({ type: 'agent:step', payload: { step, parsed } });
 
-                const outputArgs = await this.runOutputProcessors({
-                    task,
-                    stepNumber: step,
-                    text: rawResponseText,
-                    thought: parsed.thought,
-                    action: parsed.action,
-                    toolInput: parsed.input
-                });
+                let outputArgs: IProcessOutputStepArgs;
+                try {
+                    outputArgs = await this.runOutputProcessors({
+                        task,
+                        stepNumber: step,
+                        text: rawResponseText,
+                        thought: parsed.thought,
+                        action: parsed.action,
+                        toolInput: parsed.input
+                    });
+                } catch (error: unknown) {
+                    if (error instanceof PolicyViolationError) {
+                        /* Policy violation from processOutputStep — notify processors then hard stop. */
+                        await this.runToolResultProcessors({
+                            task,
+                            stepNumber: step,
+                            tool: parsed.action,
+                            input: parsed.input,
+                            success: false,
+                            error: error.message,
+                            errorCode: error.code,
+                            durationMs: 0
+                        });
+                        return handleHardStop(error);
+                    }
+                    throw error;
+                }
                 parsed = {
                     thought: outputArgs.thought,
                     action: outputArgs.action,
@@ -716,8 +799,19 @@ export class Agent {
                         step,
                         severity: 'warn',
                         category: 'tool',
+                        code: 'E_TOOL_UNKNOWN',
                         message: `Unknown tool requested: "${parsed.action}".`,
                         metadata: { availableTools: availableTools.map((entry) => entry.name) }
+                    });
+                    await this.runToolResultProcessors({
+                        task,
+                        stepNumber: step,
+                        tool: parsed.action,
+                        input: parsed.input,
+                        success: false,
+                        error: `Unknown tool "${parsed.action}"`,
+                        errorCode: 'E_TOOL_UNKNOWN',
+                        durationMs: 0
                     });
                     break;
                 }
@@ -731,7 +825,18 @@ export class Agent {
                         step,
                         severity: 'warn',
                         category: 'tool',
+                        code: 'E_DUPLICATE_CALL',
                         message: `Duplicate tool call prevented for "${parsed.action}".`
+                    });
+                    await this.runToolResultProcessors({
+                        task,
+                        stepNumber: step,
+                        tool: parsed.action,
+                        input: parsed.input,
+                        success: false,
+                        error: 'Duplicate tool call',
+                        errorCode: 'E_DUPLICATE_CALL',
+                        durationMs: 0
                     });
                     toolCallsThisStep += 1;
                     continue;
@@ -740,7 +845,7 @@ export class Agent {
                 const toolStartedAt = Date.now();
                 const toolResult = await tool
                     .execute(parsed.input)
-                    .then((result) => {
+                    .then(async (result) => {
                         const durationMs = Date.now() - toolStartedAt;
                         logger.info('agent_tool_executed', {
                             component: 'agent',
@@ -756,28 +861,57 @@ export class Agent {
                             success: true,
                             durationMs
                         });
+                        await this.runToolResultProcessors({
+                            task,
+                            stepNumber: step,
+                            tool: parsed.action,
+                            input: parsed.input,
+                            success: true,
+                            result,
+                            durationMs
+                        });
                         return { success: true as const, result };
                     })
-                    .catch((error: unknown) => {
-                        context += `\nTool "${parsed.action}" failed: ${String(error)}`;
+                    .catch(async (error: unknown) => {
                         const durationMs = Date.now() - toolStartedAt;
+                        /* Extract typed error code from structured error types. */
+                        const errorCode =
+                            error instanceof PathSafetyError
+                                ? error.code
+                                : error instanceof PolicyViolationError
+                                  ? error.code
+                                  : undefined;
+
+                        /* Build actionable context feedback for path violations. */
+                        if (error instanceof PathSafetyError) {
+                            context +=
+                                `\nTool "${parsed.action}" failed: Path \`${error.attemptedPath}\` ` +
+                                `is outside the project root (\`${error.root}\`). ` +
+                                `I cannot access files outside the project. ` +
+                                `Please only request files within the project directory.`;
+                        } else {
+                            context += `\nTool "${parsed.action}" failed: ${String(error)}`;
+                        }
+
                         logger.warn('agent_tool_failed', {
                             component: 'agent',
                             step,
                             tool: parsed.action,
+                            errorCode,
                             error: String(error)
                         });
                         emit({
                             type: 'tool:error',
-                            payload: { tool: parsed.action, error: String(error) }
+                            payload: { tool: parsed.action, error: String(error), errorCode }
                         });
                         diagnosticEntries.push({
                             timestamp: new Date().toISOString(),
                             step,
                             severity: 'error',
                             category: 'tool',
+                            code: errorCode,
                             message: `Tool "${parsed.action}" failed: ${String(error)}`,
-                            metadata: { tool: parsed.action }
+                            metadata: { tool: parsed.action, errorCode }
                         });
                         toolCalls.push({
                             tool: parsed.action,
@@ -786,6 +920,16 @@ export class Agent {
                             result: null,
                             success: false,
                             error: String(error),
+                            durationMs
+                        });
+                        await this.runToolResultProcessors({
+                            task,
+                            stepNumber: step,
+                            tool: parsed.action,
+                            input: parsed.input,
+                            success: false,
+                            error: String(error),
+                            errorCode,
                             durationMs
                         });
                         return { success: false as const };
@@ -861,28 +1005,28 @@ export class Agent {
             task
         });
 
-        /* Self-debugging summary using the fast model. */
-        const debugPrompt =
-            `You are a debugging assistant.\n` +
-            `The agent loop exhausted its steps without completing the task.\n\n` +
-            `Task:\n${task}\n\n` +
-            `Context (what happened):\n${context}\n\n` +
-            `Summarise concisely:\n` +
-            `1. What was tried.\n` +
-            `2. Where it got stuck.\n` +
-            `3. Suggestions for what to try next.`;
-        const summary = await generate(debugPrompt, {
-            model: resolveModel('fast'),
-            stream: false
-        })
-            .then((result) => result.trim() || 'Max steps reached without a conclusive answer.')
-            .catch((error: unknown) => {
-                logger.warn('agent_self_debug_failed', {
-                    component: 'agent',
-                    error: String(error)
-                });
-                return 'Max steps reached without a conclusive answer.';
-            });
+        /* Self-debugging summary using the fast model (skipped in low-spec mode). */
+        const summary = modeConfig.selfDebugEnabled
+            ? await generate(
+                  `You are a debugging assistant.\n` +
+                      `The agent loop exhausted its steps without completing the task.\n\n` +
+                      `Task:\n${task}\n\n` +
+                      `Context (what happened):\n${context}\n\n` +
+                      `Summarise concisely:\n` +
+                      `1. What was tried.\n` +
+                      `2. Where it got stuck.\n` +
+                      `3. Suggestions for what to try next.`,
+                  { model: resolveModel('fast'), stream: false }
+              )
+                  .then((result) => result.trim() || 'Max steps reached without a conclusive answer.')
+                  .catch((error: unknown) => {
+                      logger.warn('agent_self_debug_failed', {
+                          component: 'agent',
+                          error: String(error)
+                      });
+                      return 'Max steps reached without a conclusive answer.';
+                  })
+            : 'Max steps reached without a conclusive answer.';
 
         await addMemory(`Task: ${task} → [MAX_STEPS] ${summary}`).catch((error: unknown) =>
             logger.warn('agent_memory_add_failed', {

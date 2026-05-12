@@ -26,3 +26,4 @@ export * from './safe-read-file';
 export * from './model-resolution';
 export * from './utils';
 export * from './language';
+export * from './operating-mode';

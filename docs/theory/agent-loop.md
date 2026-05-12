@@ -1,12 +1,12 @@
 # Theory: Agent Loop Mental Model
 
 ::: tip TL;DR
-The agent is a loop: ask the model → run the tool → repeat (max 5 steps) → return answer.
+The agent is a loop: ask the model → run the tool → repeat (up to `AGENTS_MAX_STEPS`) → return answer. Repeated failures are caught early and reported cleanly.
 :::
 
 ## The one-sentence version
 
-> The agent is a loop that asks the model "what should I do next?", runs the suggested tool, and repeats — until either the task is done or the step limit is hit.
+> The agent is a loop that asks the model "what should I do next?", runs the suggested tool, and repeats — until either the task is done, the step limit is hit, or a policy guardrail stops the run.
 
 ## Visual loop
 
@@ -17,11 +17,15 @@ flowchart TD
         Route --> Ask["Ask LLM\n→ strict JSON: thought + action + input"]
         Ask --> Decision{"action?"}
         Decision -->|"'none'"| Done["✅ DONE"]
-        Decision -->|"tool name (e.g. read_file)"| RunTool["Run tool"]
-        RunTool --> Append["Append result to context"]
-        Append --> Build
+        Decision -->|"tool name (e.g. read_file)"| Policy["PolicyProcessor\ncapability gate + error budget"]
+        Policy -->|"allowed"| RunTool["Run tool"]
+        Policy -->|"E_PERMISSION_DENIED"| HardStop["🛑 HARD STOP"]
+        RunTool --> Append["Append result to context\nUpdate error counters"]
+        Append --> Budget{"Consecutive\nerrors ≥ limit?"}
+        Budget -->|"Yes"| HardStop
+        Budget -->|"No"| Build
     end
-    LOOP -.->|"Max steps = 5"| Fallback["⚠️ Fallback answer if limit reached"]
+    LOOP -.->|"Max steps exhausted"| Fallback["⚠️ Self-debug summary"]
 ```
 
 ## Concrete example: "What npm scripts are available?"
@@ -45,7 +49,7 @@ Step 2:
 - Tools do **deterministic execution** (actually do it)
 - Context turns previous outputs into next-step inputs (memory within a run)
 
-## Why max 5 steps matters
+## Why max steps matters
 
 Without a step limit:
 
@@ -57,43 +61,41 @@ Infinite loop risk:
   ... forever
 ```
 
-With max 5 steps:
-
-```
-Step 1-4: attempts
-Step 5:   fallback message: "Max steps reached without a conclusive answer."
-```
-
-This caps cost, latency, and runaway behavior.
+With max steps and a consecutive-error budget, runs terminate cleanly
+instead of burning tokens on hopeless retries.
 
 ## Failure modes (and what happens)
 
-| What goes wrong                         | What the loop does                                          |
-| --------------------------------------- | ----------------------------------------------------------- |
-| LLM returns invalid JSON                | Appends parse error to context, tries again next step       |
-| LLM requests a tool that does not exist | Appends "unknown tool" error + valid tool list, tries again |
-| Tool throws a runtime error             | Appends error message to context, continues loop            |
-| Max steps reached                       | Returns fallback string, emits `agent:max_steps` event      |
-
-The loop is built to **recover and continue** whenever possible.
+| What goes wrong | Code | Recovery action |
+| --- | --- | --- |
+| LLM returns invalid JSON | `E_JSON_PARSE` | Appends parse error to context, tries again next step |
+| LLM requests a tool that does not exist | `E_TOOL_UNKNOWN` | Appends "unknown tool" error + valid tool list, tries again |
+| Tool throws a runtime error | _(generic)_ | Appends error message to context, increments consecutive-error counter |
+| Tool path escapes project root | `E_PATH_OUTSIDE_ROOT` | Actionable message with actual root path; increments hard-stop counter |
+| Write tool called without `allowWrite` | `E_PERMISSION_DENIED` | Immediate hard stop — not retried |
+| Same tool + same args repeated | `E_DUPLICATE_CALL` | Skipped with notice, increments error counter |
+| N consecutive errors (default N=3) | `E_CONSECUTIVE_ERRORS` | Immediate hard stop, persisted as `hard_stopped` |
+| Max steps reached | `E_BUDGET_EXCEEDED` | Self-debug summary returned, emits `agent:max_steps` |
 
 ## Stop conditions
 
 ```mermaid
 flowchart LR
-    A["1. action: 'none' → returns answer"] --- B["2. step count ≥ 5 → returns fallback"]
-    B --- C["3. Unrecoverable error → emits agent:error"]
+    A["1. action: 'none' → returns answer"]
+    B["2. step count ≥ AGENTS_MAX_STEPS → returns self-debug summary"]
+    C["3. PolicyViolationError → hard stop, persisted as hard_stopped"]
+    D["4. Unrecoverable LLM error → emits agent:error"]
+    A --- B --- C --- D
 ```
 
-```mermaid
-flowchart TD
-    Start[Build Prompt] --> Route[Route to Model Profile]
-    Route --> Ask[Ask LLM → JSON response]
-    Ask --> Decision{action = none?}
-    Decision -->|Yes| Done[✅ Return answer]
-    Decision -->|No| RunTool[Run Tool]
-    RunTool --> Append[Append result to context]
-    Append --> Check{Step count ≥ 5?}
-    Check -->|Yes| Fallback[⚠️ Return fallback message]
-    Check -->|No| Start
-```
+## Run states
+
+| State | Trigger | Persisted status |
+| --- | --- | --- |
+| `Done` | `action: "none"` from model | `completed` |
+| `SelfDebug` | Max steps exhausted | `max_steps` |
+| `HardStop` | `PolicyViolationError` | `hard_stopped` |
+| _(error)_ | Unhandled LLM exception | `error` |
+
+See also: [Operating Modes](./operating-modes.md) · [Error Taxonomy](./error-taxonomy.md)
+
