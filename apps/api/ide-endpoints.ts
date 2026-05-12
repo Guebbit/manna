@@ -92,6 +92,9 @@ function toApiLintSource(source: IFinding["source"]): LintFinding.source {
     case "llm": {
       return LintFinding.source.LLM;
     }
+    default: {
+      throw new Error(`Unsupported lint finding source: ${source}`);
+    }
   }
 }
 
@@ -105,6 +108,9 @@ function toApiLintSeverity(severity: IFinding["severity"]): LintFinding.severity
     }
     case "info": {
       return LintFinding.severity.INFO;
+    }
+    default: {
+      throw new Error(`Unsupported lint finding severity: ${severity}`);
     }
   }
 }
@@ -404,9 +410,9 @@ export function registerIdeRoutes(application: express.Express): void {
         }));
       const summary = {
         total: findings.length,
-        errors: findings.filter((item) => item.severity === "error").length,
-        warnings: findings.filter((item) => item.severity === "warning").length,
-        infos: findings.filter((item) => item.severity === "info").length,
+        errors: findings.filter((item) => item.severity === LintFinding.severity.ERROR).length,
+        warnings: findings.filter((item) => item.severity === LintFinding.severity.WARNING).length,
+        infos: findings.filter((item) => item.severity === LintFinding.severity.INFO).length,
         deterministicCount: deterministicFindings.length,
         llmCount: llmFindings.length,
       };
