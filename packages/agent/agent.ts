@@ -747,7 +747,7 @@ export class Agent {
                     });
                 } catch (error: unknown) {
                     if (error instanceof PolicyViolationError) {
-                        /* Policy violation (e.g. E_PERMISSION_DENIED): notify processors then hard stop. */
+                        /* Policy violation from processOutputStep — notify processors then hard stop. */
                         await this.runToolResultProcessors({
                             task,
                             stepNumber: step,
@@ -874,9 +874,13 @@ export class Agent {
                     })
                     .catch(async (error: unknown) => {
                         const durationMs = Date.now() - toolStartedAt;
-                        /* Determine typed error code for path safety violations. */
+                        /* Extract typed error code from structured error types. */
                         const errorCode =
-                            error instanceof PathSafetyError ? error.code : undefined;
+                            error instanceof PathSafetyError
+                                ? error.code
+                                : error instanceof PolicyViolationError
+                                  ? error.code
+                                  : undefined;
 
                         /* Build actionable context feedback for path violations. */
                         if (error instanceof PathSafetyError) {

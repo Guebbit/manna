@@ -115,10 +115,12 @@ export function createPolicyProcessor(options: IPolicyProcessorOptions): IProces
          * Pre-step hook — checks whether accumulated error counters have
          * crossed the hard-stop threshold.
          *
-         * Throws `PolicyViolationError('E_CONSECUTIVE_ERRORS')` when
-         * `consecutiveErrors >= consecutiveErrorLimit` (repeated recoverable failures).
-         * Throws `PolicyViolationError('E_CONSECUTIVE_ERRORS')` when
-         * `hardStopErrors >= 2` (two terminal errors — path violations or permission denials).
+         * Both conditions throw `PolicyViolationError('E_CONSECUTIVE_ERRORS')` —
+         * the same error code is used for both but with distinct messages and
+         * different thresholds:
+         * - Repeated recoverable failures: `consecutiveErrors >= consecutiveErrorLimit`.
+         * - Terminal (definitional) failures: `hardStopErrors >= 2`
+         *   (path violations or permission denials — checked first).
          */
         processInputStep(args: IProcessInputStepArgs): IProcessInputStepArgs {
             if (hardStopErrors >= 2) {
