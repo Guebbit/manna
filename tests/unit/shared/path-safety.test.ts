@@ -18,13 +18,13 @@ import {
 
 describe('PathSafetyError', () => {
     it('has code E_PATH_OUTSIDE_ROOT', () => {
-        const err = new PathSafetyError('msg', '/attempt', '/root');
-        expect(err.code).toBe('E_PATH_OUTSIDE_ROOT');
-        expect(err.attemptedPath).toBe('/attempt');
-        expect(err.root).toBe('/root');
-        expect(err.name).toBe('PathSafetyError');
-        expect(err instanceof PathSafetyError).toBe(true);
-        expect(err instanceof Error).toBe(true);
+        const error = new PathSafetyError('msg', '/attempt', '/root');
+        expect(error.code).toBe('E_PATH_OUTSIDE_ROOT');
+        expect(error.attemptedPath).toBe('/attempt');
+        expect(error.root).toBe('/root');
+        expect(error.name).toBe('PathSafetyError');
+        expect(error instanceof PathSafetyError).toBe(true);
+        expect(error instanceof Error).toBe(true);
     });
 });
 
@@ -60,10 +60,10 @@ describe('resolveSafePath', () => {
     it('exposes attemptedPath and root on the thrown PathSafetyError', () => {
         try {
             resolveSafePath('/etc/passwd');
-        } catch (err) {
-            expect(err instanceof PathSafetyError).toBe(true);
-            expect((err as PathSafetyError).attemptedPath).toBe('/etc/passwd');
-            expect((err as PathSafetyError).root).toBe(process.cwd());
+        } catch (error) {
+            expect(error instanceof PathSafetyError).toBe(true);
+            expect((error as PathSafetyError).attemptedPath).toBe('/etc/passwd');
+            expect((error as PathSafetyError).root).toBe(process.cwd());
         }
     });
 });
@@ -96,13 +96,12 @@ describe('resolveInsideRoot', () => {
     });
 
     it('throws PathSafetyError for deeply nested traversal', () => {
-        expect(() =>
-            resolveInsideRoot(temporaryRoot, 'a/b/../../../../outside.txt')
-        ).toThrow(PathSafetyError);
+        expect(() => resolveInsideRoot(temporaryRoot, 'a/b/../../../../outside.txt')).toThrow(
+            PathSafetyError
+        );
     });
 
     it('throws PathSafetyError when an absolute path escapes the root', () => {
         expect(() => resolveInsideRoot(temporaryRoot, '/etc/hosts')).toThrow(PathSafetyError);
     });
 });
-

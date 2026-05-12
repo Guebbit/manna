@@ -13,6 +13,8 @@
  * 5. Unknown tool requested → error appended → completion
  * 6. Tool execution failure → error appended → completion
  * 7. Max steps reached → self-debug summary returned
+ * 8. Hard stop via E_PERMISSION_DENIED (write tool blocked by PolicyProcessor)
+ * 9. Hard stop via E_CONSECUTIVE_ERRORS after two PathSafetyError violations
  *
  * Note: tasks used in tests that exercise the full agent loop include at least
  * one tool-signal keyword (e.g. "search", "file", "list") so the model router
@@ -23,6 +25,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Agent } from '@/packages/agent/agent.js';
 import type { ITool } from '@/packages/tools/types.js';
 import { clearModelCapabilitiesCache } from '@/packages/llm/ollama.js';
+import { createPolicyProcessor } from '@/packages/processors/policy.js';
+import { PathSafetyError } from '@/packages/shared/path-safety.js';
+import { saveAgentRun } from '@/packages/persistence/db.js';
 
 /* ── Mock persistence (PostgreSQL), diagnostics and model router ─────── */
 vi.mock('@/packages/persistence/db.js', () => ({
@@ -435,5 +440,87 @@ describe('Agent.run — direct output and citations', () => {
         expect(result.answer).toBe('Done with citations.');
         expect(result.citations).toEqual([{ id: 'c1', title: 'Source 1', text: 'Quoted text' }]);
         expect(result.meta.citations).toEqual(result.citations);
+    });
+});
+
+describe('Agent.run — hard-stop paths', () => {
+    it('hard-stops immediately when a write tool is called without allowWrite (E_PERMISSION_DENIED)', async () => {
+        /* LLM tries to call a write-restricted tool. */
+        fetchQueue.push(
+            agentResponse('I will write a file.', 'protected_write', {
+                path: 'out.txt',
+                content: 'hi'
+            })
+        );
+
+        const writeTool: ITool = {
+            name: 'protected_write',
+            description: 'Writes a file',
+            execute: vi.fn(async () => 'written')
+        };
+        const agent = new Agent([writeTool]);
+        agent.addProcessor(
+            createPolicyProcessor({
+                allowWrite: false,
+                writeToolNames: new Set(['protected_write'])
+            })
+        );
+
+        const result = await agent.run('Search then write file');
+
+        /* The tool must NOT have been called — the policy blocked it before execution. */
+        expect(writeTool.execute).not.toHaveBeenCalled();
+        /* The answer should contain the policy violation message. */
+        expect(result.answer).toMatch(/write access|allowWrite/);
+        /* Persistence must record the run as hard_stopped. */
+        const savedRun = (saveAgentRun as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as {
+            status: string;
+        };
+        expect(savedRun?.status).toBe('hard_stopped');
+    });
+
+    it('hard-stops after two PathSafetyError violations (E_CONSECUTIVE_ERRORS via hardStopErrors)', async () => {
+        /* Step 0: LLM calls the path-violating tool with one path. */
+        fetchQueue.push(
+            agentResponse('Accessing restricted path.', 'bad_path', { path: '/etc/passwd' })
+        );
+        /* Step 1: LLM tries a different path — avoids the deduplicator. */
+        fetchQueue.push(
+            agentResponse('Trying a different restricted path.', 'bad_path', {
+                path: '/etc/shadow'
+            })
+        );
+        /* Step 2 processInputStep will throw (hardStopErrors ≥ 2) — no fetch needed. */
+
+        const pathViolationTool: ITool = {
+            name: 'bad_path',
+            description: 'Tries to access a path outside the project root',
+            execute: vi.fn(async (input: Record<string, unknown>) => {
+                const attemptedPath = String(input.path ?? '/etc/passwd');
+                throw new PathSafetyError(
+                    'Access denied: path is outside the project root',
+                    attemptedPath,
+                    process.cwd()
+                );
+            })
+        };
+        const agent = new Agent([pathViolationTool]);
+        agent.addProcessor(
+            createPolicyProcessor({
+                allowWrite: false,
+                writeToolNames: new Set(),
+                consecutiveErrorLimit: 10 /* high limit so only hardStopErrors triggers */
+            })
+        );
+
+        const result = await agent.run('Search and access bad file path', { maxSteps: 5 });
+
+        /* Path violation tool was called twice, then the run was hard-stopped. */
+        expect(pathViolationTool.execute).toHaveBeenCalledTimes(2);
+        /* Persistence must record the run as hard_stopped. */
+        const savedRun = (saveAgentRun as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as {
+            status: string;
+        };
+        expect(savedRun?.status).toBe('hard_stopped');
     });
 });

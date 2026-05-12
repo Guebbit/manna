@@ -22,7 +22,6 @@ Before using Manna in any mode, you need the base stack running.
 npm install
 ```
 
-
 ### 2. Start Ollama
 
 ```bash
@@ -69,11 +68,11 @@ You should get back a JSON response with the agent's answer. If this works, the 
 
 Set `AGENT_OPERATING_MODE` in your `.env` file to match your hardware:
 
-| Value | Best for | Max steps | Consecutive-error limit |
-| --- | --- | --- | --- |
-| `low-spec` | 8–16 GB RAM, CPU-only, ≤ 8B models | 5 | 2 |
-| `standard` _(default)_ | 16–32 GB RAM, mid-range GPU, 7–13B models | 20 | 3 |
-| `high-trust` | 32+ GB VRAM, large models (34B+) | 50 | 5 |
+| Value                  | Best for                                  | Max steps | Consecutive-error limit |
+| ---------------------- | ----------------------------------------- | --------- | ----------------------- |
+| `low-spec`             | 8–16 GB RAM, CPU-only, ≤ 8B models        | 5         | 2                       |
+| `standard` _(default)_ | 16–32 GB RAM, mid-range GPU, 7–13B models | 20        | 3                       |
+| `high-trust`           | 32+ GB VRAM, large models (34B+)          | 50        | 5                       |
 
 ```bash
 # .env

@@ -71,6 +71,11 @@ export function writeAgentEventToSse(
       }
       return true;
     }
+    case "agent:hard_stop": {
+      const p = event.payload as { step: number; code: string; reason: string };
+      writeEvent("hard_stop", { step: p.step, code: p.code, reason: p.reason });
+      return true;
+    }
     default:
       return false;
   }

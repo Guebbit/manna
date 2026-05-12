@@ -10,11 +10,11 @@ This guide gets you from zero to a working agent response as fast as possible.
 
 ## Prerequisites
 
-| Tool | Minimum version | Install |
-| --- | --- | --- |
-| **Node.js** | 20+ | [nodejs.org](https://nodejs.org) |
-| **Ollama** | any | [ollama.com](https://ollama.com) |
-| **npm** | bundled with Node | — |
+| Tool        | Minimum version   | Install                          |
+| ----------- | ----------------- | -------------------------------- |
+| **Node.js** | 20+               | [nodejs.org](https://nodejs.org) |
+| **Ollama**  | any               | [ollama.com](https://ollama.com) |
+| **npm**     | bundled with Node | —                                |
 
 Docker / Qdrant are **not** required for a first run. The agent degrades gracefully when they are absent (local in-memory recall only).
 
@@ -103,6 +103,7 @@ curl -X POST http://localhost:3001/run \
 ```
 
 What happened under the hood:
+
 1. The agent read `package.json` to find the dependencies.
 2. It identified `vitest`, composed the answer, and returned.
 
@@ -112,13 +113,13 @@ See the [full example walkthrough](./examples/read-and-answer.md) if you want to
 
 ## Troubleshooting
 
-| Symptom | Likely cause | Fix |
-| --- | --- | --- |
-| `Missing required environment variable: OLLAMA_MODEL` | `.env` not copied | `cp .env.example .env` |
-| `ECONNREFUSED http://localhost:11434` | Ollama not running | `ollama serve` |
-| Response takes > 60 s | Model too large for your RAM | Use `llama3.2:3b` or add `AGENT_OPERATING_MODE=low-spec` |
-| `Unable to resolve model` | `OLLAMA_MODEL` is set to a model not pulled | `ollama pull <model>` |
-| Empty or garbled answer | Weak model | Try a larger or instruction-tuned model |
+| Symptom                                               | Likely cause                                | Fix                                                      |
+| ----------------------------------------------------- | ------------------------------------------- | -------------------------------------------------------- |
+| `Missing required environment variable: OLLAMA_MODEL` | `.env` not copied                           | `cp .env.example .env`                                   |
+| `ECONNREFUSED http://localhost:11434`                 | Ollama not running                          | `ollama serve`                                           |
+| Response takes > 60 s                                 | Model too large for your RAM                | Use `llama3.2:3b` or add `AGENT_OPERATING_MODE=low-spec` |
+| `Unable to resolve model`                             | `OLLAMA_MODEL` is set to a model not pulled | `ollama pull <model>`                                    |
+| Empty or garbled answer                               | Weak model                                  | Try a larger or instruction-tuned model                  |
 
 ---
 
@@ -161,11 +162,11 @@ Replace `/run` with `/run/stream` for a [Server-Sent Events](https://developer.m
 
 ## Next steps
 
-| Goal | Go to |
-| --- | --- |
-| Understand the agent loop | [Theory: Agent Loop](./theory/agent-loop.md) |
-| Use a different model per reasoning style | [Model Selection](./model-selection.md) |
-| Configure hardware-appropriate limits | [Operating Modes](./theory/operating-modes.md) |
-| Enable write tools | [Use Case 2: Agentic Programming](./use-the-application.md#use-case-2-agentic-programming-build-websites-and-projects) |
-| See all HTTP endpoints | [Endpoint Map](./endpoint-map.md) |
-| Run hands-on drills | [Scenarios](./scenarios/) |
+| Goal                                      | Go to                                                                                                                  |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Understand the agent loop                 | [Theory: Agent Loop](./theory/agent-loop.md)                                                                           |
+| Use a different model per reasoning style | [Model Selection](./model-selection.md)                                                                                |
+| Configure hardware-appropriate limits     | [Operating Modes](./theory/operating-modes.md)                                                                         |
+| Enable write tools                        | [Use Case 2: Agentic Programming](./use-the-application.md#use-case-2-agentic-programming-build-websites-and-projects) |
+| See all HTTP endpoints                    | [Endpoint Map](./endpoint-map.md)                                                                                      |
+| Run hands-on drills                       | [Scenarios](./scenarios/)                                                                                              |

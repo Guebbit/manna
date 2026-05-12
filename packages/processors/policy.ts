@@ -153,11 +153,7 @@ export function createPolicyProcessor(options: IPolicyProcessorOptions): IProces
          * terminate the run.
          */
         processOutputStep(args: IProcessOutputStepArgs): IProcessOutputStepArgs {
-            if (
-                !allowWrite &&
-                args.action !== 'none' &&
-                writeToolNames.has(args.action)
-            ) {
+            if (!allowWrite && args.action !== 'none' && writeToolNames.has(args.action)) {
                 hardStopErrors += 1;
                 consecutiveErrors += 1;
                 throw new PolicyViolationError(

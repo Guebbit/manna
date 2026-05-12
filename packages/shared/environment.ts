@@ -19,11 +19,7 @@
  * to `OLLAMA_MODEL` via `resolveModel()`, so a single-model deployment works
  * out of the box without setting all three.
  */
-const REQUIRED_ENV_KEYS = [
-    'OLLAMA_MODEL',
-    'OLLAMA_BASE_URL',
-    'OLLAMA_EMBED_MODEL'
-];
+const REQUIRED_ENV_KEYS = ['OLLAMA_MODEL', 'OLLAMA_BASE_URL', 'OLLAMA_EMBED_MODEL'];
 
 /**
  * Throw if any required environment variable is missing or empty.

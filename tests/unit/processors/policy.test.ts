@@ -3,22 +3,19 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-    createPolicyProcessor,
-    PolicyViolationError
-} from '@/packages/processors/policy.js';
+import { createPolicyProcessor, PolicyViolationError } from '@/packages/processors/policy.js';
 
 const WRITE_TOOL_NAMES = new Set(['write_file', 'scaffold_project']);
 
 describe('PolicyViolationError', () => {
     it('exposes code and step fields', () => {
-        const err = new PolicyViolationError('E_CONSECUTIVE_ERRORS', 'too many errors', 3);
-        expect(err.code).toBe('E_CONSECUTIVE_ERRORS');
-        expect(err.step).toBe(3);
-        expect(err.message).toBe('too many errors');
-        expect(err.name).toBe('PolicyViolationError');
-        expect(err instanceof PolicyViolationError).toBe(true);
-        expect(err instanceof Error).toBe(true);
+        const error = new PolicyViolationError('E_CONSECUTIVE_ERRORS', 'too many errors', 3);
+        expect(error.code).toBe('E_CONSECUTIVE_ERRORS');
+        expect(error.step).toBe(3);
+        expect(error.message).toBe('too many errors');
+        expect(error.name).toBe('PolicyViolationError');
+        expect(error instanceof PolicyViolationError).toBe(true);
+        expect(error instanceof Error).toBe(true);
     });
 });
 
@@ -40,7 +37,14 @@ describe('PolicyProcessor — processInputStep', () => {
             writeToolNames: WRITE_TOOL_NAMES,
             consecutiveErrorLimit: 2
         });
-        const resultArgs = { task: '', stepNumber: 0, tool: 'read_file', input: {}, success: false, durationMs: 1 };
+        const resultArgs = {
+            task: '',
+            stepNumber: 0,
+            tool: 'read_file',
+            input: {},
+            success: false,
+            durationMs: 1
+        };
 
         /* Simulate 2 consecutive tool failures. */
         await proc.processToolResult!(resultArgs);
@@ -51,9 +55,9 @@ describe('PolicyProcessor — processInputStep', () => {
 
         try {
             proc.processInputStep!(inputArgs);
-        } catch (err) {
-            expect(err instanceof PolicyViolationError).toBe(true);
-            expect((err as PolicyViolationError).code).toBe('E_CONSECUTIVE_ERRORS');
+        } catch (error) {
+            expect(error instanceof PolicyViolationError).toBe(true);
+            expect((error as PolicyViolationError).code).toBe('E_CONSECUTIVE_ERRORS');
         }
     });
 
@@ -63,8 +67,23 @@ describe('PolicyProcessor — processInputStep', () => {
             writeToolNames: WRITE_TOOL_NAMES,
             consecutiveErrorLimit: 2
         });
-        const failArgs = { task: '', stepNumber: 0, tool: 'read_file', input: {}, success: false, durationMs: 1 };
-        const successArgs = { task: '', stepNumber: 0, tool: 'read_file', input: {}, success: true, result: 'ok', durationMs: 1 };
+        const failArgs = {
+            task: '',
+            stepNumber: 0,
+            tool: 'read_file',
+            input: {},
+            success: false,
+            durationMs: 1
+        };
+        const successArgs = {
+            task: '',
+            stepNumber: 0,
+            tool: 'read_file',
+            input: {},
+            success: true,
+            result: 'ok',
+            durationMs: 1
+        };
 
         await proc.processToolResult!(failArgs);
         await proc.processToolResult!(failArgs);
@@ -136,8 +155,8 @@ describe('PolicyProcessor — processOutputStep', () => {
 
         try {
             proc.processOutputStep!(args);
-        } catch (err) {
-            expect((err as PolicyViolationError).code).toBe('E_PERMISSION_DENIED');
+        } catch (error) {
+            expect((error as PolicyViolationError).code).toBe('E_PERMISSION_DENIED');
         }
     });
 
