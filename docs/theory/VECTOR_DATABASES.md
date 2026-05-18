@@ -4,6 +4,18 @@
 Vector databases store high-dimensional float arrays (embeddings) and retrieve the nearest ones to a query vector in sub-millisecond time — something SQL and key-value stores cannot do efficiently.
 :::
 
+::: info Prerequisites
+Know these terms first: [Embedding](/glossary#embedding), [ANN](/glossary#ann), [Cosine Similarity](/glossary#cosine-similarity), [RAG](/glossary#rag).
+:::
+
+## On this page
+
+- [What a vector DB is](#what-is-a-vector-database)
+- [How it differs from SQL/NoSQL](#how-vector-dbs-differ-from-sql-nosql)
+- [Index strategies](#indexing-hnsw-ivf-and-why-ann-is-required)
+- [Design trade-offs](#design-trade-offs-that-matter-in-practice)
+- [How this project uses vectors](#how-this-project-uses-vectors)
+
 ## What Is a Vector Database?
 
 A **vector database** is a storage engine optimised for one operation: given a query vector `q`, return the K stored vectors most similar to `q` — fast, even across millions of entries.

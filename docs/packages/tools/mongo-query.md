@@ -97,3 +97,9 @@ flowchart TD
 | `Count orders per status.`                      | `aggregate` on `orders` with `$group` by `status`               |
 | `Find the 3 highest-value orders.`              | `find` on `orders` with `$sort` by `amount` descending, limit 3 |
 | `What is the average order value per customer?` | `aggregate` with `$group` + `$avg`                              |
+
+## Further reading
+
+- [MongoDB Node.js driver docs](https://www.mongodb.com/docs/drivers/node/current/)
+- [MongoDB aggregation pipeline](https://www.mongodb.com/docs/manual/core/aggregation-pipeline/)
+

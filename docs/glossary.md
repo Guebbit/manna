@@ -5,6 +5,16 @@ Quick-reference dictionary for every technical term used in these docs.
 Each heading has an anchor — link from any page with `/glossary#term-slug`.
 :::
 
+## Further reading (canonical references)
+
+- [MCP](https://modelcontextprotocol.io/)
+- [RAG paper (arXiv:2005.11401)](https://arxiv.org/abs/2005.11401)
+- [LoRA paper (arXiv:2106.09685)](https://arxiv.org/abs/2106.09685)
+- [HNSW paper (arXiv:1603.09320)](https://arxiv.org/abs/1603.09320)
+- [Neo4j Cypher manual](https://neo4j.com/docs/cypher-manual/current/)
+- [Qdrant documentation](https://qdrant.tech/documentation/)
+- [Ollama documentation](https://github.com/ollama/ollama/tree/main/docs)
+
 ## Agent Loop {#agent-loop}
 
 The core execution cycle in Manna: **ask the model → parse its JSON decision → run a tool → feed the result back → repeat** until the model says "done" or the step limit is reached. Every `POST /run` request triggers one loop.
@@ -232,6 +242,18 @@ The basic unit models process text in. Not exactly a word — roughly **¾ of a 
 An optional component that re-orders the tool list by relevance to the current task **before** it's sent to the LLM. Helps the model pick the right tool when many are available. Fail-open — if it errors, the original list is used.
 
 **See also:** [Agent Loop](#agent-loop), [Fail-Open](#fail-open)
+
+## Tool-call Deduplicator {#tool-call-deduplicator}
+
+Runtime guard that blocks repeated identical tool calls (`same tool + same args`) during a run. It reduces retry loops and token waste by emitting `E_DUPLICATE_CALL` instead of re-executing the same action.
+
+**See also:** [Tool Reranker](#tool-reranker), [Agent Loop](#agent-loop), [JSON Contract](#json-contract)
+
+## Citation Buffer {#citation-buffer}
+
+An in-memory buffer that accumulates evidence snippets from tool outputs so final answers can include provenance/citations for retrieved content.
+
+**See also:** [RAG](#rag), [Semantic Search](#semantic-search), [Prompt](#prompt)
 
 ## Vector / Vector Database {#vector}
 

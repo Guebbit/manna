@@ -4,6 +4,8 @@
 Send an audio file to Whisper, verify it returns a transcript.
 :::
 
+⏱ 10 min · 🎯 difficulty: easy
+
 **Goal**: verify speech_to_text sends audio to Whisper and returns a transcript.
 
 > Requires Whisper model installed and `TOOL_STT_MODEL=whisper` set.

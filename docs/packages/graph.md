@@ -68,6 +68,18 @@ erDiagram
     }
 ```
 
+## Example mini-graph
+
+```mermaid
+flowchart LR
+    TS[TypeScript:::tech] -->|uses| JS[JavaScript:::tech]
+    TS -->|maintained_by| MS[Microsoft:::org]
+    Doc[docs/types.md:::doc] -->|mentions| TS
+    classDef tech fill:#e3f2fd,stroke:#1976d2,color:#0d47a1;
+    classDef org fill:#f3e5f5,stroke:#8e24aa,color:#4a148c;
+    classDef doc fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20;
+```
+
 ### Entity types
 
 | Type           | Description                                       |
@@ -240,3 +252,8 @@ docker compose up neo4j -d
 ```
 
 The Neo4j Browser UI is available at [http://localhost:7474](http://localhost:7474) once the container is healthy. Use credentials `neo4j` / `manna` (or whatever you set in `.env`).
+
+Further reading:
+
+- [Neo4j docs](https://neo4j.com/docs/)
+- [Cypher manual](https://neo4j.com/docs/cypher-manual/current/)

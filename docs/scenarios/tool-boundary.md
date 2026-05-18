@@ -4,6 +4,8 @@
 Try a dangerous command — verify the shell allowlist blocks it and the agent recovers.
 :::
 
+⏱ 10 min · 🎯 difficulty: easy
+
 **Goal**: verify the shell allowlist rejects dangerous commands.
 
 **Prompt:**

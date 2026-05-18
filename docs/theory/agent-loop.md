@@ -28,6 +28,28 @@ flowchart TD
     LOOP -.->|"Max steps exhausted"| Fallback["⚠️ Self-debug summary"]
 ```
 
+## One step as a sequence
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant API
+    participant Agent
+    participant LLM
+    participant Tool
+    User->>API: POST /run
+    API->>Agent: run(task, tools)
+    Agent->>LLM: prompt(task + context + tools)
+    LLM-->>Agent: { thought, action, input }
+    alt action is tool name
+        Agent->>Tool: execute(input)
+        Tool-->>Agent: result
+        Agent->>Agent: append tool result to context
+    else action is "none"
+        Agent-->>API: final answer
+    end
+```
+
 ## Concrete example: "What npm scripts are available?"
 
 ```
@@ -48,6 +70,14 @@ Step 2:
 - The model does **planning** (decides what to do)
 - Tools do **deterministic execution** (actually do it)
 - Context turns previous outputs into next-step inputs (memory within a run)
+
+## Tool selection and loop guards
+
+Before each step, the runtime can narrow tool candidates using a **tool reranker** (embedding similarity between request and tool descriptions). This reduces noisy tool menus and improves selection accuracy.
+
+During execution, a **tool-call deduplicator** blocks repeated identical calls (`same tool + same args`) inside the same run and emits `E_DUPLICATE_CALL` instead of re-running pointless work.
+
+Together, reranking + deduplication reduce token waste and retry loops.
 
 ## Why max steps matters
 
@@ -98,3 +128,8 @@ flowchart LR
 | _(error)_   | Unhandled LLM exception     | `error`          |
 
 See also: [Operating Modes](./operating-modes.md) · [Error Taxonomy](./error-taxonomy.md)
+
+Further reading:
+
+- [ReAct paper (arXiv:2210.03629)](https://arxiv.org/abs/2210.03629)
+- [Anthropic tool use overview](https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/overview)

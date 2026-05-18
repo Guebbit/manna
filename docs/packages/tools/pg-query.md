@@ -86,3 +86,9 @@ flowchart TD
 | `Count rows in table orders.`                      | `SELECT COUNT(*) FROM orders`                                                                 |
 | `What are the column names in the products table?` | `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'products'` |
 | `Which product has the highest price?`             | `SELECT * FROM products ORDER BY price DESC LIMIT 1`                                          |
+
+## Further reading
+
+- [node-postgres (`pg`) docs](https://node-postgres.com/)
+- [PostgreSQL SELECT reference](https://www.postgresql.org/docs/current/sql-select.html)
+

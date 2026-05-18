@@ -144,3 +144,9 @@ The agent uses a custom `prompt` field: `"What species does this animal appear t
 | `What does the image at data/screenshots/home.png show?` | Returns UI/content description              |
 | `Is there any text visible in data/images/sign.jpg?`     | Vision model reads text in image (OCR-like) |
 | `Describe the chart in data/exports/revenue-chart.png`   | Describes chart type, axes, data shape      |
+
+## Further reading
+
+- [Ollama vision models](https://ollama.com/search?c=vision)
+- [LLaVA project](https://llava-vl.github.io/)
+

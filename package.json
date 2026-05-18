@@ -31,13 +31,16 @@
         "docs:dev": "vitepress dev docs",
         "docs:build": "vitepress build docs",
         "docs:preview": "vitepress preview docs",
+        "docs:check:tool-coverage": "node scripts/check-tool-doc-coverage.mjs",
+        "docs:check:links": "node scripts/check-doc-links.mjs",
+        "docs:check": "npm run docs:check:tool-coverage && npm run docs:check:links",
         "podman:restart": "podman compose down --timeout 1 && podman compose up -d",
         "podman:rebuild": "podman compose down -v --timeout 1 && podman compose build --no-cache && podman compose up -d",
         "podman:nuke": "pkill -9 -f 'podman|conmon|runc' 2>/dev/null || true; systemctl --user restart podman",
         "update:all": "npx npm-check-updates -u",
         "prepare": "husky",
         "complete": "npm run build && npm run test && npm run lint:fix && npm run prettier:fix",
-        "complete:check": "npm run build && npm run test && npm run lint && npm run lint:openapi && npm run prettier:check"
+        "complete:check": "npm run build && npm run test && npm run lint && npm run lint:openapi && npm run prettier:check && npm run docs:check"
     },
     "dependencies": {
         "@langchain/core": "^1.1.39",

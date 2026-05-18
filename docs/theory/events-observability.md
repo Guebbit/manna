@@ -142,3 +142,8 @@ sequenceDiagram
     Agent->>EventBus: emit(agent:done)
     EventBus->>Logger: log(agent:done)
 ```
+
+Further reading:
+
+- [MDN Server-Sent Events](https://developer.mozilla.org/docs/Web/API/Server-sent_events)
+- [WHATWG EventSource spec](https://html.spec.whatwg.org/multipage/server-sent-events.html)

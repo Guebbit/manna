@@ -31,12 +31,12 @@ The tool accepts either a file path (disk) or inline base64 data (e.g. from an A
 ```json
 {
     "text": "Full extracted text from the PDF...",
-    "pages": 12
+    "pageCount": 12
 }
 ```
 
 - `text`: all text content concatenated across all pages
-- `pages`: total page count
+- `pageCount`: total page count
 
 ## How it works internally
 
@@ -124,3 +124,8 @@ Step 3: action: "none"  ->  Agent compares spec vs implementation
 - Uses the `pdf-parse` library.
 - Path is restricted to project root boundaries.
 - Returns extracted text and page count.
+
+## Further reading
+
+- [pdf-parse package](https://www.npmjs.com/package/pdf-parse)
+- [PDF.js](https://mozilla.github.io/pdf.js/)

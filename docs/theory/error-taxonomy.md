@@ -1,5 +1,9 @@
 # Error Taxonomy
 
+::: tip TL;DR
+Typed error codes let the runtime recover consistently: retry when useful, hard-stop when unsafe, and surface actionable diagnostics.
+:::
+
 The agent harness uses typed error codes so it can take precise recovery
 actions instead of feeding every raw exception string back to the model.
 
@@ -66,4 +70,36 @@ diagnostic Markdown log shows severity distribution without missing codes:
 
 ---
 
+## Error handling flow
+
+```mermaid
+flowchart TD
+    A[Tool or policy failure] --> B{Classified code}
+    B -->|E_TOOL_UNKNOWN / E_DUPLICATE_CALL| C[Append context + continue]
+    B -->|E_PATH_OUTSIDE_ROOT / E_PERMISSION_DENIED| D[Terminal policy violation]
+    B -->|E_CONSECUTIVE_ERRORS| E[Immediate hard stop]
+    B -->|E_BUDGET_EXCEEDED| F[Return self-debug summary]
+    C --> G{Error budget exceeded?}
+    G -->|No| H[Next loop step]
+    G -->|Yes| E
+    D --> I[Persist hard_stopped]
+    E --> I
+    F --> J[Persist max_steps]
+```
+
+```mermaid
+stateDiagram-v2
+    [*] --> Running
+    Running --> Running: recoverable error\n(counter++)
+    Running --> HardStopped: terminal/policy error\nor consecutive limit reached
+    Running --> MaxSteps: step budget exhausted
+    Running --> Completed: action=\"none\"
+```
+
+---
+
 See also: [Agent Loop](./agent-loop.md) · [Operating Modes](./operating-modes.md)
+
+Further reading:
+
+- [HTTP status code semantics (RFC 9110)](https://www.rfc-editor.org/rfc/rfc9110)

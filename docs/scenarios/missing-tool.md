@@ -4,6 +4,8 @@
 Trigger a non-existent tool call — verify the runtime recovers and the agent retries or explains the limitation.
 :::
 
+⏱ 10 min · 🎯 difficulty: easy
+
 **Goal**: observe what happens when the model tries to use a tool that does not exist.
 
 **Prompt:**

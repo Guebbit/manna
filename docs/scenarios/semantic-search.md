@@ -4,6 +4,8 @@
 Search by meaning, not keywords — verify results are ranked by semantic similarity.
 :::
 
+⏱ 10 min · 🎯 difficulty: medium
+
 **Goal**: verify semantic_search ranks files by meaning, not just keywords.
 
 **Prompt:**

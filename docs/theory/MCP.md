@@ -115,3 +115,9 @@ This prevents MCP issues from blocking the API server.
 If you want practical setup and examples, go to:
 
 - [MCP in Manna: Setup, Use, and Examples](/packages/mcp)
+
+Further reading:
+
+- [Model Context Protocol docs](https://modelcontextprotocol.io/)
+- [MCP specification](https://spec.modelcontextprotocol.io/)
+- [MCP servers repository](https://github.com/modelcontextprotocol/servers)

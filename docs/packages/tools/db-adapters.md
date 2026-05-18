@@ -18,12 +18,17 @@ Manna's database tools share a common lifecycle:
 
 ## Architecture
 
-```
-ITool  (packages/tools/types.ts)
-  └── createDbTool()  (packages/tools/base-db-tool.ts)
-        ├── mysqlQueryTool   → mysql_query   (mysql.query.ts)
-        ├── pgQueryTool      → pg_query      (pg.query.ts)
-        └── mongoQueryTool   → mongo_query   (mongo.query.ts)
+```mermaid
+classDiagram
+    class ITool
+    class createDbTool
+    class mysql_query
+    class pg_query
+    class mongo_query
+    ITool <|.. createDbTool
+    createDbTool <|-- mysql_query
+    createDbTool <|-- pg_query
+    createDbTool <|-- mongo_query
 ```
 
 ## Available tools
@@ -63,6 +68,12 @@ export const myTool = createDbTool({
 ```
 
 The factory returns a fully-formed `ITool` — just pass it to the agent's tool list.
+
+Further reading:
+
+- [Node.js mysql2 docs](https://github.com/sidorares/node-mysql2)
+- [node-postgres docs](https://node-postgres.com/)
+- [MongoDB Node.js driver docs](https://www.mongodb.com/docs/drivers/node/current/)
 
 ## Adding a new engine
 

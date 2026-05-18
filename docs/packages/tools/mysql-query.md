@@ -156,3 +156,9 @@ ORDER BY revenue DESC
 | `Count rows in table orders.`                      | `SELECT COUNT(*) FROM orders`                        |
 | `What are the column names in the products table?` | `SHOW COLUMNS FROM products`                         |
 | `Which product has the highest price?`             | `SELECT * FROM products ORDER BY price DESC LIMIT 1` |
+
+## Further reading
+
+- [mysql2 docs](https://github.com/sidorares/node-mysql2)
+- [MySQL SELECT reference](https://dev.mysql.com/doc/refman/8.0/en/select.html)
+

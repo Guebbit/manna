@@ -4,6 +4,14 @@
 Each agent step is routed to the best [model profile](/glossary#model-profile) (fast / reasoning / code / default) via keyword rules or a small classifier model.
 :::
 
+## On this page
+
+- [Agent vs model](#agent-vs-model-what-is-the-difference)
+- [Routing profiles](#per-step-routing-profiles)
+- [Routing modes](#routing-modes-rules-vs-model)
+- [Environment variables](#environment-variables)
+- [Troubleshooting](#troubleshooting)
+
 ## The one-sentence version
 
 > Instead of using one model for everything, this project picks the best model for each step of the agent loop based on what kind of task it is.
