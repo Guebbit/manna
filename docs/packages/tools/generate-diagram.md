@@ -18,9 +18,9 @@ Automate diagram creation from textual descriptions.
 
 ```json
 {
-  "description": "API receives request, validates input, stores in DB, returns response",
-  "type": "flowchart",
-  "format": "svg"
+    "description": "API receives request, validates input, stores in DB, returns response",
+    "type": "flowchart",
+    "format": "svg"
 }
 ```
 
@@ -28,9 +28,9 @@ Automate diagram creation from textual descriptions.
 
 ```json
 {
-  "mermaidSource": "flowchart LR\nA[Request] --> B[Validate] --> C[Store] --> D[Respond]",
-  "outputPath": "/repo/data/diagrams/diagram-1715980800000.svg",
-  "format": "svg"
+    "mermaidSource": "flowchart LR\nA[Request] --> B[Validate] --> C[Store] --> D[Respond]",
+    "outputPath": "/repo/data/diagrams/diagram-1715980800000.svg",
+    "format": "svg"
 }
 ```
 
@@ -41,10 +41,10 @@ Automate diagram creation from textual descriptions.
 
 ## Environment variables
 
-| Variable | Default | Description |
-| --- | --- | --- |
-| `TOOL_DIAGRAM_MODEL` | resolved `code` profile | Model used to produce Mermaid markup |
-| `DIAGRAM_OUTPUT_DIR` | `data/diagrams` | Output folder for `.mmd` + rendered diagrams |
+| Variable             | Default                 | Description                                  |
+| -------------------- | ----------------------- | -------------------------------------------- |
+| `TOOL_DIAGRAM_MODEL` | resolved `code` profile | Model used to produce Mermaid markup         |
+| `DIAGRAM_OUTPUT_DIR` | `data/diagrams`         | Output folder for `.mmd` + rendered diagrams |
 
 ## How the agent uses it
 
@@ -58,11 +58,11 @@ flowchart LR
 
 ## Good test prompts
 
-| What you type | What the agent does |
-| --- | --- |
-| `Create a sequence diagram for login with MFA.` | Builds Mermaid sequence and renders image |
-| `Generate an ER diagram for users/orders schema.` | Produces `erDiagram` and output file |
-| `Draw a deployment flowchart and save as PNG.` | Uses `format: "png"` |
+| What you type                                     | What the agent does                       |
+| ------------------------------------------------- | ----------------------------------------- |
+| `Create a sequence diagram for login with MFA.`   | Builds Mermaid sequence and renders image |
+| `Generate an ER diagram for users/orders schema.` | Produces `erDiagram` and output file      |
+| `Draw a deployment flowchart and save as PNG.`    | Uses `format: "png"`                      |
 
 ## Further reading
 

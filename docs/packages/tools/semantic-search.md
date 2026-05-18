@@ -152,4 +152,3 @@ Returns: `"Unable to connect to database server"` and `"Failed to reach MySQL ho
 
 - [Ollama embedding models](https://ollama.com/search?c=embedding)
 - [Cosine similarity](https://en.wikipedia.org/wiki/Cosine_similarity)
-

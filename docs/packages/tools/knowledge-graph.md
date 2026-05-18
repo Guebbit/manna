@@ -18,8 +18,8 @@ Populate the Neo4j knowledge graph from natural-language content.
 
 ```json
 {
-  "text": "TypeScript is maintained by Microsoft and compiles to JavaScript.",
-  "sourcePath": "docs/ts-notes.md"
+    "text": "TypeScript is maintained by Microsoft and compiles to JavaScript.",
+    "sourcePath": "docs/ts-notes.md"
 }
 ```
 
@@ -29,9 +29,9 @@ You can pass either `text` or `path`.
 
 ```json
 {
-  "entitiesMerged": 3,
-  "relationshipsMerged": 2,
-  "persisted": true
+    "entitiesMerged": 3,
+    "relationshipsMerged": 2,
+    "persisted": true
 }
 ```
 
@@ -45,13 +45,13 @@ If Neo4j is unavailable, extraction still runs and returns `persisted: false` (f
 
 ## Environment variables
 
-| Variable | Default | Description |
-| --- | --- | --- |
-| `NEO4J_URI` | `bolt://localhost:7687` | Neo4j connection URI |
-| `NEO4J_USER` | `neo4j` | Neo4j username |
-| `NEO4J_PASSWORD` | `put-your-password-here` | Neo4j password |
-| `NEO4J_DATABASE` | `neo4j` | Database name |
-| `GRAPH_NER_MODEL` | `AGENT_MODEL_FAST` | Extraction model |
+| Variable          | Default                  | Description          |
+| ----------------- | ------------------------ | -------------------- |
+| `NEO4J_URI`       | `bolt://localhost:7687`  | Neo4j connection URI |
+| `NEO4J_USER`      | `neo4j`                  | Neo4j username       |
+| `NEO4J_PASSWORD`  | `put-your-password-here` | Neo4j password       |
+| `NEO4J_DATABASE`  | `neo4j`                  | Database name        |
+| `GRAPH_NER_MODEL` | `AGENT_MODEL_FAST`       | Extraction model     |
 
 ## How the agent uses it
 
@@ -64,10 +64,10 @@ flowchart LR
 
 ## Good test prompts
 
-| What you type | What the agent does |
-| --- | --- |
+| What you type                                         | What the agent does                                 |
+| ----------------------------------------------------- | --------------------------------------------------- |
 | `Ingest entities from docs/design.md into the graph.` | Reads content and persists extracted graph elements |
-| `Create graph memory from this architecture summary.` | Uses text mode |
+| `Create graph memory from this architecture summary.` | Uses text mode                                      |
 
 ## Further reading
 

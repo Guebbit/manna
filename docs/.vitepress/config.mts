@@ -147,7 +147,10 @@ export default withMermaid(
                                             text: 'Database Adapters',
                                             link: '/packages/tools/db-adapters'
                                         },
-                                        { text: 'mysql_query', link: '/packages/tools/mysql-query' },
+                                        {
+                                            text: 'mysql_query',
+                                            link: '/packages/tools/mysql-query'
+                                        },
                                         { text: 'pg_query', link: '/packages/tools/pg-query' },
                                         { text: 'mongo_query', link: '/packages/tools/mongo-query' }
                                     ]
@@ -207,7 +210,7 @@ export default withMermaid(
                                             link: '/packages/tools/scaffold-project'
                                         }
                                     ]
-                                },
+                                }
                             ]
                         }
                     ]

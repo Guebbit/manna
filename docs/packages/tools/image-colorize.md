@@ -18,8 +18,8 @@ Generate a colorized version of an input image via the external image processor.
 
 ```json
 {
-  "image": "<base64>",
-  "prompt": "natural daylight colors"
+    "image": "<base64>",
+    "prompt": "natural daylight colors"
 }
 ```
 
@@ -27,9 +27,9 @@ Generate a colorized version of an input image via the external image processor.
 
 ```json
 {
-  "image": "<base64>",
-  "duration_ms": 1320,
-  "model": "sdxl-colorize-v1"
+    "image": "<base64>",
+    "duration_ms": 1320,
+    "model": "sdxl-colorize-v1"
 }
 ```
 
@@ -40,8 +40,8 @@ Generate a colorized version of an input image via the external image processor.
 
 ## Environment variables
 
-| Variable | Default | Description |
-| --- | --- | --- |
+| Variable              | Default                                   | Description                          |
+| --------------------- | ----------------------------------------- | ------------------------------------ |
 | `IMAGE_PROCESSOR_URL` | `http://localhost:3002` (service default) | Base URL for image processor service |
 
 ## How the agent uses it
@@ -56,10 +56,10 @@ flowchart LR
 
 ## Good test prompts
 
-| What you type | What the agent does |
-| --- | --- |
+| What you type                             | What the agent does                      |
+| ----------------------------------------- | ---------------------------------------- |
 | `Colorize this scanned grayscale sketch.` | Calls `image_colorize` with base64 image |
-| `Make it warm and cinematic.` | Passes style hint in `prompt` |
+| `Make it warm and cinematic.`             | Passes style hint in `prompt`            |
 
 ## Related
 

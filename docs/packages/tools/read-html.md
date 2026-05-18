@@ -24,8 +24,8 @@ Convert local HTML into model-friendly plain text.
 
 ```json
 {
-  "title": "Quarterly Report",
-  "text": "Quarterly Report\nRevenue increased..."
+    "title": "Quarterly Report",
+    "text": "Quarterly Report\nRevenue increased..."
 }
 ```
 
@@ -47,11 +47,11 @@ flowchart LR
 
 ## Good test prompts
 
-| What you type | What the agent does |
-| --- | --- |
+| What you type                                          | What the agent does         |
+| ------------------------------------------------------ | --------------------------- |
 | `Read data/site/index.html and summarise the content.` | Extracts readable page text |
-| `What's the page title in data/report.html?` | Returns `title` |
-| `Find headings in docs/export.html.` | Uses stripped text |
+| `What's the page title in data/report.html?`           | Returns `title`             |
+| `Find headings in docs/export.html.`                   | Uses stripped text          |
 
 ## Further reading
 

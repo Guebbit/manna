@@ -43,11 +43,11 @@ flowchart LR
 
 ## Good test prompts
 
-| What you type | What the agent does |
-| --- | --- |
+| What you type                                        | What the agent does                  |
+| ---------------------------------------------------- | ------------------------------------ |
 | `Read docs/quickstart.md and summarise setup steps.` | Extracts ordered steps from Markdown |
-| `Find TODO markers in README.md.` | Scans raw text |
-| `List headings in docs/theory/RAG.md.` | Parses heading lines |
+| `Find TODO markers in README.md.`                    | Scans raw text                       |
+| `List headings in docs/theory/RAG.md.`               | Parses heading lines                 |
 
 ## Related
 
@@ -59,4 +59,3 @@ flowchart LR
 ## Further reading
 
 - [CommonMark specification](https://spec.commonmark.org/)
-

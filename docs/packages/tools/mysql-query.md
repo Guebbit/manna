@@ -161,4 +161,3 @@ ORDER BY revenue DESC
 
 - [mysql2 docs](https://github.com/sidorares/node-mysql2)
 - [MySQL SELECT reference](https://dev.mysql.com/doc/refman/8.0/en/select.html)
-

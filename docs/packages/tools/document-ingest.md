@@ -36,12 +36,12 @@ Supported file types: `.txt`, `.md`, `.json`, `.html/.htm`, `.csv`, `.docx`.
 
 ## Environment variables
 
-| Variable | Default | Description |
-| --- | --- | --- |
-| `QDRANT_URL` | `http://localhost:6333` | Qdrant endpoint |
-| `QDRANT_COLLECTION` | `agent_memory` | Default collection |
-| `OLLAMA_BASE_URL` | `http://localhost:11434` | Embedding backend |
-| `OLLAMA_EMBED_MODEL` | `nomic-embed-text` | Embedding model |
+| Variable             | Default                  | Description        |
+| -------------------- | ------------------------ | ------------------ |
+| `QDRANT_URL`         | `http://localhost:6333`  | Qdrant endpoint    |
+| `QDRANT_COLLECTION`  | `agent_memory`           | Default collection |
+| `OLLAMA_BASE_URL`    | `http://localhost:11434` | Embedding backend  |
+| `OLLAMA_EMBED_MODEL` | `nomic-embed-text`       | Embedding model    |
 
 ## How the agent uses it
 
@@ -56,11 +56,11 @@ flowchart LR
 
 ## Good test prompts
 
-| What you type | What the agent does |
-| --- | --- |
-| `Ingest docs/architecture.md into collection engineering.` | Calls `document_ingest` |
-| `Load data/contracts/*.docx so we can search later.` | Ingests docs before retrieval tasks |
-| `Index this CSV and then answer questions from it.` | Uses `document_ingest` + `semantic_search` |
+| What you type                                              | What the agent does                        |
+| ---------------------------------------------------------- | ------------------------------------------ |
+| `Ingest docs/architecture.md into collection engineering.` | Calls `document_ingest`                    |
+| `Load data/contracts/*.docx so we can search later.`       | Ingests docs before retrieval tasks        |
+| `Index this CSV and then answer questions from it.`        | Uses `document_ingest` + `semantic_search` |
 
 ## Further reading
 

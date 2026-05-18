@@ -91,4 +91,3 @@ flowchart TD
 
 - [node-postgres (`pg`) docs](https://node-postgres.com/)
 - [PostgreSQL SELECT reference](https://www.postgresql.org/docs/current/sql-select.html)
-

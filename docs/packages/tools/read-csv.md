@@ -26,9 +26,9 @@ Read a delimited text file and return a model-friendly preview.
 
 ```json
 {
-  "text": "id | email | role\n1 | alice@example.com | admin\n2 | bob@example.com | user",
-  "headers": ["id", "email", "role"],
-  "rowCount": 248
+    "text": "id | email | role\n1 | alice@example.com | admin\n2 | bob@example.com | user",
+    "headers": ["id", "email", "role"],
+    "rowCount": 248
 }
 ```
 
@@ -49,11 +49,11 @@ flowchart LR
 
 ## Good test prompts
 
-| What you type | What the agent does |
-| --- | --- |
-| `Read data/sales.csv and list the column names.` | Calls `read_csv`, returns `headers` |
-| `How many records are in data/users.tsv?` | Calls `read_csv` with `delimiter: "\t"`, reads `rowCount` |
-| `Inspect data/orders.csv and summarise the first rows.` | Uses preview text in `text` |
+| What you type                                           | What the agent does                                       |
+| ------------------------------------------------------- | --------------------------------------------------------- |
+| `Read data/sales.csv and list the column names.`        | Calls `read_csv`, returns `headers`                       |
+| `How many records are in data/users.tsv?`               | Calls `read_csv` with `delimiter: "\t"`, reads `rowCount` |
+| `Inspect data/orders.csv and summarise the first rows.` | Uses preview text in `text`                               |
 
 ## Related
 
@@ -65,4 +65,3 @@ flowchart LR
 ## Further reading
 
 - [RFC 4180 (CSV)](https://www.rfc-editor.org/rfc/rfc4180)
-

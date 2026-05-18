@@ -38,10 +38,10 @@ Query graph memory without allowing destructive graph writes.
 
 ```json
 {
-  "rows": [{ "from": "TypeScript", "relationship": "uses", "to": "JavaScript" }],
-  "rowCount": 1,
-  "query": "MATCH ...",
-  "warning": "..."
+    "rows": [{ "from": "TypeScript", "relationship": "uses", "to": "JavaScript" }],
+    "rowCount": 1,
+    "query": "MATCH ...",
+    "warning": "..."
 }
 ```
 
@@ -64,10 +64,10 @@ flowchart LR
 
 ## Good test prompts
 
-| What you type | What the agent does |
-| --- | --- |
-| `What relates to TypeScript in the graph?` | Uses entity mode |
-| `List all uses relationships.` | Uses relationship mode |
+| What you type                                  | What the agent does        |
+| ---------------------------------------------- | -------------------------- |
+| `What relates to TypeScript in the graph?`     | Uses entity mode           |
+| `List all uses relationships.`                 | Uses relationship mode     |
 | `Run MATCH query for top 10 technology links.` | Uses read-only Cypher mode |
 
 ## Further reading

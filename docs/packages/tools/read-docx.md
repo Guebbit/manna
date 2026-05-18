@@ -24,7 +24,7 @@ Turn DOCX content into clean text the agent can reason over.
 
 ```json
 {
-  "text": "Mutual Non-Disclosure Agreement\nThis agreement..."
+    "text": "Mutual Non-Disclosure Agreement\nThis agreement..."
 }
 ```
 
@@ -46,11 +46,11 @@ flowchart LR
 
 ## Good test prompts
 
-| What you type | What the agent does |
-| --- | --- |
-| `Read data/proposal.docx and list milestones.` | Extracts text and summarises milestones |
-| `Find payment terms in data/contracts/msa.docx.` | Searches extracted document text |
-| `Compare data/spec.docx with docs/spec.md.` | Reads both and contrasts |
+| What you type                                    | What the agent does                     |
+| ------------------------------------------------ | --------------------------------------- |
+| `Read data/proposal.docx and list milestones.`   | Extracts text and summarises milestones |
+| `Find payment terms in data/contracts/msa.docx.` | Searches extracted document text        |
+| `Compare data/spec.docx with docs/spec.md.`      | Reads both and contrasts                |
 
 ## Further reading
 

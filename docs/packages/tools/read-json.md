@@ -24,10 +24,10 @@ Load JSON from disk and make it directly usable by the agent.
 
 ```json
 {
-  "data": {
-    "name": "manna",
-    "profiles": ["fast", "reasoning", "code"]
-  }
+    "data": {
+        "name": "manna",
+        "profiles": ["fast", "reasoning", "code"]
+    }
 }
 ```
 
@@ -48,11 +48,11 @@ flowchart LR
 
 ## Good test prompts
 
-| What you type | What the agent does |
-| --- | --- |
-| `Read package.json and list scripts.` | Parses JSON and extracts `scripts` |
-| `Open config/routes.json and validate endpoints.` | Reads structured route data |
-| `Summarise keys in data/schema.json.` | Traverses parsed object |
+| What you type                                     | What the agent does                |
+| ------------------------------------------------- | ---------------------------------- |
+| `Read package.json and list scripts.`             | Parses JSON and extracts `scripts` |
+| `Open config/routes.json and validate endpoints.` | Reads structured route data        |
+| `Summarise keys in data/schema.json.`             | Traverses parsed object            |
 
 ## Further reading
 

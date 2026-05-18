@@ -18,8 +18,8 @@ Generate a sketch/ink-style transformation of an image.
 
 ```json
 {
-  "image": "<base64>",
-  "prompt": "clean line art"
+    "image": "<base64>",
+    "prompt": "clean line art"
 }
 ```
 
@@ -27,9 +27,9 @@ Generate a sketch/ink-style transformation of an image.
 
 ```json
 {
-  "image": "<base64>",
-  "duration_ms": 980,
-  "model": "sketch-model-v1"
+    "image": "<base64>",
+    "duration_ms": 980,
+    "model": "sketch-model-v1"
 }
 ```
 
@@ -40,8 +40,8 @@ Generate a sketch/ink-style transformation of an image.
 
 ## Environment variables
 
-| Variable | Default | Description |
-| --- | --- | --- |
+| Variable              | Default                                   | Description                          |
+| --------------------- | ----------------------------------------- | ------------------------------------ |
 | `IMAGE_PROCESSOR_URL` | `http://localhost:3002` (service default) | Base URL for image processor service |
 
 ## How the agent uses it
@@ -56,9 +56,9 @@ flowchart LR
 
 ## Good test prompts
 
-| What you type | What the agent does |
-| --- | --- |
-| `Turn this product photo into line-art.` | Calls `image_sketch` |
+| What you type                                 | What the agent does     |
+| --------------------------------------------- | ----------------------- |
+| `Turn this product photo into line-art.`      | Calls `image_sketch`    |
 | `Keep strong edges, remove background noise.` | Uses prompt constraints |
 
 ## Related

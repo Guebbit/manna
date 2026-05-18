@@ -149,4 +149,3 @@ Step 2: action: "none"  ->  Agent analyses the transcript and highlights decisio
 
 - [OpenAI Whisper](https://github.com/openai/whisper)
 - [whisper.cpp](https://github.com/ggml-org/whisper.cpp)
-

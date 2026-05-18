@@ -66,7 +66,9 @@ for (const file of markdownFiles) {
         const target = resolveDocTarget(file, link);
         if (!target) continue;
         if (!fs.existsSync(target)) {
-            errors.push(`${path.relative(repoRoot, file)} -> ${link} (missing: ${path.relative(repoRoot, target)})`);
+            errors.push(
+                `${path.relative(repoRoot, file)} -> ${link} (missing: ${path.relative(repoRoot, target)})`
+            );
         }
     }
 }

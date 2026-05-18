@@ -149,4 +149,3 @@ The agent uses a custom `prompt` field: `"What species does this animal appear t
 
 - [Ollama vision models](https://ollama.com/search?c=vision)
 - [LLaVA project](https://llava-vl.github.io/)
-

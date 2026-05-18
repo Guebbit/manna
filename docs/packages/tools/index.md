@@ -76,15 +76,15 @@ Only enabled when allowWrite: true:
 
 ## Document readers
 
-| Extension / format | Tool |
-| --- | --- |
-| Any text/source file | [`read_file`](/packages/tools/read-file) |
-| `.csv`, `.tsv`, delimited text | [`read_csv`](/packages/tools/read-csv) |
-| `.json` | [`read_json`](/packages/tools/read-json) |
-| `.md` | [`read_markdown`](/packages/tools/read-markdown) |
-| `.html`, `.htm` | [`read_html`](/packages/tools/read-html) |
-| `.docx` | [`read_docx`](/packages/tools/read-docx) |
-| `.pdf` | [`read_pdf`](/packages/tools/read-pdf) |
+| Extension / format             | Tool                                             |
+| ------------------------------ | ------------------------------------------------ |
+| Any text/source file           | [`read_file`](/packages/tools/read-file)         |
+| `.csv`, `.tsv`, delimited text | [`read_csv`](/packages/tools/read-csv)           |
+| `.json`                        | [`read_json`](/packages/tools/read-json)         |
+| `.md`                          | [`read_markdown`](/packages/tools/read-markdown) |
+| `.html`, `.htm`                | [`read_html`](/packages/tools/read-html)         |
+| `.docx`                        | [`read_docx`](/packages/tools/read-docx)         |
+| `.pdf`                         | [`read_pdf`](/packages/tools/read-pdf)           |
 
 ## Tool selection controls in the agent loop
 
@@ -102,18 +102,18 @@ All SQL/NoSQL query tools share a common base in `base-db-tool.ts`.
 
 ## Security boundaries (at a glance)
 
-| Tool | What it can access | What it cannot touch |
-| --- | --- | --- |
-| `read_file` family (`read_*`) | Files under project root | Paths outside project root |
-| `shell` | Allowlisted commands | Dangerous/non-allowlisted commands (`rm`, `curl`, `bash`, etc.) |
-| `mysql_query` / `pg_query` | `SELECT` queries | Mutating SQL (`INSERT`, `UPDATE`, `DELETE`, `DROP`, ...) |
-| `mongo_query` | `find` and `aggregate` | Mutating operations |
-| `browser_fetch` | `http(s)` URLs | `file://`, `ftp://`, `javascript:` |
-| `write_file` | Files inside `PROJECT_OUTPUT_ROOT` | Repository source tree |
-| `scaffold_project` | `BOILERPLATE_ROOT` → `PROJECT_OUTPUT_ROOT` | Anything outside those roots |
-| `document_ingest` | Vector upserts to configured Qdrant collection | Arbitrary filesystem writes |
-| `knowledge_graph` | Graph writes to configured Neo4j DB | Filesystem/shell writes |
-| `query_knowledge_graph` | Read-only Cypher traversal | Mutating Cypher (`CREATE`, `MERGE`, `DELETE`, `SET`, ...) |
+| Tool                          | What it can access                             | What it cannot touch                                            |
+| ----------------------------- | ---------------------------------------------- | --------------------------------------------------------------- |
+| `read_file` family (`read_*`) | Files under project root                       | Paths outside project root                                      |
+| `shell`                       | Allowlisted commands                           | Dangerous/non-allowlisted commands (`rm`, `curl`, `bash`, etc.) |
+| `mysql_query` / `pg_query`    | `SELECT` queries                               | Mutating SQL (`INSERT`, `UPDATE`, `DELETE`, `DROP`, ...)        |
+| `mongo_query`                 | `find` and `aggregate`                         | Mutating operations                                             |
+| `browser_fetch`               | `http(s)` URLs                                 | `file://`, `ftp://`, `javascript:`                              |
+| `write_file`                  | Files inside `PROJECT_OUTPUT_ROOT`             | Repository source tree                                          |
+| `scaffold_project`            | `BOILERPLATE_ROOT` → `PROJECT_OUTPUT_ROOT`     | Anything outside those roots                                    |
+| `document_ingest`             | Vector upserts to configured Qdrant collection | Arbitrary filesystem writes                                     |
+| `knowledge_graph`             | Graph writes to configured Neo4j DB            | Filesystem/shell writes                                         |
+| `query_knowledge_graph`       | Read-only Cypher traversal                     | Mutating Cypher (`CREATE`, `MERGE`, `DELETE`, `SET`, ...)       |
 
 ## Tool pages
 
@@ -162,22 +162,22 @@ All SQL/NoSQL query tools share a common base in `base-db-tool.ts`.
 
 ## Quick reference: which tool for which task?
 
-| What you want to do | Tool |
-| --- | --- |
-| Read project files | `read_file` |
+| What you want to do                                | Tool                                                                                |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Read project files                                 | `read_file`                                                                         |
 | Read structured docs (`csv/json/md/html/docx/pdf`) | `read_csv` / `read_json` / `read_markdown` / `read_html` / `read_docx` / `read_pdf` |
-| Run local inspections (`ls`, `git`, `npm`) | `shell` |
-| Query databases | `mysql_query` / `pg_query` / `mongo_query` |
-| Fetch rendered web pages | `browser_fetch` |
-| Analyse images | `image_classify` |
-| Transform images | `image_sketch` / `image_colorize` |
-| Semantic retrieval | `semantic_search` |
-| Ingest documents into vector memory | `document_ingest` |
-| Build/traverse relational graph memory | `knowledge_graph` / `query_knowledge_graph` |
-| Produce code completions | `code_autocomplete` |
-| Generate diagrams | `generate_diagram` |
-| Write generated files | `write_file` |
-| Scaffold from templates | `scaffold_project` |
+| Run local inspections (`ls`, `git`, `npm`)         | `shell`                                                                             |
+| Query databases                                    | `mysql_query` / `pg_query` / `mongo_query`                                          |
+| Fetch rendered web pages                           | `browser_fetch`                                                                     |
+| Analyse images                                     | `image_classify`                                                                    |
+| Transform images                                   | `image_sketch` / `image_colorize`                                                   |
+| Semantic retrieval                                 | `semantic_search`                                                                   |
+| Ingest documents into vector memory                | `document_ingest`                                                                   |
+| Build/traverse relational graph memory             | `knowledge_graph` / `query_knowledge_graph`                                         |
+| Produce code completions                           | `code_autocomplete`                                                                 |
+| Generate diagrams                                  | `generate_diagram`                                                                  |
+| Write generated files                              | `write_file`                                                                        |
+| Scaffold from templates                            | `scaffold_project`                                                                  |
 
 ```mermaid
 flowchart LR
