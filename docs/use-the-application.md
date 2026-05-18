@@ -5,10 +5,36 @@ Manna is versatile — you can use it as an AI agent inside your IDE, as an agen
 :::
 
 ::: info First time here?
-**[→ Quickstart](./quickstart.md)** gets you to a working first response in 5 minutes with a single model and three commands. Come back to this page for the full setup and advanced use cases.
+**[→ Quickstart](/quickstart)** gets you to a working first response in 5 minutes with a single model and three commands. Come back to this page for the full setup and advanced use cases.
 :::
 
 There are several ways to use Manna, each suited to a different workflow. This page covers the initial setup and then explains each use case individually.
+
+## On this page
+
+- [Quick Setup](#quick-setup-required-for-all-use-cases)
+- [Operating Mode](#operating-mode)
+- [Use Case 1: IDE Agent](#use-case-1-ide-agent-webstorm-vs-code-etc)
+- [Use Case 2: Agentic Programming](#use-case-2-agentic-programming-build-websites-and-projects)
+- [Use Case 3: Knowledge Base](#use-case-3-knowledge-base-talk-to-your-pdfs-and-documents)
+- [How the Agent Loop Works](#how-the-agent-loop-works)
+- [Common Troubleshooting](#common-troubleshooting)
+
+```mermaid
+flowchart LR
+    A[POST /run] --> B{allowWrite?}
+    B -->|false| C[Read-only tools]
+    B -->|true| D[Read + write tools]
+    C --> E{Operating mode}
+    D --> E
+    E -->|low-spec| F[Short budget]
+    E -->|standard| G[Balanced budget]
+    E -->|high-trust| H[Large budget]
+    F --> I[Agent loop]
+    G --> I
+    H --> I
+    I --> J[Response / stream events]
+```
 
 ---
 
@@ -87,7 +113,7 @@ AGENTS_MAX_STEPS=30              # override max steps for this deployment
 AGENT_CONSECUTIVE_ERROR_LIMIT=5  # allow more retries before hard stop
 ```
 
-See [Operating Modes](./theory/operating-modes.md) for the full reference.
+See [Operating Modes](/theory/operating-modes) for the full reference.
 
 ---
 
@@ -198,6 +224,8 @@ When you send a request with `"allowWrite": true`, the agent gains access to:
 
 - **`scaffold_project`** — copies a boilerplate template into a new project folder
 - **`write_file`** — creates or overwrites files inside the project output directory
+- **`document_ingest`** — ingests local docs into Qdrant for semantic retrieval
+- **`knowledge_graph`** — extracts entities/relationships and persists them to Neo4j
 
 Combined with the always-available read tools (`read_file`, `shell`, `browser_fetch`), the agent can:
 
@@ -206,6 +234,8 @@ Combined with the always-available read tools (`read_file`, `shell`, `browser_fe
 3. Write new files or modify existing ones
 4. Run shell commands to install dependencies, build, or test
 5. Iterate based on errors or requirements
+
+See: [write_file](/packages/tools/write-file), [scaffold_project](/packages/tools/scaffold-project), [document_ingest](/packages/tools/document-ingest), [knowledge_graph](/packages/tools/knowledge-graph).
 
 ### Starting from scratch
 

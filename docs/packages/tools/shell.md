@@ -141,3 +141,8 @@ Returns 5 short commit lines, which the agent can describe or filter.
 | `What node version is installed?`        | `node --version`                           |
 | `Show me the last 10 commits.`           | `git log --oneline -10`                    |
 | `Run rm -rf /tmp`                        | ❌ **Rejected** — `rm` is not in allowlist |
+
+## Further reading
+
+- [Node.js `child_process.execFile`](https://nodejs.org/api/child_process.html#child_processexecfilefile-args-options-callback)
+- [OWASP command injection](https://owasp.org/www-community/attacks/Command_Injection)

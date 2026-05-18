@@ -166,3 +166,8 @@ Try these prompts to explore different layers:
 Pick **one** prompt above. Run it. Check the logs. Write **one** takeaway. Move on.
 
 Do not try to understand everything at once -- use this page as a hub and dive into one deep link per session.
+
+Further reading:
+
+- [Ollama documentation](https://github.com/ollama/ollama/tree/main/docs)
+- [LangGraph documentation](https://langchain-ai.github.io/langgraph/)

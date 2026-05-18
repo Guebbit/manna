@@ -102,3 +102,7 @@ Step 3: action: "none"  →  gives final answer
 | `Open packages/agent/agent.ts and summarize the loop.` | Reads the file and describes the agentic loop               |
 | `What TypeScript version is this project using?`       | Reads `package.json`, finds `typescript` in devDependencies |
 | `Does this project have ESLint? Show me the rules.`    | Reads `eslint.config.ts`                                    |
+
+## Further reading
+
+- [Node.js fs/promises API](https://nodejs.org/api/fs.html#file-system)

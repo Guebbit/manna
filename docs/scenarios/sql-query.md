@@ -4,6 +4,8 @@
 Run a SELECT query, verify results come back — then test that unsafe SQL is rejected.
 :::
 
+⏱ 10 min · 🎯 difficulty: medium
+
 **Goal**: verify mysql_query tool connects and returns results.
 
 > Requires MySQL env vars + reachable database.

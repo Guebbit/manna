@@ -4,6 +4,8 @@
 Fetch a web page, verify the agent gets the title and content back.
 :::
 
+⏱ 10 min · 🎯 difficulty: easy
+
 **Goal**: verify Playwright runs, fetches a page, and the agent summarises content.
 
 > Requires `browser_fetch` enabled (it is by default).

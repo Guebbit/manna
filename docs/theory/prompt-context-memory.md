@@ -155,3 +155,9 @@ flowchart TD
     Prompt["Assembled Prompt"] --> LLM["LLM"]
     LLM --> JSON["{ thought, action, input }"]
 ```
+
+Further reading:
+
+- [OpenAI prompting guide](https://platform.openai.com/docs/guides/prompt-engineering)
+- [Anthropic prompt engineering overview](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview)
+- [OpenAI tokenizer playground](https://platform.openai.com/tokenizer)

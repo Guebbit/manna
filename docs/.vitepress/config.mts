@@ -7,6 +7,7 @@ export default withMermaid(
         description: 'Canonical documentation for the local-first Manna personal AI agent platform',
         cleanUrls: true,
         themeConfig: {
+            outline: 'deep',
             nav: [
                 { text: 'Home', link: '/' },
                 { text: 'Getting Started', link: '/use-the-application' },
@@ -111,30 +112,104 @@ export default withMermaid(
                             items: [
                                 { text: 'Overview', link: '/packages/tools/' },
                                 {
-                                    text: 'Database Adapters',
-                                    link: '/packages/tools/db-adapters'
+                                    text: 'System & codebase',
+                                    items: [
+                                        { text: 'read_file', link: '/packages/tools/read-file' },
+                                        { text: 'shell', link: '/packages/tools/shell' },
+                                        {
+                                            text: 'code_autocomplete',
+                                            link: '/packages/tools/code-autocomplete'
+                                        },
+                                        {
+                                            text: 'generate_diagram',
+                                            link: '/packages/tools/generate-diagram'
+                                        }
+                                    ]
                                 },
-                                { text: 'mysql_query', link: '/packages/tools/mysql-query' },
-                                { text: 'pg_query', link: '/packages/tools/pg-query' },
-                                { text: 'mongo_query', link: '/packages/tools/mongo-query' },
-                                { text: 'read_file', link: '/packages/tools/read-file' },
-                                { text: 'shell', link: '/packages/tools/shell' },
-                                { text: 'browser_fetch', link: '/packages/tools/browser-fetch' },
-                                { text: 'image_classify', link: '/packages/tools/image-classify' },
                                 {
-                                    text: 'semantic_search',
-                                    link: '/packages/tools/semantic-search'
+                                    text: 'Document readers',
+                                    items: [
+                                        { text: 'read_csv', link: '/packages/tools/read-csv' },
+                                        { text: 'read_json', link: '/packages/tools/read-json' },
+                                        {
+                                            text: 'read_markdown',
+                                            link: '/packages/tools/read-markdown'
+                                        },
+                                        { text: 'read_html', link: '/packages/tools/read-html' },
+                                        { text: 'read_docx', link: '/packages/tools/read-docx' },
+                                        { text: 'read_pdf', link: '/packages/tools/read-pdf' }
+                                    ]
                                 },
-                                { text: 'speech_to_text', link: '/packages/tools/speech-to-text' },
-                                { text: 'read_pdf', link: '/packages/tools/read-pdf' },
                                 {
-                                    text: 'code_autocomplete',
-                                    link: '/packages/tools/code-autocomplete'
+                                    text: 'Database',
+                                    items: [
+                                        {
+                                            text: 'Database Adapters',
+                                            link: '/packages/tools/db-adapters'
+                                        },
+                                        {
+                                            text: 'mysql_query',
+                                            link: '/packages/tools/mysql-query'
+                                        },
+                                        { text: 'pg_query', link: '/packages/tools/pg-query' },
+                                        { text: 'mongo_query', link: '/packages/tools/mongo-query' }
+                                    ]
                                 },
-                                { text: 'write_file', link: '/packages/tools/write-file' },
                                 {
-                                    text: 'scaffold_project',
-                                    link: '/packages/tools/scaffold-project'
+                                    text: 'Web / vision / audio',
+                                    items: [
+                                        {
+                                            text: 'browser_fetch',
+                                            link: '/packages/tools/browser-fetch'
+                                        },
+                                        {
+                                            text: 'image_classify',
+                                            link: '/packages/tools/image-classify'
+                                        },
+                                        {
+                                            text: 'image_sketch',
+                                            link: '/packages/tools/image-sketch'
+                                        },
+                                        {
+                                            text: 'image_colorize',
+                                            link: '/packages/tools/image-colorize'
+                                        },
+                                        {
+                                            text: 'speech_to_text',
+                                            link: '/packages/tools/speech-to-text'
+                                        }
+                                    ]
+                                },
+                                {
+                                    text: 'Retrieval & graph',
+                                    items: [
+                                        {
+                                            text: 'semantic_search',
+                                            link: '/packages/tools/semantic-search'
+                                        },
+                                        {
+                                            text: 'document_ingest',
+                                            link: '/packages/tools/document-ingest'
+                                        },
+                                        {
+                                            text: 'knowledge_graph',
+                                            link: '/packages/tools/knowledge-graph'
+                                        },
+                                        {
+                                            text: 'query_knowledge_graph',
+                                            link: '/packages/tools/query-knowledge-graph'
+                                        }
+                                    ]
+                                },
+                                {
+                                    text: 'Write mode',
+                                    items: [
+                                        { text: 'write_file', link: '/packages/tools/write-file' },
+                                        {
+                                            text: 'scaffold_project',
+                                            link: '/packages/tools/scaffold-project'
+                                        }
+                                    ]
                                 }
                             ]
                         }

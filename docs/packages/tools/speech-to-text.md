@@ -144,3 +144,8 @@ Step 2: action: "none"  ->  Agent analyses the transcript and highlights decisio
 
 - Uses `POST /v1/audio/transcriptions` on the configured Ollama host.
 - Path is restricted to project root boundaries.
+
+## Further reading
+
+- [OpenAI Whisper](https://github.com/openai/whisper)
+- [whisper.cpp](https://github.com/ggml-org/whisper.cpp)

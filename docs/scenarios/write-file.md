@@ -4,6 +4,8 @@
 Create a file with write mode enabled — verify it lands in the generated-projects folder.
 :::
 
+⏱ 10 min · 🎯 difficulty: easy
+
 **Goal**: verify write_file creates a file in the generated-projects folder.
 
 > Requires `"allowWrite": true` in request body.

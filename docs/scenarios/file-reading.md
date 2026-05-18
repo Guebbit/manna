@@ -4,6 +4,8 @@
 Read a file, check the agent parses it and answers from the content.
 :::
 
+⏱ 10 min · 🎯 difficulty: easy
+
 **Goal**: verify read_file works and the agent can reason about file content.
 
 **Prompt:**

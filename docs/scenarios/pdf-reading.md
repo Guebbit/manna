@@ -4,6 +4,8 @@
 Read a PDF, verify the agent extracts text and reasons about the content.
 :::
 
+⏱ 10 min · 🎯 difficulty: easy
+
 **Goal**: verify read_pdf extracts text from a PDF and the agent can reason about it.
 
 > Place any PDF at `data/examples/spec.pdf` first.

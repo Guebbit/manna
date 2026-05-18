@@ -4,6 +4,18 @@
 RAG = retrieve relevant facts from a document store, then feed them to an LLM so it can answer questions it was never trained on — with citations.
 :::
 
+::: info Prerequisites
+Know these terms first: [Embedding](/glossary#embedding), [Chunking](/glossary#chunk), [Cosine Similarity](/glossary#cosine-similarity), [Vector Database](/glossary#vector).
+:::
+
+## On this page
+
+- [What RAG is](#what-is-rag)
+- [Ingestion + query flow](#how-it-works-step-by-step)
+- [Architectures](#real-world-rag-architectures)
+- [Failure modes](#when-rag-fails-and-how-to-fix-it)
+- [How this project uses RAG](#rag-in-this-project)
+
 ## What Is RAG?
 
 **Retrieval-Augmented Generation (RAG)** is a pattern for grounding LLM answers in a private or up-to-date knowledge base. Instead of asking the model to recall a fact from training data (which can be stale, incomplete, or hallucinated), you first search a document store for relevant passages and then inject those passages into the prompt.
@@ -78,6 +90,18 @@ flowchart TD
 
 ## Real-World RAG Architectures
 
+### Naive RAG vs re-ranked RAG vs GraphRAG
+
+```mermaid
+flowchart LR
+    Q[Question] --> N[Naive RAG\nTop-K vector chunks]
+    Q --> RR[Re-ranked RAG\nVector retrieve + reranker]
+    Q --> G[GraphRAG\nVector retrieve + graph traversal]
+    N --> A1[Fast, simple, weaker multi-hop]
+    RR --> A2[Better relevance for hard queries]
+    G --> A3[Best for relation/multi-hop questions]
+```
+
 ### Minimal (Personal tool)
 
 ```
@@ -142,6 +166,10 @@ This codebase uses Qdrant as a **memory store** for the agent loop (not for full
 - `packages/memory/memory.ts` — hybrid ring buffer + Qdrant memory
 - `packages/tools/semantic.search.ts` — `semantic_search` tool that embeds a query and retrieves similar file contents
 - `packages/tools/pdf.read.ts` — `read_pdf` tool for extracting text from PDFs
+
+### Citation buffering
+
+Tool outputs can be normalized into a citation buffer (`packages/tools/citations.ts`) so generated answers can include consistent evidence payloads (`id`, `title`, `text`) rather than ad-hoc snippets.
 
 The proposed **Library** endpoints extend these capabilities to a full RAG-style ingestion and retrieval system over a collection of PDFs.
 See → [Library Ingestion & Search](/library-ingestion)

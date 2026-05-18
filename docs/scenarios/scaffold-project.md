@@ -4,6 +4,8 @@
 Scaffold from a template — verify the boilerplate is copied to generated-projects.
 :::
 
+⏱ 10 min · 🎯 difficulty: medium
+
 **Goal**: verify scaffold_project copies a template to generated-projects.
 
 > Requires a boilerplate at `data/boilerplates/react-ts/` and `"allowWrite": true`.

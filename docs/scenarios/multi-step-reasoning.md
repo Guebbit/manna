@@ -4,6 +4,8 @@
 Ask a complex question that requires multiple file reads — verify the agent chains tool calls.
 :::
 
+⏱ 10 min · 🎯 difficulty: medium
+
 **Goal**: verify the agent can chain multiple tool calls to answer a complex question.
 
 **Prompt:**

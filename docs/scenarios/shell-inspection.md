@@ -4,6 +4,8 @@
 Run a shell command, check the agent reads the output and explains it.
 :::
 
+⏱ 10 min · 🎯 difficulty: easy
+
 **Goal**: verify shell tool runs commands and the agent interprets output.
 
 **Prompt:**

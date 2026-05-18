@@ -4,6 +4,8 @@
 Send an image to the vision model, verify it returns a description.
 :::
 
+⏱ 10 min · 🎯 difficulty: easy
+
 **Goal**: verify image_classify sends an image to the vision model and returns a description.
 
 > Requires a vision model installed (default: `llava-llama3`).

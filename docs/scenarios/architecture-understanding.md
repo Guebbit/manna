@@ -4,6 +4,8 @@
 Ask the agent to explain its own architecture — verify it reads source code and synthesises a correct answer.
 :::
 
+⏱ 10 min · 🎯 difficulty: medium
+
 **Goal**: test your mental model of the full system.
 
 **Prompt:**

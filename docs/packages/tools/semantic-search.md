@@ -147,3 +147,8 @@ Returns: `"Unable to connect to database server"` and `"Failed to reach MySQL ho
 | `Search packages/agent/ for code related to "step limit and fallback".` | Embeds `.ts` files, ranks by similarity |
 | `Which doc page best explains how memory works?`                        | Embeds docs, semantic rank              |
 | `Find the most relevant section in README.md for "write mode tools".`   | Embeds sections, ranks                  |
+
+## Further reading
+
+- [Ollama embedding models](https://ollama.com/search?c=embedding)
+- [Cosine similarity](https://en.wikipedia.org/wiki/Cosine_similarity)

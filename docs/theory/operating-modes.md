@@ -1,5 +1,9 @@
 # Operating Modes
 
+::: tip TL;DR
+Choose `low-spec`, `standard`, or `high-trust` to set step budget, retry tolerance, and self-debug behavior for your hardware profile.
+:::
+
 Manna supports three explicit operating modes that scale step budgets, error
 tolerances, and self-debug behaviour to match your hardware and trust level.
 
@@ -18,6 +22,14 @@ The default is `standard`.
 | `AGENT_CONSECUTIVE_ERROR_LIMIT` default | 2                                 | 3                                         | 5                                |
 | Self-debug on exhaustion                | No (returns fallback)             | Yes (fast model)                          | Yes (fast model)                 |
 | Target hardware                         | 8–16 GB RAM, CPU-only, ≤8B models | 16–32 GB RAM, mid-range GPU, 7–13B models | 32+ GB VRAM, large models (34B+) |
+
+```mermaid
+flowchart LR
+    A[Request arrives] --> B{AGENT_OPERATING_MODE}
+    B -->|low-spec| C[Short budget\nlow retries\nno self-debug call]
+    B -->|standard| D[Balanced budget\nmoderate retries\nself-debug enabled]
+    B -->|high-trust| E[Large budget\nhigh retries\nself-debug enabled]
+```
 
 ---
 
@@ -48,6 +60,16 @@ At startup, `resolveOperatingModeConfig()` in `packages/shared/operating-mode.ts
 3. Applies any individual env-var overrides.
 4. Returns an `IOperatingModeConfig` object used by `Agent.run()`.
 
+## Which mode should I pick?
+
+```mermaid
+flowchart TD
+    A[Start] --> B{Hardware + latency budget}
+    B -->|CPU only / small RAM| C[low-spec]
+    B -->|General dev workstation| D[standard]
+    B -->|Large GPU + long tasks| E[high-trust]
+```
+
 ---
 
 ## Self-debug on step exhaustion
@@ -64,3 +86,7 @@ When the agent exhausts its step budget without completing the task:
 ---
 
 See also: [Error Taxonomy](./error-taxonomy.md) · [Agent Loop](./agent-loop.md)
+
+Further reading:
+
+- [Ollama docs](https://github.com/ollama/ollama/tree/main/docs)
