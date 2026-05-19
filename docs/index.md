@@ -14,6 +14,7 @@ Local-first AI agent platform for multi-step reasoning, tool execution, orchestr
 
 | Track                     | What you'll find                                                            | Start here                                   |
 | ------------------------- | --------------------------------------------------------------------------- | -------------------------------------------- |
+| **Identity Card**         | One-page "what is Manna?" overview — stack, tools, patterns, strategies     | [Identity Card](/identity-card)              |
 | **Getting Started**       | First run, setup, use cases                                                 | [Quickstart](./quickstart.md)                |
 | **Full Setup**            | All use cases, IDE integration, write mode, knowledge base                  | [Use the Application](/use-the-application)  |
 | **Practical Examples**    | Request → under-the-hood → response walkthroughs                            | [Examples](/examples/)                       |
