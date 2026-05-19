@@ -52,8 +52,19 @@ Manna API  (default port :3001)
 ├── POST /page-review                — Direct: Whole-file categorized review (single LLM call)
 │
 ├── POST /upload/image-classify      — Upload: Image classification via multipart file upload
+├── POST /upload/image-sketch        — Upload: Image → sketch conversion via multipart file upload
+├── POST /upload/image-colorize      — Upload: Image colorization via multipart file upload
 ├── POST /upload/speech-to-text      — Upload: Audio transcription via multipart file upload
 ├── POST /upload/read-pdf            — Upload: PDF text extraction via multipart file upload
+│
+├── GET    /chat/conversations                            — Chat: list conversations
+├── POST   /chat/conversations                            — Chat: create conversation
+├── GET    /chat/conversations/:id                        — Chat: get conversation
+├── PUT    /chat/conversations/:id                        — Chat: update conversation
+├── DELETE /chat/conversations/:id                        — Chat: delete conversation
+├── POST   /chat/conversations/:id/messages               — Chat: append message
+├── PUT    /chat/conversations/:id/messages/:msgId        — Chat: edit message
+├── DELETE /chat/conversations/:id/messages/:msgId        — Chat: delete message
 │
 ├── GET  /info/modes                 — Info: list agent routing profiles (modes)
 ├── GET  /info/models                — Info: list models available in Ollama
@@ -84,12 +95,12 @@ flowchart TD
     Client --> Generic["/run — Full Agent Loop"]
     Client --> Specialized["/autocomplete, /lint, /review"]
     Client --> Upload["/upload/* — File Upload"]
-    Client --> OpenAI["/v1/* — OpenAI Compat"]
+    Client --> Chat["/chat/* — Chat persistence"]
     Client --> Info["/info/*, /help — Metadata"]
     Generic --> AgentLoop["Model routing → Tool selection → Multi-step → Answer"]
     Specialized --> SingleLLM["Single LLM call → Structured response"]
     Upload --> ToolDirect["Tool with base64 data → Result"]
-    OpenAI --> AgentLoop
+    Chat --> Persist["PostgreSQL persistence"]
     Info --> Static["Instance metadata — no LLM call"]
 ```
 
