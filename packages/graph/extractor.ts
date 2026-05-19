@@ -20,7 +20,7 @@
 import { z } from 'zod';
 import { logger } from '../logger/logger';
 import { OLLAMA_BASE_URL } from '../llm/config';
-import { resolveModel } from '../shared';
+import { resolveModel, stripCodeFences } from '../shared';
 import type { IExtractionResult } from './types';
 
 /* ── Configuration ──────────────────────────────────────────────────── */
@@ -117,20 +117,6 @@ function buildExtractionPrompt(text: string): string {
 }
 
 /* ── Code-fence stripper ─────────────────────────────────────────────── */
-
-/**
- * Strip Markdown code fences (` ```json ... ``` ` or ` ``` ... ``` `) from
- * an LLM response so we can parse the inner JSON reliably.
- *
- * @param raw - Raw LLM response string.
- * @returns The response with fences removed.
- */
-function stripCodeFences(raw: string): string {
-    return raw
-        .replace(/^```(?:json)?\s*/i, '')
-        .replace(/\s*```\s*$/i, '')
-        .trim();
-}
 
 /* ── Public API ─────────────────────────────────────────────────────── */
 

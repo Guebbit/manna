@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { imageSketchTool } from '@/packages/tools/image.sketch.js';
 import { imageColorizeTool } from '@/packages/tools/image.colorize.js';
-import { IMAGE_PROCESSOR_URL } from '@/packages/tools/image.processor.config.js';
+import { IMAGE_PROCESSOR_URL } from '@/packages/tools/image.processor.shared.js';
 import {
     createImageProcessorTool,
     imageProcessorInputSchema

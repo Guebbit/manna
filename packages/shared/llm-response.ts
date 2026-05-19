@@ -13,12 +13,16 @@
 /**
  * Strip Markdown code fences that some LLMs wrap around JSON output.
  *
- * Handles both bare `` ``` `` and language-annotated `` ```json ``
- * variants.  Returns the trimmed inner text, ready for `JSON.parse`.
+ * Anchored to the start/end of the string so fences that appear *inside*
+ * the content (rare but possible) are left intact, avoiding accidental
+ * corruption of legitimate payloads.
  *
  * @param raw - Raw LLM response string, possibly wrapped in fences.
- * @returns The cleaned string with code fences removed.
+ * @returns The cleaned string with leading/trailing code fences removed.
  */
 export function stripCodeFences(raw: string): string {
-    return raw.replace(/```(?:json)?\n?/g, '').trim();
+    return raw
+        .replace(/^```(?:json)?\s*/i, '')
+        .replace(/\s*```\s*$/i, '')
+        .trim();
 }

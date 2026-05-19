@@ -29,9 +29,12 @@ export const imageProcessorInputSchema = z.object({
 /**
  * Shared base output schema for image-processor tools.
  *
- * `imageData` is the base64-encoded result image forwarded to the agent's
- * vision feedback loop. `image` is kept for backward compatibility with
- * callers that display the raw output directly.
+ * - `image`     — base64 PNG returned by the external processor; this is the
+ *   public OpenAPI field consumed by the `/upload/image-*` endpoints.
+ * - `imageData` — duplicate of `image` used by the agent loop as a marker that
+ *   a tool result contains a vision payload (see `packages/agent/agent.ts`).
+ *   Without this dedicated field the agent has no reliable way to spot
+ *   image-returning tools at runtime.
  */
 export const imageProcessorOutputSchema = z.object({
     image: z.string().trim().min(1),
