@@ -105,7 +105,7 @@ registerChatRoutes(app);
  * - `allowWrite` (optional, default `false`) — enable `write_file`
  *   and `scaffold_project` tools.
  * - `profile` (optional) — force a model profile (`fast`, `reasoning`,
- *   `code`, or `default`), bypassing automatic routing.
+ *   or `code`), bypassing automatic routing.
  *
  * Response: `{ "result": "agent's final answer" }`
  */

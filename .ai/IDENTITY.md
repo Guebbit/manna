@@ -1,3 +1,13 @@
+<!--
+  This is the AI-canonical source of truth for the Manna application.
+  It mirrors `docs/identity-card.md` (the human-facing canonical doc on the
+  VitePress site). Both files MUST stay in sync; when one is updated, the
+  other must be updated in the same change.
+
+  If anything in the codebase conflicts with this card, fix the codebase or
+  fix this card after verifying against the source — never let drift accumulate.
+-->
+
 # Manna — Application Identity Card
 
 ::: tip TL;DR

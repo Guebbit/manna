@@ -1,14 +1,14 @@
 # Model Selection & Routing
 
 ::: tip TL;DR
-Each agent step is routed to the best [model profile](/glossary#model-profile) (fast / reasoning / code / default) via keyword rules or a small classifier model.
+Each agent step is routed to the best [model profile](/glossary#model-profile) (fast / reasoning / code) via a small classifier model, with deterministic budget overrides.
 :::
 
 ## On this page
 
 - [Agent vs model](#agent-vs-model-what-is-the-difference)
 - [Routing profiles](#per-step-routing-profiles)
-- [Routing modes](#routing-modes-rules-vs-model)
+- [Routing](#per-step-routing-profiles)
 - [Environment variables](#environment-variables)
 - [Troubleshooting](#troubleshooting)
 
@@ -30,7 +30,7 @@ sequenceDiagram
     Note over Agent: runs tool, loops...
 ```
 
-- **Agent** = the loop that runs up to 5 steps
+- **Agent** = the loop that runs up to the operating-mode step cap (5 / 20 / 50 for `low-spec` / `standard` / `high-trust`)
 - **Router** = picks which model to use for this step
 - **Model** = the Ollama model that does the actual thinking
 
@@ -52,25 +52,25 @@ At each step, the router assigns the current task to one of three profiles:
 
 ```mermaid
 flowchart TD
-    Input["task / context"] --> Router{"ROUTER"}
-    Router -->|"rules mode\nkeyword check"| Rules["Match: 'debug', 'refactor', 'implement', ..."]
-    Router -->|"model mode\ntiny LLM classifies"| Classify["ROUTER_MODEL classifies"]
-    Rules --> Select{"Select profile"}
-    Classify --> Select
-    Select --> Fast["⚡ fast\nqwen3:4b"]
-    Select --> Reasoning["🧠 reasoning\ndeepseek"]
-    Select --> Code["💻 code\nqwen3-coder"]
+    Input["task / context"] --> Budgets{"Budget overrides"}
+    Budgets -->|"context near ceiling"| Reasoning["🧠 reasoning"]
+    Budgets -->|"duration near ceiling"| Fast["⚡ fast"]
+    Budgets -->|"within budgets"| Classify["ROUTER_MODEL classifies\n(fast | reasoning | code)"]
+    Classify --> Select{"Select profile"}
+    Select --> Fast
+    Select --> Reasoning
+    Select --> Code["💻 code"]
 ```
 
 ---
 
-Defined by the user OR via a small LLM (the router model) reads the task and outputs a JSON profile choice. More accurate but adds ~200ms latency:
+A small LLM (the router model) reads the task and outputs a JSON profile choice. The router also applies deterministic _budget overrides_ before the LLM call (`AGENT_BUDGET_MAX_DURATION_MS`, `AGENT_BUDGET_MAX_CONTEXT_CHARS`), and a caller may force a profile via the `profile` request field, bypassing routing entirely.
 
 ```bash
 export AGENT_MODEL_ROUTER_MODEL=phi4-mini:latest
 ```
 
-When `model` mode fails (model unreachable, bad response), it automatically falls back to `default`.
+When the router model call fails (model unreachable, bad response), the router falls back to the `fast` profile.
 
 ---
 
@@ -128,8 +128,7 @@ These options are resolved at startup from env vars and passed through to Ollama
 
 | Variable                   | Default | Description                                                                   |
 | -------------------------- | ------- | ----------------------------------------------------------------------------- |
-| `AGENT_MODEL_ROUTER_MODE`  | `rules` | `rules` or `model`                                                            |
-| `AGENT_MODEL_ROUTER_MODEL` | --      | Classifier model (model mode only)                                            |
+| `AGENT_MODEL_ROUTER_MODEL` | --      | Classifier model used by the router (small/fast LLM)                          |
 | `AGENT_MODEL_FAST`         | --      | Model for `fast` profile                                                      |
 | `AGENT_MODEL_REASONING`    | --      | Model for `reasoning` profile                                                 |
 | `AGENT_MODEL_CODE`         | --      | Model for `code` profile                                                      |
@@ -147,14 +146,13 @@ These options are resolved at startup from env vars and passed through to Ollama
 
 ```mermaid
 flowchart TD
-    Task[Current Task/Step] --> Router{Router}
-    Router -->|rules mode| Keywords[Keyword heuristics]
-    Router -->|model mode| Classifier[Small LLM classifies]
-    Keywords --> Profile
-    Classifier --> Profile
-    Profile{Profile Selected}
-    Profile --> Fast["⚡ fast → small model"]
-    Profile --> Reasoning["🧠 reasoning → deep model"]
+    Task[Current Task/Step] --> Budgets{Budget overrides?}
+    Budgets -->|context near ceiling| Reasoning["🧠 reasoning → larger num_ctx"]
+    Budgets -->|duration near ceiling| Fast["⚡ fast → small model"]
+    Budgets -->|within budgets| Classifier[AGENT_MODEL_ROUTER_MODEL classifies]
+    Classifier --> Profile{Profile Selected}
+    Profile --> Fast
+    Profile --> Reasoning
     Profile --> Code["💻 code → coder model"]
 ```
 

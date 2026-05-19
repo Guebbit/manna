@@ -12,7 +12,7 @@ This guide gets you from zero to a working agent response as fast as possible.
 
 | Tool        | Minimum version   | Install                          |
 | ----------- | ----------------- | -------------------------------- |
-| **Node.js** | 20+               | [nodejs.org](https://nodejs.org) |
+| **Node.js** | 18+               | [nodejs.org](https://nodejs.org) |
 | **Ollama**  | any               | [ollama.com](https://ollama.com) |
 | **npm**     | bundled with Node | —                                |
 
